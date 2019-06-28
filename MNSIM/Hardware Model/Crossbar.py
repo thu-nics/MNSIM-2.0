@@ -4,6 +4,7 @@ import configparser as cp
 import os
 import math
 from Device import device
+import numpy as np
 test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"SimConfig.ini")
 # Default SimConfig file path: MNSIM_Python/SimConfig.ini
 
@@ -21,20 +22,29 @@ class crossbar(device):
 		self.wire_resistance = float(xbar_config.get('Crossbar level', 'Wire_Resistance'))
 		self.wire_capacity = float(xbar_config.get('Crossbar level', 'Wire_Capacity'))
 		self.xbar_area = 0
+		self.xbar_simulation_level = int(xbar_config.get('Algorithm Configuration', 'Simulation_Level'))
+
+		self.xbar_write_matrix = np.zeros((self.xbar_row,self.xbar_column))# * 1/self.device_resistance[-1]
+		self.xbar_write_vector = np.zeros((self.xbar_row,1))
+		self.xbar_read_matrix = np.zeros((self.xbar_row, self.xbar_column))# * 1/self.device_resistance[-1]
+		self.xbar_read_vector = np.zeros((self.xbar_row, 1))
+
 		self.xbar_read_power = 0
 		self.xbar_read_latency = 0
+
 		self.xbar_write_power = 0
 		self.xbar_write_latency = 0
+
 		self.xbar_read_energy = 0
 		self.xbar_write_energy = 0
+
 		self.xbar_num_write_row = 0
 		self.xbar_num_write_column = 0
-		self.xbar_num_write_cell = len(self.device_resistance) * [0]
+
 		self.xbar_num_read_row = 0
 		self.xbar_num_read_column = 0
-		self.xbar_num_read_cell = len(self.device_resistance) * [0]
-		self.xbar_utilization = 0
 
+		self.xbar_utilization = 0
 		# print("Crossbar configuration is loaded")
 		# self.calculate_xbar_area()
 		# self.calculate_xbar_read_latency()
@@ -44,29 +54,81 @@ class crossbar(device):
 		# self.calculate_xbar_read_energy()
 		# self.calculate_xbar_write_energy()
 
-	def set_xbar_write(self, num_write_column = None, num_write_row = None, num_cell = None):
-		# num_cell: a list of number of cells in each resistance state in one row
-		if num_write_column is not None:
-			assert num_write_column >= 0
-			self.xbar_num_write_column = num_write_column
-		if num_write_row is not None:
-			assert num_write_row >= 0
-			self.xbar_num_write_row = num_write_row
-		if num_cell is not None:
-			assert min(num_cell) >= 0
-			self.xbar_num_write_cell = num_cell
+	def xbar_write_config(self, write_row = None, write_column = None, write_matrix = None, write_vector = None):
+		# write_row and write_column are the sizes of occupied parts in crossbars
+		# write_matrix: the target weight matrix of the write operation, write_vector: the vector of write voltages
+		if self.xbar_simulation_level == 0:
+		# behavior level simulation
+			if write_row is None:
+				self.xbar_num_write_row = self.xbar_row
+			else:
+				assert write_row >= 0, "Num of occupied row (write) < 0"
+				self.xbar_num_write_row = write_row
+			if write_column is None:
+				self.xbar_num_write_column = self.xbar_column
+			else:
+				assert write_column >= 0, "Num of occupied column (write) < 0"
+				self.xbar_num_write_column = write_column
+		else:
+		# estimation level simulation
+			if write_matrix is None or len(write_matrix) == 0 or ((len(write_matrix)>0) & (len(write_matrix[0])==0)):
+				self.xbar_write_matrix = 1/math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1])) \
+										 * np.ones((self.xbar_row,self.xbar_column))
+				self.xbar_num_write_column = self.xbar_column
+				self.xbar_num_write_row = self.xbar_row
+			else:
+				for i in range(len(write_matrix)):
+					for j in range(len(write_matrix[0])):
+						assert int(write_matrix[i][j]) < self.device_bit_level, "Weight value (write) exceeds the resistance range"
+						self.xbar_write_matrix[i][j] = 1/self.device_resistance[int(write_matrix[i][j])]
+				self.xbar_num_write_row = len(write_matrix)
+				self.xbar_num_write_column = len(write_matrix[0])
+			if write_vector is None or len(write_vector) == 0 or ((len(write_vector)>0) & (len(write_vector[0])==0)):
+				self.xbar_write_vector = (self.device_write_voltage[0]+self.device_write_voltage[-1])/2 \
+										 * np.ones((self.xbar_row,1))
+			else:
+				for i in range(len(write_vector)):
+					assert int(write_vector[i][0]) < self.device_write_voltage_level, "Write voltage value is out of range"
+					self.xbar_write_vector[i][0] = self.device_write_voltage[int(write_vector[i][0])]
+		self.xbar_utilization = self.xbar_num_write_column * self.xbar_num_write_row / (self.xbar_row*self.xbar_column)
 
-	def set_xbar_read(self, num_read_column = None, num_read_row = None, num_cell = None):
-		# num_cell: a list of number of cells in each resistance state in one crossbar
-		if num_read_column is not None:
-			assert num_read_column >= 0
-			self.xbar_num_read_column = num_read_column
-		if num_read_row is not None:
-			assert num_read_row >= 0
-			self.xbar_num_read_row = num_read_row
-		if num_cell is not None:
-			assert min(num_cell) >= 0
-			self.xbar_num_read_cell = num_cell
+	def xbar_read_config(self, read_row = None, read_column = None, read_matrix = None, read_vector = None):
+		# read_row and read_column are the sizes of occupied parts in crossbars
+		# read_matrix: the weight matrix stored in the crossbar, read_vector: read voltage vector (activation input)
+		if self.xbar_simulation_level == 0:
+		# behavior level simulation
+			if read_row is None:
+				self.xbar_num_read_row = self.xbar_row
+			else:
+				assert read_row >= 0, "Num of occupied row (read) < 0"
+				self.xbar_num_read_row = read_row
+			if read_column is None:
+				self.xbar_num_read_column = self.xbar_column
+			else:
+				assert read_column >= 0, "Num of occupied column (read) < 0"
+				self.xbar_num_read_column = read_column
+		else:
+		# estimation level simulation
+			if read_matrix is None or len(read_matrix) == 0 or ((len(read_matrix)>0) & (len(read_matrix[0])==0)):
+				self.xbar_read_matrix = 1/math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1])) \
+										 * np.ones((self.xbar_row,self.xbar_column))
+				self.xbar_num_read_column = self.xbar_column
+				self.xbar_num_read_row = self.xbar_row
+			else:
+				for i in range(len(read_matrix)):
+					for j in range(len(read_matrix[0])):
+						assert int(read_matrix[i][j]) < self.device_bit_level, "Weight value (read) exceeds the resistance range"
+						self.xbar_read_matrix[i][j] = 1/self.device_resistance[int(read_matrix[i][j])]
+				self.xbar_num_read_row = len(read_matrix)
+				self.xbar_num_read_column = len(read_matrix[0])
+			if read_vector is None or len(read_vector) == 0 or ((len(read_vector)>0) & (len(read_vector[0])==0)):
+				self.xbar_read_vector = (self.device_read_voltage[0]+self.device_read_voltage[-1])/2 \
+										 * np.ones((self.xbar_row,1))
+			else:
+				for i in range(len(read_vector)):
+					assert int(read_vector[i][0]) < self.device_read_voltage_level, "Vector value exceeds the input voltage range"
+					self.xbar_read_vector[i][0] = self.device_read_voltage[int(read_vector[i][0])]
+		self.xbar_utilization = self.xbar_num_read_row * self.xbar_num_read_column / (self.xbar_row * self.xbar_column)
 
 	def calculate_xbar_area(self):
 		WL_ratio = 3
@@ -99,46 +161,53 @@ class crossbar(device):
 		self.xbar_read_latency = self.device_read_latency + wire_latency
 
 	def calculate_xbar_write_latency(self):
+		# Notice: before calculating write latency, xbar_write_config must be executed
 		self.xbar_write_latency	= self.device_write_latency * self.xbar_num_write_row
 		# self.xbar_write_latency = self.device_write_latency * min(math.ceil(num_write_row/num_multi_row), num_write_column)\
 		#                           * min(num_multi_row, num_write_row)
 			#unit: ns
 			#Assuming that the write operation of cells in one row can be performed concurrently
 
-	def calculate_xbar_read_power(self, cal_mode = 0):
-		#unit: W
-		#cal_mode: 0: simple estimation, 1: detailed simulation; utilization: utilization rate of crossbar (<=1); num_cell: a list of number of cells in each resistance state
+	def calculate_xbar_read_power(self):
+		# unit: W
+		# cal_mode: 0: simple estimation, 1: detailed simulation
+		# Notice: before calculating power, xbar_read_config must be executed
+		# self.xbar_read_config(read_matrix,read_vector)
 		self.xbar_read_power = 0
-		self.xbar_utilization = self.xbar_num_read_row * self.xbar_num_read_column / (self.xbar_row*self.xbar_column)
-		if cal_mode == 0:
-			assert self.xbar_utilization <= 1
+		#Assuming that in 0T1R structure, the read power of unselected cell is 1/4 of the selected cells' read power
+		if self.xbar_simulation_level == 0:
+			assert self.xbar_utilization <= 1, "Crossbar usage utilization rate > 1"
 			self.calculate_device_read_power()
-			self.xbar_read_power = self.xbar_num_read_row * self.xbar_num_read_column * self.device_read_power
+			self.xbar_read_power += self.xbar_num_read_row * self.xbar_num_read_column * self.device_read_power
+			if self.cell_type[0] =='0':
+				self.calculate_device_read_power(self.device_resistance[0])
+				self.xbar_read_power += 0.25 * self.xbar_num_read_row * (self.xbar_column - self.xbar_num_read_column) \
+										* self.device_read_power
 		else:
-			for index in range(len(self.xbar_num_read_cell)):
-				self.calculate_device_read_power(self.device_resistance[index])
-				self.xbar_read_power += self.xbar_num_read_cell[index] * self.device_read_power
-		if self.cell_type[0] == '0':
-			self.calculate_device_read_power(self.device_resistance[-1])
-			self.xbar_read_power += 0.25 * (1 - self.xbar_utilization)*\
-									self.xbar_row * self.xbar_column * self.device_read_power
-			#Assuming that in 0T1R structure, the read power of unselected cell is 1/4 of the selected cells' read power
+			temp_v2 = self.xbar_read_vector * self.xbar_read_vector
+			self.xbar_read_power += (self.xbar_read_matrix.T.dot(temp_v2)).sum()
+			if self.cell_type[0] == '0':
+				temp_matrix = np.ones((self.xbar_num_read_row, self.xbar_column-self.xbar_num_read_column)) / self.device_resistance[0]
+				# print("temp_matrix",temp_matrix.T)
+				# print("temp_vector",temp_v2[0:self.xbar_num_read_column])
+				# print("unused power", 0.25* (temp_matrix.T.dot(temp_v2[0:self.xbar_num_read_column])).sum())
+				self.xbar_read_power += 0.25* (temp_matrix.T.dot(temp_v2[0:self.xbar_num_read_column])).sum()
 
-	def calculate_xbar_write_power(self, cal_mode = 0):
-		#unit: W
-		#cal_mode: 0: simple estimation, 1: detailed simulation; num_total_write: total number of the cells need to be written; num_cell: a list of number of cells in each resistance state
-		#TODO: consider the write power of unselected cells
+	def calculate_xbar_write_power(self):
+		# unit: W
+		# cal_mode: 0: simple estimation, 1: detailed simulation
+		# Notice: before calculating power, xbar_write_config must be executed
+		# TODO: consider the write power of unselected cells
+
+		# self.xbar_write_config(write_matrix, write_vector)
 		self.xbar_write_power = 0
-		num_total_write = self.xbar_num_write_column
 		# Assuming that the write operation of cells in one row can be performed concurrently
-		if cal_mode == 0:
+		if self.xbar_simulation_level == 0:
 			self.calculate_device_write_power()
-			self.xbar_write_power = num_total_write * self.device_write_power
+			self.xbar_write_power = self.xbar_num_write_column * self.device_write_power
 		else:
-			for index in range(len(self.xbar_num_write_cell)):
-				self.calculate_device_write_power(self.device_resistance[index])
-				self.xbar_write_power += self.xbar_num_write_cell[index] * self.device_write_power
-			self.xbar_write_power /= self.xbar_num_write_column
+			temp_v2 = self.xbar_write_vector * self.xbar_write_vector
+			self.xbar_write_power = (self.xbar_write_matrix.T.dot(temp_v2)).sum() / self.xbar_num_write_row
 
 	def calculate_xbar_read_energy(self):
 		#unit: nJ
@@ -157,6 +226,7 @@ class crossbar(device):
 		print("wire_resistance:", self.wire_resistance, "ohm")
 		print("wire_capacity:", self.wire_capacity, "fF")
 		print("crossbar_area", self.xbar_area, "um^2")
+		print("crossbar_utilization_rate", self.xbar_utilization)
 		print("crossbar_read_power:", self.xbar_read_power, "W")
 		print("crossbar_read_latency:", self.xbar_read_latency, "ns")
 		print("crossbar_read_energy:", self.xbar_read_energy, "nJ")
@@ -170,14 +240,27 @@ def xbar_test():
 	_xbar = crossbar(test_SimConfig_path)
 	# _xbar.xbar_output()
 	print('------------')
-	_xbar.calculate_xbar_write_latency()
+	# _xbar.xbar_read_config(read_matrix=[[1,0],[1,1]],read_vector=[[0],[1]])
+	_xbar.xbar_read_config(read_row=100,read_column=100)
+	print(_xbar.xbar_read_matrix)
+	print(_xbar.xbar_read_vector)
+	print(_xbar.xbar_num_read_row)
+	print(_xbar.xbar_num_read_column)
+	print(_xbar.xbar_utilization)
+	# _xbar.xbar_write_config(write_matrix=[[1,0],[0,1]],write_vector=[[0],[1]])
+	# print(_xbar.xbar_write_matrix)
+	# print(_xbar.xbar_write_vector)
+	# print(_xbar.xbar_num_write_row)
+	# print(_xbar.xbar_num_write_column)
+	# print(_xbar.xbar_utilization)
+	# _xbar.calculate_xbar_write_latency()
 	_xbar.calculate_xbar_area()
 	_xbar.calculate_xbar_read_latency()
 	# self.calculate_xbar_write_latency()
 	_xbar.calculate_xbar_read_power()
-	_xbar.calculate_xbar_write_power()
+	# _xbar.calculate_xbar_write_power()
 	_xbar.calculate_xbar_read_energy()
-	_xbar.calculate_xbar_write_energy()
+	# _xbar.calculate_xbar_write_energy()
 	_xbar.xbar_output()
 
 
