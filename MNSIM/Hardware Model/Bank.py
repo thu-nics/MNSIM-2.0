@@ -179,7 +179,7 @@ class bank(ProcessElement):
 				assert self.num_occupied_PE <= self.bank_PE_total_num, "The length of read_row exceeds the PE number in one bank"
 				for i in range(self.bank_PE_num[0]):
 					for j in range(self.bank_PE_num[1]):
-						temp_index = i * self.bank_PE_num[0] + self.bank_PE_num[1]
+						temp_index = i * self.bank_PE_num[0] + j
 						if temp_index < self.num_occupied_PE:
 							self.bank_PE_list[i][j].PE_read_config(read_row = read_row[temp_index],
 																read_column = read_column[temp_index])
