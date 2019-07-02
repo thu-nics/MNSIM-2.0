@@ -12,9 +12,9 @@ class shiftreg(object):
 		# frequency unit: MHz
 		shiftreg_config = cp.ConfigParser()
 		shiftreg_config.read(SimConfig_path)
-		self.shiftreg_tech = int(shiftreg_config.get('Bank level', 'ShiftReg_Tech'))
-		self.shiftreg_area = float(shiftreg_config.get('Bank level', 'ShiftReg_Area'))
-		self.shiftreg_power = float(shiftreg_config.get('Bank level', 'ShiftReg_Power'))
+		self.shiftreg_tech = int(shiftreg_config.get('Digital module', 'ShiftReg_Tech'))
+		self.shiftreg_area = float(shiftreg_config.get('Digital module', 'ShiftReg_Area'))
+		self.shiftreg_power = float(shiftreg_config.get('Digital module', 'ShiftReg_Power'))
 		if max_shiftbase is None:
 			self.max_shiftbase = 8
 		else:

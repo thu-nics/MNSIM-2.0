@@ -12,9 +12,9 @@ class adder(object):
 		# frequency unit: MHz
 		adder_config = cp.ConfigParser()
 		adder_config.read(SimConfig_path)
-		self.adder_tech = int(adder_config.get('Bank level', 'Adder_Tech'))
-		self.adder_area = float(adder_config.get('Bank level', 'Adder_Area'))
-		self.adder_power = float(adder_config.get('Bank level', 'Adder_Power'))
+		self.adder_tech = int(adder_config.get('Digital module', 'Adder_Tech'))
+		self.adder_area = float(adder_config.get('Digital module', 'Adder_Area'))
+		self.adder_power = float(adder_config.get('Digital module', 'Adder_Power'))
 		if bitwidth is None:
 			self.adder_bitwidth = 8
 		else:
