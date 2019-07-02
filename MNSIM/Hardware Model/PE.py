@@ -478,8 +478,8 @@ class ProcessElement(crossbar, DAC, ADC):
 				if multiple_time > max_multiple_time:
 					max_multiple_time = multiple_time
 		self.PE_xbar_read_latency = max_multiple_time * self.xbar_read_latency
-		self.PE_ADC_read_latency = max_multiple_time * 1 / self.ADC_sample_rate * self.ADC_precision
-		self.PE_DAC_read_latency = max_multiple_time * 1 / self.DAC_sample_rate * self.DAC_precision
+		self.PE_ADC_read_latency = max_multiple_time * 1 / self.ADC_sample_rate * (self.ADC_precision + 2)
+		self.PE_DAC_read_latency = max_multiple_time * 1 / self.DAC_sample_rate * (self.DAC_precision + 2)
 		# TODO: check the ADDA latency formalution
 		# TODO: Add the mux/demux latency
 		self.input_demux_read_latency = 0
@@ -662,7 +662,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.PE_adder_write_energy = self.PE_adder_write_power * self.PE_adder_write_latency
 		self.PE_shiftreg_write_energy = self.PE_shiftreg_write_power * self.PE_shiftreg_write_latency
 		self.input_demux_write_energy = self.input_demux_write_power * self.input_demux_write_latency
-		self.output_mux_write_energy = self.output_mux_write_latency * self.otuput_mux_write_power
+		self.output_mux_write_energy = self.output_mux_write_latency * self.output_mux_write_power
 		self.PE_digital_write_energy = self.PE_adder_write_energy + self.PE_shiftreg_write_energy + self.input_demux_write_energy + self.output_mux_write_energy
 		self.PE_write_energy = self.PE_xbar_write_energy + self.PE_DAC_write_energy + \
 							  self.PE_ADC_write_energy + self.PE_digital_write_energy

@@ -201,7 +201,7 @@ class bank(ProcessElement):
 					assert self.num_occupied_PE <= self.bank_PE_total_num, "The number of read_matrix exceeds the PE number in one bank"
 					for i in range(self.bank_PE_num[0]):
 						for j in range(self.bank_PE_num[1]):
-							temp_index = i * self.bank_PE_num[0] + self.bank_PE_num[1]
+							temp_index = i * self.bank_PE_num[0] + j
 							if temp_index < self.num_occupied_PE:
 								self.bank_PE_list[i][j].PE_read_config(read_matrix = read_matrix[temp_index])
 								self.bank_PE_enable[i][j] = 1
@@ -213,7 +213,7 @@ class bank(ProcessElement):
 					self.num_occupied_PE = len(read_matrix)
 					for i in range(self.bank_PE_num[0]):
 						for j in range(self.bank_PE_num[1]):
-							temp_index = i * self.bank_PE_num[0] + self.bank_PE_num[1]
+							temp_index = i * self.bank_PE_num[0] + j
 							if temp_index < self.num_occupied_PE:
 								self.bank_PE_list[i][j].PE_read_config(read_matrix = read_matrix[temp_index],
 																	read_vector = read_vector[temp_index])
@@ -701,6 +701,18 @@ class bank(ProcessElement):
 def bank_test():
 	print("load file:",test_SimConfig_path)
 	_bank = bank(test_SimConfig_path)
+	_bank.bank_read_config(read_matrix=[
+		[[[[0, 1], [1, 1]], [[1, 1], [0, 0]]],
+		 [[[0, 1, 1], [1, 1, 0], [0, 0, 0]], [[1, 1, 1], [0, 0, 1], [1, 0, 1]]]],
+		[[[[0, 1], [1, 1]], [[1, 1], [0, 0]]],
+		 [[[0, 1, 1], [1, 1, 0], [0, 0, 0]], [[1, 1, 1], [0, 0, 1], [1, 0, 1]]]]
+	], read_vector=[
+		[[[0], [1]],
+		 [[1], [0], [1]]],
+		[[[0], [1]],
+		 [[1], [0], [1]]]
+	])
+	_bank.bank_write_config()
 	_bank.calculate_bank_area()
 	_bank.calculate_bank_read_latency()
 	_bank.calculate_bank_write_latency()

@@ -84,7 +84,7 @@ class crossbar(device):
 				self.xbar_num_write_row = len(write_matrix)
 				self.xbar_num_write_column = len(write_matrix[0])
 			if write_vector is None or len(write_vector) == 0 or ((len(write_vector)>0) & (len(write_vector[0])==0)):
-				self.xbar_write_vector = (self.device_write_voltage[0]+self.device_write_voltage[-1])/2 \
+				self.xbar_write_vector = math.sqrt((self.device_write_voltage[0]*self.device_write_voltage[-1])) \
 										 * np.ones((self.xbar_row,1))
 			else:
 				for i in range(len(write_vector)):
@@ -122,7 +122,7 @@ class crossbar(device):
 				self.xbar_num_read_row = len(read_matrix)
 				self.xbar_num_read_column = len(read_matrix[0])
 			if read_vector is None or len(read_vector) == 0 or ((len(read_vector)>0) & (len(read_vector[0])==0)):
-				self.xbar_read_vector = (self.device_read_voltage[0]+self.device_read_voltage[-1])/2 \
+				self.xbar_read_vector = math.sqrt((self.device_read_voltage[0]*self.device_read_voltage[-1])) \
 										 * np.ones((self.xbar_row,1))
 			else:
 				for i in range(len(read_vector)):
@@ -207,6 +207,7 @@ class crossbar(device):
 			self.xbar_write_power = self.xbar_num_write_column * self.device_write_power
 		else:
 			temp_v2 = self.xbar_write_vector * self.xbar_write_vector
+			assert self.xbar_num_write_row>0, "xbar_num_write_row is 0, consider use the write_config function"
 			self.xbar_write_power = (self.xbar_write_matrix.T.dot(temp_v2)).sum() / self.xbar_num_write_row
 
 	def calculate_xbar_read_energy(self):
