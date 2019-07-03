@@ -52,6 +52,7 @@ class behavior_mapping(bank):
             self.bank_num[i] = math.ceil(self.PE_num[i]/self.bank_PE_total_num)
             # print(self.bank_num[i])
             for j in range(self.bank_num[i]):
+                temp_outputchannel = self.output_channel[i]
                 __temp_bank = bank(self.SimConfig_path)
                 self.bank_list[i].append(__temp_bank)
                 self.bank_list[i][j].bank_read_config()
