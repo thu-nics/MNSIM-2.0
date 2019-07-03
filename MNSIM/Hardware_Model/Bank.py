@@ -157,9 +157,9 @@ class bank(ProcessElement):
 
 	def bank_read_config(self, layer_num = 0, activation_precision = 0, sliding_times = 0,
 					  read_row = None, read_column = None, read_matrix = None, read_vector = None):
-		# read_row and read_column are 2D lists with the size of (bank_PE_total_num x #occupied groups)
-		# read_matrix is a 3D list of matrices, with the size of (bank_PE_total_num x #occupied groups x Xbar_Polarity)
-		# read_vector is a 2D list of vectors, with the size of (bank_PE_total_num x #occupied groups)
+		# read_row and read_column are 2D lists with the size of (#occupied_PE x #occupied groups)
+		# read_matrix is a 3D list of matrices, with the size of (#occupied_PE x #occupied groups x Xbar_Polarity)
+		# read_vector is a 2D list of vectors, with the size of (#occupied_PE x #occupied groups)
 		self.bank_layer_num = layer_num
 		self.bank_activation_precision = activation_precision
 		self.bank_sliding_times = sliding_times
@@ -225,9 +225,9 @@ class bank(ProcessElement):
 		self.bank_utilization /= self.bank_PE_total_num
 
 	def bank_write_config(self, write_row = None, write_column = None, write_matrix = None, write_vector = None):
-		# write_row and write_column are 2D lists with the size of (bank_PE_total_num x #occupied groups)
-		# write_matrix is a 3D list of matrices, with the size of (bank_PE_total_num x #occupied groups x Xbar_Polarity)
-		# write_vector is a 2D list of vectors, with the size of (bank_PE_total_num x #occupied groups)
+		# write_row and write_column are 2D lists with the size of (#occupied_PE x #occupied groups)
+		# write_matrix is a 3D list of matrices, with the size of (#occupied_PE x #occupied groups x Xbar_Polarity)
+		# write_vector is a 2D list of vectors, with the size of (#occupied_PE x #occupied groups)
 		self.bank_utilization = 0
 		if self.bank_simulation_level == 0:
 			if (write_row is None) or (write_column is None):
