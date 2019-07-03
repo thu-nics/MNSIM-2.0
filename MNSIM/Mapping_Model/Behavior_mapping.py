@@ -75,19 +75,21 @@ class behavior_mapping(bank):
                     # print("temp_outputchannel", temp_outputchannel)
                     # print("temp_kernellength*", temp_kernellength)
                     temp_kernellength = self.kernel_length[i]
-                    read_row = []
-                    read_column = []
-                    __temp_bank = bank(self.SimConfig_path)
+                    # read_row = []
+                    # read_column = []
+                    # __temp_bank = bank(self.SimConfig_path)
                     while temp_kernellength > 0:
-                        if temp_kernellength <= self.xbar_row * self.bank_PE_num[0]:
+                        if temp_kernellength <= self.xbar_row * self.bank_PE_total_num:
+                        # if temp_kernellength <= self.xbar_row * self.bank_PE_num[0]:
                             temp_read_row = temp_kernellength
                         else:
-                            temp_read_row = self.xbar_row * self.bank_PE_num[0]
+                            # temp_read_row = self.xbar_row * self.bank_PE_num[0]
+                            temp_read_row = self.xbar_row * self.bank_PE_total_num
                         temp_kernellength -= temp_read_row
                         # print("temp_kernellength", temp_kernellength)
-                        # read_row = []
-                        # read_column = []
-                        # __temp_bank = bank(self.SimConfig_path)
+                        read_row = []
+                        read_column = []
+                        __temp_bank = bank(self.SimConfig_path)
                         self.bank_list[i].append(__temp_bank)
                         temp_temp_read_column = temp_read_column
                         # print("temp_read_colmn*", temp_read_column)
@@ -111,9 +113,10 @@ class behavior_mapping(bank):
                             temp_temp_read_column -= self.xbar_column
                             # print("temp_read_colmn", temp_read_column)
                             # print("temp_read_row*", temp_read_row)
-                    print("read_row", read_row)
-                    print("read_column", read_column)
-                    self.bank_list[i][index].bank_read_config(layer_num=i,
+                        print("read_row", read_row)
+                        print("read_column", read_column)
+                        print("PE usage is ", len(read_row))
+                        self.bank_list[i][index].bank_read_config(layer_num=i,
                                                                   activation_precision=self.activation_precision[i],
                                                                   sliding_times=self.sliding_times[i],
                                                                   read_row=read_row, read_column=read_column)
