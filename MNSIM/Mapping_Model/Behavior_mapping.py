@@ -54,7 +54,7 @@ class behavior_mapping(bank):
             temp_weightprecision = self.weight_precision[i]
             temp_outputchannel = self.output_channel[i]
             temp_kernellength = self.kernel_length[i]
-            index = 0
+            bank_index = 0
             while temp_weightprecision > 0:
                 # print("temp_weightprecision *", temp_weightprecision)
                 # print("group_num",self.group_num)
@@ -116,13 +116,13 @@ class behavior_mapping(bank):
                         print("read_row", read_row)
                         print("read_column", read_column)
                         print("PE usage is ", len(read_row))
-                        self.bank_list[i][index].bank_read_config(layer_num=i,
+                        self.bank_list[i][bank_index].bank_read_config(layer_num=i,
                                                                   activation_precision=self.activation_precision[i],
                                                                   sliding_times=self.sliding_times[i],
                                                                   read_row=read_row, read_column=read_column)
                     print("ojbk")
-                    index += 1
-            print("index",index)
+                    bank_index += 1
+            print("bank_index",bank_index)
             i += 1
 
 
