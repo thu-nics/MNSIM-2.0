@@ -588,12 +588,12 @@ class ProcessElement(crossbar, DAC, ADC):
 				if self.PE_xbar_enable[i][0] == 1:
 					if self.PE_multiplex_xbar_num[1] == 1:
 						self.PE_xbar_list[i][0].calculate_xbar_read_power()
-						self.PE_xbar_read_power += self.PE_xbar_list[i][0].xbar_read_power
+						self.PE_xbar_read_power += self.PE_xbar_list[i][0].xbar_read_power/self.input_demux/self.output_mux
 					else:
 						self.PE_xbar_list[i][0].calculate_xbar_read_power()
-						self.PE_xbar_read_power += self.PE_xbar_list[i][0].xbar_read_power
+						self.PE_xbar_read_power += self.PE_xbar_list[i][0].xbar_read_power/self.input_demux/self.output_mux
 						self.PE_xbar_list[i][1].calculate_xbar_read_power()
-						self.PE_xbar_read_power += self.PE_xbar_list[i][1].xbar_read_power
+						self.PE_xbar_read_power += self.PE_xbar_list[i][1].xbar_read_power/self.input_demux/self.output_mux
 					self.PE_DAC_read_power += math.ceil(self.PE_xbar_list[i][0].xbar_num_read_row/self.input_demux)*self.DAC_power
 					self.PE_ADC_read_power += math.ceil(self.PE_xbar_list[i][0].xbar_num_read_column/self.output_mux)*self.ADC_power
 					self.input_demux_read_power += math.ceil(self.PE_xbar_list[i][0].xbar_num_read_row/self.input_demux)*self.input_demux_power
@@ -728,8 +728,9 @@ def PE_test():
 	_PE = ProcessElement(test_SimConfig_path)
 	print(_PE.xbar_column)
 	_PE.calculate_PE_area()
-	_PE.PE_read_config(read_matrix=[ [ [[0,1],[1,1]], [[1,1],[0,0]] ], [ [[0,1,1],[1,1,0],[0,0,0]], [[1,1,1],[0,0,1],[1,0,1]] ] ],
-					read_vector=[[[0],[1]] , [[1],[0],[1]] ])
+	# _PE.PE_read_config(read_matrix=[ [ [[0,1],[1,1]], [[1,1],[0,0]] ], [ [[0,1,1],[1,1,0],[0,0,0]], [[1,1,1],[0,0,1],[1,0,1]] ] ],
+	# 				read_vector=[[[0],[1]] , [[1],[0],[1]] ])
+	_PE.PE_read_config()
 	_PE.calculate_PE_read_power()
 	_PE.calculate_PE_read_latency()
 	_PE.calculate_PE_read_energy()
