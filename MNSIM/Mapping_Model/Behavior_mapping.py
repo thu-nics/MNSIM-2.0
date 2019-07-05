@@ -453,7 +453,7 @@ class behavior_mapping(bank):
 
 if __name__ == '__main__':
     # print("ok")
-    net_structure_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "mnist_net.pt")
+    net_structure_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "mnsim_net.pt")
     # net_structure_path = "/Users/zzh/Desktop/lab/MNSIM_python_v1.2/mnist_net.pt"
     SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     # SimConfig_path = "/Users/zzh/Desktop/lab/MNSIM_python_v1.2/SimConfig.ini"
