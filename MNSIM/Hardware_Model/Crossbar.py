@@ -137,9 +137,9 @@ class crossbar(device):
 		area_factor = 4
 		#Area unit: um^2
 		if self.cell_type[0] == '0':
-			self.xbar_area = area_factor * self.xbar_row * self.xbar_column * self.device_tech * self.device_tech / 1e6
+			self.xbar_area = area_factor * self.xbar_row * self.xbar_column * self.device_area
 		else:
-			self.xbar_area = 3 * (WL_ratio + 1) * self.xbar_row * self.xbar_column * self.transistor_tech * self.transistor_tech / 1e6
+			self.xbar_area = 3 * (WL_ratio + 1) * self.xbar_row * self.xbar_column * self.device_area
 
 	def calculate_wire_resistance(self):
 		#unit: ohm

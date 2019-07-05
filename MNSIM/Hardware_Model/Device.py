@@ -12,6 +12,7 @@ class device(object):
 		device_config = cp.ConfigParser()
 		device_config.read(SimConfig_path)
 		self.device_tech = float(device_config.get('Device level', 'Device_Tech'))
+		self.device_area = float(device_config.get('Device level', 'Device_Area'))
 		self.device_read_voltage_level = int(device_config.get('Device level', 'Read_Level'))
 		assert self.device_read_voltage_level >= 0, "Read voltage level < 0"
 		self.device_read_voltage = list(map(float, device_config.get('Device level', 'Read_Voltage').split(',')))

@@ -158,12 +158,18 @@ class ProcessElement(crossbar, DAC, ADC):
 	def calculate_ADC_num(self):
 		self.calculate_xbar_area()
 		self.calculate_ADC_area()
+		# print("xbar area", self.xbar_area)
+		# print("ADC area", self.ADC_area)
+		# print("mul", self.PE_multiplex_xbar_num[1])
 		if self.PE_multiplex_ADC_num == 0:
 			self.PE_multiplex_ADC_num = math.ceil(math.sqrt(self.xbar_area)*self.PE_multiplex_xbar_num[1]/math.sqrt(self.ADC_area))
 		else:
 			assert self.PE_multiplex_ADC_num > 0, "ADC number in one group < 0"
+		# print("ADC_num", self.PE_multiplex_ADC_num)
 		self.PE_ADC_num = self.group_num * self.PE_multiplex_ADC_num
 		self.output_mux = math.ceil(self.xbar_column*self.PE_multiplex_xbar_num[1]/self.PE_multiplex_ADC_num)
+		# self.output_mux = math.ceil(self.xbar_column/self.PE_multiplex_ADC_num)
+		# print("output_mux",self.output_mux)
 		assert self.output_mux > 0
 
 	def calculate_DAC_num(self):
