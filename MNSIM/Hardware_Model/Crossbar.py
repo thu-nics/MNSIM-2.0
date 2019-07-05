@@ -122,8 +122,9 @@ class crossbar(device):
 				self.xbar_num_read_row = len(read_matrix)
 				self.xbar_num_read_column = len(read_matrix[0])
 			if read_vector is None or len(read_vector) == 0 or ((len(read_vector)>0) & (len(read_vector[0])==0)):
-				self.xbar_read_vector = math.sqrt((self.device_read_voltage[0]*self.device_read_voltage[-1])) \
-										 * np.ones((self.xbar_row,1))
+				# self.xbar_read_vector = math.sqrt((self.device_read_voltage[0]*self.device_read_voltage[-1])) \
+				# 						 * np.ones((self.xbar_row,1))
+				self.xbar_read_vector = math.sqrt((self.device_read_voltage[0]**2 + self.device_read_voltage[-1]**2)/2) * np.ones((self.xbar_row,1))
 			else:
 				for i in range(len(read_vector)):
 					assert int(read_vector[i][0]) < self.device_read_voltage_level, "Vector value exceeds the input voltage range"
@@ -155,7 +156,8 @@ class crossbar(device):
 	def calculate_xbar_read_latency(self):
 		self.calculate_wire_resistance()
 		self.calculate_wire_capacity()
-		wire_latency = 0.5 * self.wire_resistance * self.wire_capacity * 1e3
+		wire_latency = 0
+		# wire_latency = 0.5 * self.wire_resistance * self.wire_capacity * 1e3
 			#unit: ns
 			#TODO: Update the calculation formula considering the branches
 		self.xbar_read_latency = self.device_read_latency + wire_latency

@@ -42,7 +42,7 @@ class device(object):
 			R = math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1]))
 		assert R > 0, "Resistance <= 0"
 		if V is None:
-			V = (self.device_read_voltage[0] + self.device_read_voltage[-1])/2
+			V = math.sqrt((self.device_read_voltage[0]**2 + self.device_read_voltage[-1]**2)/2)
 		assert V >= 0, "Voltage < 0"
 		self.device_read_power = V ** 2 / R
 
