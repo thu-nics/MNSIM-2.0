@@ -4,6 +4,7 @@ import torch
 import sys
 import os
 import math
+import configparser as cp
 work_path = os.path.dirname(os.getcwd())
 print("ok", work_path)
 sys.path.append(work_path)
@@ -17,6 +18,9 @@ class behavior_mapping(bank):
         bank.__init__(self, SimConfig_path)
         print("CNN structure file is loaded:", NetStruct_path)
         print("Hardware config file is loaded:", SimConfig_path)
+        bm_config = cp.ConfigParser()
+        bm_config.read(SimConfig_path)
+        self.xbar_polarity = int(bm_config.get('Process element level', 'Xbar_Polarity'))
         self.net_structure = torch.load(NetStruct_path)
         self.arch_config = SimConfig_path
         self.total_layer_num = len(self.net_structure)
@@ -26,6 +30,7 @@ class behavior_mapping(bank):
         self.output_channel = self.total_layer_num*[0]
         self.weight_precision = self.total_layer_num*[8]
         self.activation_precision = self.total_layer_num*[8]
+        self.operations = self.total_layer_num*[0]
         self.PE_num = self.total_layer_num*[0]
         self.bank_num = self.total_layer_num*[0]
         for i in range(self.total_layer_num):
@@ -110,18 +115,24 @@ class behavior_mapping(bank):
         self.arch_total_input_demux_energy = 0
         self.arch_total_output_mux_energy = 0
 
+        self.arch_energy_efficiency = 0
+
 
     def config_behavior_mapping(self):
         i = 0
         for layer in self.net_structure.items():
-            # print("----------layer", i, "-----------")
+            print("----------layer", i, "-----------")
             inputsize = int(layer[1]['Inputsize'])
             outputsize = int(layer[1]['Outputsize'])
             kernelsize = int(layer[1]['Kernelsize'])
             stride = int(layer[1]['Stride'])
             inputchannel = int(layer[1]['Inputchannel'])
             self.output_channel[i] = int(layer[1]['Outputchannel'])
-            self.weight_precision[i] = int(layer[1]['Weightbit'])
+            if self.xbar_polarity == 1:
+                self.weight_precision[i] = int(layer[1]['Weightbit'])
+            else:
+                assert self.xbar_polarity == 2, "Crossbar polarity must be 1 or 2"
+                self.weight_precision[i] = int(layer[1]['Weightbit']) - 1
             self.activation_precision[i] = int(layer[1]['Inputbit'])
             self.kernel_length[i] = kernelsize**2 * inputchannel
             self.sliding_times[i] = outputsize**2
@@ -131,10 +142,11 @@ class behavior_mapping(bank):
 
             # print(self.PE_num[i])
             self.bank_num[i] = math.ceil(self.PE_num[i]/self.bank_PE_total_num)
-            # print("bank_num", self.bank_num[i])
+            print("bank_num", self.bank_num[i])
             temp_weightprecision = self.weight_precision[i]
             temp_outputchannel = self.output_channel[i]
             temp_kernellength = self.kernel_length[i]
+            self.operations[i] = self.sliding_times[i] * self.kernel_length[i] * self.output_channel[i] * 2
             bank_index = 0
             read_column = []
             read_row = []
@@ -173,8 +185,8 @@ class behavior_mapping(bank):
                                                                                        sliding_times=self.sliding_times[i],
                                                                                        read_row=read_row,
                                                                                        read_column=read_column)
-                                            # print("read_row", read_row)
-                                            # print("read_column", read_column)
+                                            print("read_row", read_row)
+                                            print("read_column", read_column)
                                             bank_index += 1
                                             read_column = []
                                             read_row = []
@@ -189,8 +201,8 @@ class behavior_mapping(bank):
                                                                                        sliding_times=self.sliding_times[i],
                                                                                        read_row=read_row,
                                                                                        read_column=read_column)
-                                            # print("read_row", read_row)
-                                            # print("read_column", read_column)
+                                            print("read_row", read_row)
+                                            print("read_column", read_column)
                                             bank_index += 1
                                             read_column = []
                                             read_row = []
@@ -210,8 +222,8 @@ class behavior_mapping(bank):
                                                                                            self.sliding_times[i],
                                                                                            read_row=read_row,
                                                                                            read_column=read_column)
-                                            # print("read_row", read_row)
-                                            # print("read_column", read_column)
+                                            print("read_row", read_row)
+                                            print("read_column", read_column)
                                             bank_index += 1
                                             read_column = []
                                             read_row = []
@@ -226,8 +238,8 @@ class behavior_mapping(bank):
                                                                                            sliding_times=self.sliding_times[i],
                                                                                            read_row=read_row,
                                                                                            read_column=read_column)
-                                            # print("read_row", read_row)
-                                            # print("read_column", read_column)
+                                            print("read_row", read_row)
+                                            print("read_column", read_column)
                                             bank_index += 1
                                             read_column = []
                                             read_row = []
@@ -245,8 +257,8 @@ class behavior_mapping(bank):
                                                                            sliding_times=self.sliding_times[i],
                                                                            read_row=read_row,
                                                                            read_column=read_column)
-                            # print("read_row", read_row)
-                            # print("read_column", read_column)
+                            print("read_row", read_row)
+                            print("read_column", read_column)
                             bank_index += 1
             # print("bank_index", bank_index)
             i += 1
@@ -376,6 +388,7 @@ class behavior_mapping(bank):
         self.arch_total_shiftreg_energy = sum(self.arch_shiftreg_energy)
         self.arch_total_input_demux_energy = sum(self.arch_input_demux_energy)
         self.arch_total_output_mux_energy = sum(self.arch_output_mux_energy)
+        self.arch_energy_efficiency = sum(self.operations)/self.arch_total_energy #unit: GOPs/W
         # print(self.arch_total_energy)
         # print("xbar", self.arch_total_xbar_energy)
         # print("ADC", self.arch_total_ADC_energy)
@@ -396,6 +409,7 @@ class behavior_mapping(bank):
             print("     |----Stride:", int(layer[1]['Stride']))
             print("     |----Output Size:", int(layer[1]['Outputsize']))
             print("     |----Output Channel:", int(layer[1]['Outputchannel']))
+            # print("     |----Operations:", self.operations[i])
             i += 1
         print("---------Hardware Performance---------")
         print("Bank number:", sum(self.bank_num))
@@ -443,12 +457,14 @@ class behavior_mapping(bank):
         if layer_information:
             for i in range(self.total_layer_num):
                 print("Layer", i, ":")
+                print("     Operations:", self.operations[i])
                 print("     Bank number:", self.bank_num[i])
                 print("     Bank utilization:", self.arch_utilization[i])
                 print("     Hardware area:", self.arch_area[i])
                 print("     Hardware power:", self.arch_power[i])
                 print("     Hardware latency:", self.arch_latency[i])
                 print("     Hardware energy:", self.arch_energy[i])
+        print("Hardware energy efficiency:", self.arch_energy_efficiency, " GOPs/W")
 
 
 if __name__ == '__main__':
