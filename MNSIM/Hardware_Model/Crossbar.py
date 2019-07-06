@@ -144,7 +144,8 @@ class crossbar(device):
 	def calculate_wire_resistance(self):
 		#unit: ohm
 		if self.wire_resistance < 0:
-			self.wire_resistance = 1
+			self.wire_resistance = 2.82
+				#ref: Overcoming the challenges of crossbar resistive memory architectures
 				#TODO: Update the wire resistance calculation according to different technology sizes
 
 	def calculate_wire_capacity(self):
