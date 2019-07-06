@@ -56,11 +56,11 @@ class adder(object):
 	def calculate_adder_power(self):
 		# unit: W
 		if self.adder_power == 0:
-			adder_power_dict = {130: 0,
-							   65: 0,
-							   55: 0,
-							   45: 0,
-							   28: 0
+			adder_power_dict = {130: 2.5e-9,
+							   65: 2.5e-9,
+							   55: 2.5e-9,
+							   45: 2.5e-9,
+							   28: 2.5e-9
 			}
 			# TODO: add circuits simulation results
 			if self.adder_tech <= 28:
