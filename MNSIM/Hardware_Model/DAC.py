@@ -10,7 +10,7 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 class DAC(object):
 	def __init__(self, SimConfig_path):
 		DAC_config = cp.ConfigParser()
-		DAC_config.read(SimConfig_path)
+		DAC_config.read(SimConfig_path, encoding='UTF-8')
 		self.DAC_choice = int(DAC_config.get('Interface level', 'DAC_Choice'))
 		self.DAC_area = float(DAC_config.get('Interface level', 'DAC_Area'))
 		self.DAC_precision = int(DAC_config.get('Interface level', 'DAC_Precision'))

@@ -17,7 +17,7 @@ class bank(ProcessElement):
 		# layer_num is a list with the size of 1xPE_num
 		ProcessElement.__init__(self, SimConfig_path)
 		bank_config = cp.ConfigParser()
-		bank_config.read(SimConfig_path)
+		bank_config.read(SimConfig_path, encoding='UTF-8')
 		self.bank_PE_num = list(map(int, bank_config.get('Bank level', 'PE_Num').split(',')))
 		if self.bank_PE_num[0] == 0:
 			self.bank_PE_num[0] = 4

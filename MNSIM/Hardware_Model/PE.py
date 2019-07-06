@@ -20,7 +20,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		DAC.__init__(self, SimConfig_path)
 		ADC.__init__(self, SimConfig_path)
 		PE_config = cp.ConfigParser()
-		PE_config.read(SimConfig_path)
+		PE_config.read(SimConfig_path, encoding='UTF-8')
 		__xbar_polarity = int(PE_config.get('Process element level', 'Xbar_Polarity'))
 		# self.PE_multiplex_xbar_num = list(
 		# 	map(int, PE_config.get('Process element level', 'Multiplex_Xbar_Num').split(',')))

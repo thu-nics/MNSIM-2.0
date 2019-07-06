@@ -11,7 +11,7 @@ class shiftreg(object):
 	def __init__(self, SimConfig_path, max_shiftbase = None, frequency = None):
 		# frequency unit: MHz
 		shiftreg_config = cp.ConfigParser()
-		shiftreg_config.read(SimConfig_path)
+		shiftreg_config.read(SimConfig_path, encoding='UTF-8')
 		self.shiftreg_tech = int(shiftreg_config.get('Digital module', 'ShiftReg_Tech'))
 		self.shiftreg_area = float(shiftreg_config.get('Digital module', 'ShiftReg_Area'))
 		self.shiftreg_power = float(shiftreg_config.get('Digital module', 'ShiftReg_Power'))

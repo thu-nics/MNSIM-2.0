@@ -19,7 +19,7 @@ class behavior_mapping(bank):
         print("CNN structure file is loaded:", NetStruct_path)
         print("Hardware config file is loaded:", SimConfig_path)
         bm_config = cp.ConfigParser()
-        bm_config.read(SimConfig_path)
+        bm_config.read(SimConfig_path, encoding='UTF-8')
         self.xbar_polarity = int(bm_config.get('Process element level', 'Xbar_Polarity'))
         self.net_structure = torch.load(NetStruct_path)
         self.arch_config = SimConfig_path

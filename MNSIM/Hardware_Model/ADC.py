@@ -10,7 +10,7 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 class ADC(object):
 	def __init__(self, SimConfig_path):
 		ADC_config = cp.ConfigParser()
-		ADC_config.read(SimConfig_path)
+		ADC_config.read(SimConfig_path, encoding='UTF-8')
 		self.ADC_choice = int(ADC_config.get('Interface level', 'ADC_Choice'))
 		self.ADC_area = float(ADC_config.get('Interface level', 'ADC_Area'))
 		self.ADC_precision = int(ADC_config.get('Interface level', 'ADC_Precision'))

@@ -10,7 +10,7 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 class device(object):
 	def __init__(self, SimConfig_path):
 		device_config = cp.ConfigParser()
-		device_config.read(SimConfig_path)
+		device_config.read(SimConfig_path, encoding='UTF-8')
 		self.device_tech = float(device_config.get('Device level', 'Device_Tech'))
 		self.device_area = float(device_config.get('Device level', 'Device_Area'))
 		self.device_read_voltage_level = int(device_config.get('Device level', 'Read_Level'))

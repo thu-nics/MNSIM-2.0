@@ -11,7 +11,7 @@ class adder(object):
 	def __init__(self, SimConfig_path, bitwidth = None, frequency = None):
 		# frequency unit: MHz
 		adder_config = cp.ConfigParser()
-		adder_config.read(SimConfig_path)
+		adder_config.read(SimConfig_path, encoding='UTF-8')
 		self.adder_tech = int(adder_config.get('Digital module', 'Adder_Tech'))
 		self.adder_area = float(adder_config.get('Digital module', 'Adder_Area'))
 		self.adder_power = float(adder_config.get('Digital module', 'Adder_Power'))

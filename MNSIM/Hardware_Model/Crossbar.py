@@ -13,7 +13,7 @@ class crossbar(device):
 	def __init__(self, SimConfig_path):
 		device.__init__(self,SimConfig_path)
 		xbar_config = cp.ConfigParser()
-		xbar_config.read(SimConfig_path)
+		xbar_config.read(SimConfig_path, encoding='UTF-8')
 		self.xbar_size = list(map(int, xbar_config.get('Crossbar level', 'Xbar_Size').split(',')))
 		self.xbar_row = int(self.xbar_size[0])
 		self.xbar_column = int(self.xbar_size[1])
