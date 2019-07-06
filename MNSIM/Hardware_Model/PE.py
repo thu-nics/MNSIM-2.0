@@ -167,8 +167,8 @@ class ProcessElement(crossbar, DAC, ADC):
 			assert self.PE_multiplex_ADC_num > 0, "ADC number in one group < 0"
 		# print("ADC_num", self.PE_multiplex_ADC_num)
 		self.PE_ADC_num = self.group_num * self.PE_multiplex_ADC_num
-		self.output_mux = math.ceil(self.xbar_column*self.PE_multiplex_xbar_num[1]/self.PE_multiplex_ADC_num)
-		# self.output_mux = math.ceil(self.xbar_column/self.PE_multiplex_ADC_num)
+		# self.output_mux = math.ceil(self.xbar_column*self.PE_multiplex_xbar_num[1]/self.PE_multiplex_ADC_num)
+		self.output_mux = math.ceil(self.xbar_column/self.PE_multiplex_ADC_num)
 		# print("output_mux",self.output_mux)
 		assert self.output_mux > 0
 
