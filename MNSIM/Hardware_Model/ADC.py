@@ -17,6 +17,7 @@ class ADC(object):
 		self.ADC_power = float(ADC_config.get('Interface level', 'ADC_Power'))
 		self.ADC_sample_rate = float(ADC_config.get('Interface level', 'ADC_Sample_Rate'))
 		self.ADC_energy = 0
+		self.ADC_interval = list(map(int, ADC_config.get('Interface level', 'ADC_Interval_Thres').split(',')))
 		# print("ADC configuration is loaded")
 		# self.calculate_ADC_area()
 		self.calculate_ADC_precision()
@@ -71,6 +72,35 @@ class ADC(object):
 		#unit: nJ
 		self.ADC_energy = 1 / self.ADC_sample_rate * self.ADC_power
 
+	def config_ADC_interval(self, SimConfig_path, WL_num = 0):
+		if self.ADC_interval[0] == -1: #User defined
+			ADC_config = cp.ConfigParser()
+			ADC_config.read(SimConfig_path, encoding='UTF-8')
+			self.ADC_interval = (2**self.ADC_precision-1) * [0.0]
+			V_in = list(map(float, ADC_config.get('Device level', 'Read_Voltage').split(',')))
+			R = list(map(float, ADC_config.get('Device level', 'Device_Resistance').split(',')))
+			# Rs = math.sqrt(R[0]*R[-1])
+			Rs = float(ADC_config.get('Crossbar level', 'Load_Resistance'))
+			if Rs == -1:
+				Rs = math.sqrt(R[0] * R[-1])
+			assert Rs > 0, "Load resistance must be > 0"
+
+			step = math.ceil(WL_num/(2**self.ADC_precision))
+			temp = step
+			V_max = WL_num*V_in[-1]/R[-1]*Rs
+			for i in range(len(self.ADC_interval)):
+				if temp < WL_num+1:
+					self.ADC_interval[i] = 0.5 * ((temp-1)*V_in[-1]/R[-1]*Rs+(WL_num-temp+1)*V_in[0]/R[-1]*Rs+
+											temp*V_in[-1]/R[-1]*Rs+(WL_num-temp)*V_in[0]/R[0]*Rs)
+					temp += step
+				else:
+					self.ADC_interval[i] = V_max
+			# print("ok", len(self.ADC_interval), self.ADC_interval)
+
+	def calculate_sensing_results(self, V_in):
+		V_out = 0
+		return V_out
+
 	def ADC_output(self):
 		if self.ADC_choice == -1:
 			print("ADC_choice: User defined")
@@ -89,6 +119,9 @@ def ADC_test():
 	_ADC.calculate_ADC_power()
 	_ADC.calculate_ADC_sample_rate()
 	_ADC.calculate_ADC_energy()
+	_ADC.config_ADC_interval(test_SimConfig_path,128)
+	result = _ADC.calculate_sensing_results(0)
+	# print("-------::::",result)
 	_ADC.ADC_output()
 
 
