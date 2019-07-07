@@ -95,10 +95,30 @@ class ADC(object):
 					temp += step
 				else:
 					self.ADC_interval[i] = V_max
-			# print("ok", len(self.ADC_interval), self.ADC_interval)
+			# print(self.ADC_interval)
 
 	def calculate_sensing_results(self, V_in):
+		# Notice: before calculating sensing results, config_ADC_interval must be calculated
+		start = 0
+		end = 2**self.ADC_precision-2
 		V_out = 0
+		temp = 0
+		if V_in < self.ADC_interval[0]:
+			V_out = 0
+		elif V_in > self.ADC_interval[-1]:
+			V_out = 2**self.ADC_precision -1
+		else:
+			while start < end:
+				temp = int(1/2*(start+end))
+				if temp == start:
+					V_out = temp + 1
+					break
+				if V_in > self.ADC_interval[temp]:
+					start = temp
+					V_out = temp
+				else:
+					end = temp
+					V_out = temp
 		return V_out
 
 	def ADC_output(self):
@@ -120,7 +140,7 @@ def ADC_test():
 	_ADC.calculate_ADC_sample_rate()
 	_ADC.calculate_ADC_energy()
 	_ADC.config_ADC_interval(test_SimConfig_path,128)
-	result = _ADC.calculate_sensing_results(0)
+	# result = _ADC.calculate_sensing_results(14)
 	# print("-------::::",result)
 	_ADC.ADC_output()
 
