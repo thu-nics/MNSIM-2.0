@@ -24,6 +24,11 @@ class crossbar(device):
 		self.xbar_area = 0
 		self.xbar_simulation_level = int(xbar_config.get('Algorithm Configuration', 'Simulation_Level'))
 
+		self.xbar_load_resistance = float(xbar_config.get('Crossbar level', 'Load_Resistance'))
+		if self.xbar_load_resistance == -1:
+			self.xbar_load_resistance = math.sqrt(self.device_resistance[0] * self.device_resistance[-1])
+		assert self.xbar_load_resistance >0, "Load resistance must be > 0"
+
 		self.xbar_write_matrix = np.zeros((self.xbar_row,self.xbar_column))# * 1/self.device_resistance[-1]
 		self.xbar_write_vector = np.zeros((self.xbar_row,1))
 		self.xbar_read_matrix = np.zeros((self.xbar_row, self.xbar_column))# * 1/self.device_resistance[-1]
@@ -230,6 +235,7 @@ class crossbar(device):
 		print("wire_resistance:", self.wire_resistance, "ohm")
 		print("wire_capacity:", self.wire_capacity, "fF")
 		print("crossbar_area", self.xbar_area, "um^2")
+		print("load_resistance", self.xbar_load_resistance, "ohm")
 		print("crossbar_utilization_rate", self.xbar_utilization)
 		print("crossbar_read_power:", self.xbar_read_power, "W")
 		print("crossbar_read_latency:", self.xbar_read_latency, "ns")
