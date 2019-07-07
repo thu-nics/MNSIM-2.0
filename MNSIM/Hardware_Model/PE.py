@@ -162,7 +162,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		# print("ADC area", self.ADC_area)
 		# print("mul", self.PE_multiplex_xbar_num[1])
 		if self.PE_multiplex_ADC_num == 0:
-			self.PE_multiplex_ADC_num = math.ceil(math.sqrt(self.xbar_area)*self.PE_multiplex_xbar_num[1]/math.sqrt(self.ADC_area))
+			self.PE_multiplex_ADC_num = min(math.ceil(math.sqrt(self.xbar_area)*self.PE_multiplex_xbar_num[1]/math.sqrt(self.ADC_area)), self.xbar_column)
 		else:
 			assert self.PE_multiplex_ADC_num > 0, "ADC number in one group < 0"
 		# print("ADC_num", self.PE_multiplex_ADC_num)
@@ -176,10 +176,11 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.calculate_xbar_area()
 		self.calculate_DAC_area()
 		if self.PE_multiplex_DAC_num == 0:
-			self.PE_multiplex_DAC_num = math.ceil(math.sqrt(self.xbar_area) * self.PE_multiplex_xbar_num[0] / math.sqrt(self.DAC_area))
+			self.PE_multiplex_DAC_num = min(math.ceil(math.sqrt(self.xbar_area) * self.PE_multiplex_xbar_num[0] / math.sqrt(self.DAC_area)), self.xbar_row)
 		else:
 			assert self.PE_multiplex_DAC_num > 0, "DAC number in one group < 0"
 		self.PE_DAC_num = self.group_num * self.PE_multiplex_DAC_num
+		# print(self.PE_multiplex_DAC_num)
 		self.input_demux = math.ceil(self.xbar_row*self.PE_multiplex_xbar_num[0]/self.PE_multiplex_DAC_num)
 		assert self.input_demux > 0
 
@@ -732,7 +733,7 @@ class ProcessElement(crossbar, DAC, ADC):
 def PE_test():
 	print("load file:",test_SimConfig_path)
 	_PE = ProcessElement(test_SimConfig_path)
-	print(_PE.xbar_column)
+	# print(_PE.xbar_column)
 	_PE.calculate_PE_area()
 	# _PE.PE_read_config(read_matrix=[ [ [[0,1],[1,1]], [[1,1],[0,0]] ], [ [[0,1,1],[1,1,0],[0,0,0]], [[1,1,1],[0,0,1],[1,0,1]] ] ],
 	# 				read_vector=[[[0],[1]] , [[1],[0],[1]] ])
