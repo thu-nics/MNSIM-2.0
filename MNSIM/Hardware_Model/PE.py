@@ -185,12 +185,13 @@ class ProcessElement(crossbar, DAC, ADC):
 		assert self.input_demux > 0
 
 	def calculate_demux_area(self):
-		demux_area_dict = {2: 0,
-						   4: 0,
-						   8: 0,
-						   16: 0,
-						   32: 0,
-						   64: 0
+		transistor_area = self.transistor_tech * self.transistor_tech / 1000000
+		demux_area_dict = {2: 8*transistor_area,
+						   4: 24*transistor_area,
+						   8: 72*transistor_area,
+						   16: 216*transistor_area,
+						   32: 648*transistor_area,
+						   64: 1944*transistor_area
 		}
 		# unit: um^2
 		# TODO: add circuits simulation results
@@ -208,12 +209,13 @@ class ProcessElement(crossbar, DAC, ADC):
 			self.input_demux_area = demux_area_dict[64]
 
 	def calculate_mux_area(self):
-		mux_area_dict = {2: 0,
-						 4: 0,
-						 8: 0,
-						 16: 0,
-						 32: 0,
-						 64: 0
+		transistor_area = self.transistor_tech * self.transistor_tech / 1000000
+		mux_area_dict = {2: 8*transistor_area,
+						 4: 24*transistor_area,
+						 8: 72*transistor_area,
+						 16: 216*transistor_area,
+						 32: 648*transistor_area,
+						 64: 1944*transistor_area
 		}
 		# unit: um^2
 		# TODO: add circuits simulation results
@@ -734,6 +736,7 @@ def PE_test():
 	print("load file:",test_SimConfig_path)
 	_PE = ProcessElement(test_SimConfig_path)
 	# print(_PE.xbar_column)
+	_PE.calculate_PE_area()
 	_PE.calculate_PE_area()
 	# _PE.PE_read_config(read_matrix=[ [ [[0,1],[1,1]], [[1,1],[0,0]] ], [ [[0,1,1],[1,1,0],[0,0,0]], [[1,1,1],[0,0,1],[1,0,1]] ] ],
 	# 				read_vector=[[[0],[1]] , [[1],[0],[1]] ])

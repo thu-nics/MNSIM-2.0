@@ -121,7 +121,7 @@ class behavior_mapping(bank):
     def config_behavior_mapping(self):
         i = 0
         for layer in self.net_structure.items():
-            print("----------layer", i, "-----------")
+            # print("----------layer", i, "-----------")
             inputsize = int(layer[1]['Inputsize'])
             outputsize = int(layer[1]['Outputsize'])
             kernelsize = int(layer[1]['Kernelsize'])
@@ -142,7 +142,7 @@ class behavior_mapping(bank):
 
             # print(self.PE_num[i])
             self.bank_num[i] = math.ceil(self.PE_num[i]/self.bank_PE_total_num)
-            print("bank_num", self.bank_num[i])
+            # print("bank_num", self.bank_num[i])
             temp_weightprecision = self.weight_precision[i]
             temp_outputchannel = self.output_channel[i]
             temp_kernellength = self.kernel_length[i]
@@ -185,8 +185,8 @@ class behavior_mapping(bank):
                                                                                        sliding_times=self.sliding_times[i],
                                                                                        read_row=read_row,
                                                                                        read_column=read_column)
-                                            print("read_row", read_row)
-                                            print("read_column", read_column)
+                                            # print("read_row", read_row)
+                                            # print("read_column", read_column)
                                             bank_index += 1
                                             read_column = []
                                             read_row = []
@@ -201,8 +201,8 @@ class behavior_mapping(bank):
                                                                                        sliding_times=self.sliding_times[i],
                                                                                        read_row=read_row,
                                                                                        read_column=read_column)
-                                            print("read_row", read_row)
-                                            print("read_column", read_column)
+                                            # print("read_row", read_row)
+                                            # print("read_column", read_column)
                                             bank_index += 1
                                             read_column = []
                                             read_row = []
@@ -222,8 +222,8 @@ class behavior_mapping(bank):
                                                                                            self.sliding_times[i],
                                                                                            read_row=read_row,
                                                                                            read_column=read_column)
-                                            print("read_row", read_row)
-                                            print("read_column", read_column)
+                                            # print("read_row", read_row)
+                                            # print("read_column", read_column)
                                             bank_index += 1
                                             read_column = []
                                             read_row = []
@@ -238,8 +238,8 @@ class behavior_mapping(bank):
                                                                                            sliding_times=self.sliding_times[i],
                                                                                            read_row=read_row,
                                                                                            read_column=read_column)
-                                            print("read_row", read_row)
-                                            print("read_column", read_column)
+                                            # print("read_row", read_row)
+                                            # print("read_column", read_column)
                                             bank_index += 1
                                             read_column = []
                                             read_row = []
@@ -257,8 +257,8 @@ class behavior_mapping(bank):
                                                                            sliding_times=self.sliding_times[i],
                                                                            read_row=read_row,
                                                                            read_column=read_column)
-                            print("read_row", read_row)
-                            print("read_column", read_column)
+                            # print("read_row", read_row)
+                            # print("read_column", read_column)
                             bank_index += 1
             # print("bank_index", bank_index)
             i += 1
@@ -464,12 +464,15 @@ class behavior_mapping(bank):
                 print("     Hardware power:", self.arch_power[i])
                 print("     Hardware latency:", self.arch_latency[i])
                 print("     Hardware energy:", self.arch_energy[i])
+                print("         Crossbar energy:", self.arch_xbar_energy[i])
+                print("         ADC energy:", self.arch_ADC_energy[i])
+        print("total operations:",sum(self.operations))
         print("Hardware energy efficiency:", self.arch_energy_efficiency, " GOPs/W")
 
 
 if __name__ == '__main__':
     # print("ok")
-    net_structure_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "mnsim_net.pt")
+    net_structure_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "vgg_a4_w4_structure.pt")
     # net_structure_path = "/Users/zzh/Desktop/lab/MNSIM_python_v1.2/mnist_net.pt"
     SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     # SimConfig_path = "/Users/zzh/Desktop/lab/MNSIM_python_v1.2/SimConfig.ini"

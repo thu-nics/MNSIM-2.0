@@ -27,6 +27,7 @@ class adder(object):
 		assert self.adder_frequency > 0
 		self.adder_latency = 1.0/self.adder_frequency
 		self.adder_energy = 0
+		self.calculate_adder_power()
 		# print("Adder configuration is loaded")
 		# self.calculate_adder_area()
 		# self.calculate_adder_power()

@@ -30,20 +30,26 @@ class ADC(object):
 		ADC_area_dict = {1: 1600, #reference: A 10b 1.5GS/s Pipelined-SAR ADC with Background Second-Stage Common-Mode Regulation and Offset Calibration in 14nm CMOS FinFET
 						 2: 1600, #reference: ISAAC: A Convolutional Neural Network Accelerator with In-Situ Analog Arithmetic in Crossbars
 						 3: 1650, #reference: A >3GHz ERBW 1.1GS/s 8b Two-Step SAR ADC with Recursive-Weight DAC
-						 4: 580 #reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
+						 4: 580, #reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
+						 5: 1650, #ASPDAC1
+						 6: 1650, #ASPDAC2
+						 7: 1650 #ASPDAC3
 		}
 		if self.ADC_choice != -1:
-			assert self.ADC_choice in [1,2,3,4]
+			assert self.ADC_choice in [1,2,3,4,5,6,7]
 			self.ADC_area = ADC_area_dict[self.ADC_choice]
 
 	def calculate_ADC_precision(self):
 		ADC_precision_dict = {1: 10, #reference: A 10b 1.5GS/s Pipelined-SAR ADC with Background Second-Stage Common-Mode Regulation and Offset Calibration in 14nm CMOS FinFET
 						 2: 8, #reference: ISAAC: A Convolutional Neural Network Accelerator with In-Situ Analog Arithmetic in Crossbars
 						 3: 8, #reference: A >3GHz ERBW 1.1GS/s 8b Two-Step SAR ADC with Recursive-Weight DAC
-						 4: 6 #reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
+						 4: 6, #reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
+						 5: 8, #ASPDAC1
+						 6: 6, #ASPDAC2
+						 7: 4 #ASPDAC3
 		}
 		if self.ADC_choice != -1:
-			assert self.ADC_choice in [1,2,3,4]
+			assert self.ADC_choice in [1,2,3,4,5,6,7]
 			self.ADC_precision = ADC_precision_dict[self.ADC_choice]
 
 	def calculate_ADC_power(self):
@@ -51,10 +57,13 @@ class ADC(object):
 		ADC_power_dict = {1: 6.92*1e-3, #reference: A 10b 1.5GS/s Pipelined-SAR ADC with Background Second-Stage Common-Mode Regulation and Offset Calibration in 14nm CMOS FinFET
 						 2: 2*1e-3, #reference: ISAAC: A Convolutional Neural Network Accelerator with In-Situ Analog Arithmetic in Crossbars
 						 3: 4*1e-3, #reference: A >3GHz ERBW 1.1GS/s 8b Two-Step SAR ADC with Recursive-Weight DAC
-						 4: 1.26*1e-3 #reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
+						 4: 1.26*1e-3, #reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
+						 5: 4e-3, #ASPDAC1
+						 6: 1.26e-3, #ASPDAC2
+						 7: 0.7e-3 #ASPDAC3
 		}
 		if self.ADC_choice != -1:
-			assert self.ADC_choice in [1,2,3,4]
+			assert self.ADC_choice in [1,2,3,4,5,6,7]
 			self.ADC_power = ADC_power_dict[self.ADC_choice]
 
 	def calculate_ADC_sample_rate(self):
@@ -62,10 +71,13 @@ class ADC(object):
 		ADC_sample_rate_dict = {1: 1.5, #reference: A 10b 1.5GS/s Pipelined-SAR ADC with Background Second-Stage Common-Mode Regulation and Offset Calibration in 14nm CMOS FinFET
 								2: 1, #reference: ISAAC: A Convolutional Neural Network Accelerator with In-Situ Analog Arithmetic in Crossbars
 								3: 1.1, #reference: A >3GHz ERBW 1.1GS/s 8b Two-Step SAR ADC with Recursive-Weight DAC
-								4: 1 #reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
+								4: 1, #reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
+								5: 1.1, #ASPDAC1
+								6: 1, #ASPDAC2
+								7:1 #ASPDAC3
 		}
 		if self.ADC_choice != -1:
-			assert self.ADC_choice in [1,2,3,4]
+			assert self.ADC_choice in [1,2,3,4,5,6,7]
 			self.ADC_sample_rate = ADC_sample_rate_dict[self.ADC_choice]
 
 	def calculate_ADC_energy(self):
@@ -95,7 +107,7 @@ class ADC(object):
 					temp += step
 				else:
 					self.ADC_interval[i] = V_max
-			# print(self.ADC_interval)
+			print(self.ADC_interval)
 
 	def calculate_sensing_results(self, V_in):
 		# Notice: before calculating sensing results, config_ADC_interval must be calculated
@@ -139,9 +151,9 @@ def ADC_test():
 	_ADC.calculate_ADC_power()
 	_ADC.calculate_ADC_sample_rate()
 	_ADC.calculate_ADC_energy()
-	_ADC.config_ADC_interval(test_SimConfig_path,128)
-	# result = _ADC.calculate_sensing_results(14)
-	# print("-------::::",result)
+	_ADC.config_ADC_interval(test_SimConfig_path,256)
+	result = _ADC.calculate_sensing_results(100)
+	print("-------::::",result)
 	_ADC.ADC_output()
 
 

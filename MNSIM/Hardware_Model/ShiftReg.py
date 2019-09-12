@@ -26,6 +26,7 @@ class shiftreg(object):
 			self.shiftreg_frequency = frequency
 		assert self.shiftreg_frequency > 0
 		self.shiftreg_latency = 1.0/self.shiftreg_frequency
+		self.calculate_shiftreg_power()
 		self.shiftreg_energy = 0
 		# print("shiftreg configuration is loaded")
 		# self.calculate_shiftreg_area()
@@ -91,21 +92,21 @@ class shiftreg(object):
 	def calculate_shiftreg_power(self):
 		# unit: W
 		if self.shiftreg_power == 0:
-			shiftreg_power_dict = {130: {4: 6e-5,
-										8: 6e-5,
-										16: 6e-5},
-								  65: {4: 6e-5,
-									   8: 6e-5,
-									   16: 6e-5},
-								  55: {4: 6e-5,
-									   8: 6e-5,
-									   16: 6e-5},
-								  45: {4: 6e-5,
-									   8: 6e-5,
-									   16: 6e-5},
-								  28: {4: 6e-5,
-									   8: 6e-5,
-									   16: 6e-5}
+			shiftreg_power_dict = {130: {4: 1e-4,
+										8: 1e-4,
+										16: 1e-4},
+								  65: {4: 1e-4,
+									   8: 1e-4,
+									   16: 1e-4},
+								  55: {4: 1e-4,
+									   8: 1e-4,
+									   16: 1e-4},
+								  45: {4: 1e-4,
+									   8: 1e-4,
+									   16: 1e-4},
+								  28: {4: 1e-4,
+									   8: 1e-4,
+									   16: 1e-4}
 			}
 			# TODO: add circuits simulation results
 			if self.shiftreg_tech <= 28:

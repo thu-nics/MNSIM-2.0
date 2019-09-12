@@ -130,6 +130,7 @@ class crossbar(device):
 				# self.xbar_read_vector = math.sqrt((self.device_read_voltage[0]*self.device_read_voltage[-1])) \
 				# 						 * np.ones((self.xbar_row,1))
 				self.xbar_read_vector = math.sqrt((self.device_read_voltage[0]**2 + self.device_read_voltage[-1]**2)/2) * np.ones((self.xbar_row,1))
+				# self.xbar_read_vector = self.device_read_voltage[-1] * np.ones((self.xbar_row,1))
 			else:
 				for i in range(len(read_vector)):
 					assert int(read_vector[i][0]) < self.device_read_voltage_level, "Vector value exceeds the input voltage range"

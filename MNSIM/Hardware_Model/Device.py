@@ -40,10 +40,16 @@ class device(object):
 	def calculate_device_read_power(self, R = None, V = None):
 		#R is the resistance of memristor, None means use default resistance (Sqrt(R_on*R_off))
 		if R is None:
-			R = math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1]))
+			# R = math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1]))
+			# R = float(self.device_resistance[-1]) #worst case estimation
+			# R = 0.75*float(self.device_resistance[0]) + 0.25*float(self.device_resistance[-1])
+			R = (float(self.device_resistance[0])*float(self.device_resistance[1]))/\
+				(float(self.device_resistance[-1])*0.75+float(self.device_resistance[0])*0.75)
 		assert R > 0, "Resistance <= 0"
 		if V is None:
-			V = math.sqrt((self.device_read_voltage[0]**2 + self.device_read_voltage[-1]**2)/2)
+			# V = math.sqrt((self.device_read_voltage[0]**2 + self.device_read_voltage[-1]**2)/2)
+			# V = self.device_read_voltage[-1] #worst case estimation
+			V = math.sqrt(0.95*(self.device_read_voltage[0]**2) + 0.05*(self.device_read_voltage[-1]**2))
 		assert V >= 0, "Voltage < 0"
 		self.device_read_power = V ** 2 / R
 
