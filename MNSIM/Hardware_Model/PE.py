@@ -185,7 +185,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		assert self.input_demux > 0
 
 	def calculate_demux_area(self):
-		transistor_area = self.transistor_tech * self.transistor_tech / 1000000
+		transistor_area = 10* self.transistor_tech * self.transistor_tech / 1000000
 		demux_area_dict = {2: 8*transistor_area, # 2-1: 8 transistors
 						   4: 24*transistor_area, # 4-1: 3 * 2-1
 						   8: 72*transistor_area,
@@ -209,7 +209,7 @@ class ProcessElement(crossbar, DAC, ADC):
 			self.input_demux_area = demux_area_dict[64]
 
 	def calculate_mux_area(self):
-		transistor_area = self.transistor_tech * self.transistor_tech / 1000000
+		transistor_area = 10* self.transistor_tech * self.transistor_tech / 1000000
 		mux_area_dict = {2: 8*transistor_area,
 						 4: 24*transistor_area,
 						 8: 72*transistor_area,
@@ -697,6 +697,10 @@ class ProcessElement(crossbar, DAC, ADC):
 		print("			DAC area:", self.PE_DAC_area, "um^2")
 		print("			ADC area:", self.PE_ADC_area, "um^2")
 		print("			digital part area:", self.PE_digital_area, "um^2")
+		print("			|---adder area:", self.PE_adder_area, "um^2")
+		print("			|---shift-reg area:", self.PE_shiftreg_area, "um^2")
+		print("			|---input_demux area:", self.PE_input_demux_area, "um^2")
+		print("			|---output_mux area:", self.PE_output_mux_area, "um^2")
 		print("--------------------PE Latency Simulation Results-----------------")
 		print("PE read latency:", self.PE_read_latency, "ns")
 		print("			crossbar read latency:", self.PE_xbar_read_latency, "ns")
