@@ -149,10 +149,14 @@ class bank(ProcessElement):
 				self.bank_xbar_area += self.bank_PE_list[i][j].PE_xbar_area
 				self.bank_ADC_area += self.bank_PE_list[i][j].PE_ADC_area
 				self.bank_DAC_area += self.bank_PE_list[i][j].PE_DAC_area
-				self.bank_digital_area += self.bank_PE_list[i][j].PE_digital_area
-		self.bank_adder_area = self.bank_adder_num * self.bank_adder.adder_area
-		self.bank_shiftreg_area = self.bank_shiftreg_num * self.bank_shiftreg.shiftreg_area
-		self.bank_digital_area += self.bank_adder_area + self.bank_shiftreg_area
+				# self.bank_digital_area += self.bank_PE_list[i][j].PE_digital_area
+				self.bank_input_demux_area += self.bank_PE_list[i][j].PE_input_demux_area
+				self.bank_output_mux_area += self.bank_PE_list[i][j].PE_output_mux_area
+				self.bank_shiftreg_area += self.bank_PE_list[i][j].PE_shiftreg_area
+				self.bank_adder_area += self.bank_PE_list[i][j].PE_adder_area
+		self.bank_adder_area += self.bank_adder_num * self.bank_adder.adder_area
+		self.bank_shiftreg_area += self.bank_shiftreg_num * self.bank_shiftreg.shiftreg_area
+		self.bank_digital_area = self.bank_input_demux_area + self.bank_output_mux_area + self.bank_adder_area + self.bank_shiftreg_area
 		self.bank_area = self.bank_xbar_area + self.bank_ADC_area + self.bank_DAC_area + self.bank_digital_area
 
 	def bank_read_config(self, layer_num = 0, activation_precision = 0, sliding_times = 0,
