@@ -43,8 +43,8 @@ class device(object):
 			# R = math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1]))
 			# R = float(self.device_resistance[-1]) #worst case estimation
 			# R = 0.75*float(self.device_resistance[0]) + 0.25*float(self.device_resistance[-1])
-			R = (float(self.device_resistance[0])*float(self.device_resistance[1]))/\
-				(float(self.device_resistance[-1])*0.75+float(self.device_resistance[0])*0.75)
+			R = (float(self.device_resistance[0])*float(self.device_resistance[-1]))/\
+				(float(self.device_resistance[-1])*0.67+float(self.device_resistance[0])*0.33)
 		assert R > 0, "Resistance <= 0"
 		if V is None:
 			# V = math.sqrt((self.device_read_voltage[0]**2 + self.device_read_voltage[-1]**2)/2)
