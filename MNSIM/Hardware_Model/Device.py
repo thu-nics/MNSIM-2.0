@@ -49,7 +49,7 @@ class device(object):
 		if V is None:
 			# V = math.sqrt((self.device_read_voltage[0]**2 + self.device_read_voltage[-1]**2)/2)
 			# V = self.device_read_voltage[-1] #worst case estimation
-			V = math.sqrt(0.95*(self.device_read_voltage[0]**2) + 0.05*(self.device_read_voltage[-1]**2))
+			V = math.sqrt(0.9*(self.device_read_voltage[0]**2) + 0.1*(self.device_read_voltage[-1]**2))
 		assert V >= 0, "Voltage < 0"
 		self.device_read_power = V ** 2 / R
 
