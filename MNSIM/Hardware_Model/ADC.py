@@ -28,7 +28,7 @@ class ADC(object):
 	def calculate_ADC_area(self):
 		#unit: um^2
 		ADC_area_dict = {1: 1600, #reference: A 10b 1.5GS/s Pipelined-SAR ADC with Background Second-Stage Common-Mode Regulation and Offset Calibration in 14nm CMOS FinFET
-						 2: 1600, #reference: ISAAC: A Convolutional Neural Network Accelerator with In-Situ Analog Arithmetic in Crossbars
+						 2: 1200, #reference: ISAAC: A Convolutional Neural Network Accelerator with In-Situ Analog Arithmetic in Crossbars
 						 3: 1650, #reference: A >3GHz ERBW 1.1GS/s 8b Two-Step SAR ADC with Recursive-Weight DAC
 						 4: 580, #reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
 						 5: 1650, #ASPDAC1
