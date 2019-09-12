@@ -186,8 +186,8 @@ class ProcessElement(crossbar, DAC, ADC):
 
 	def calculate_demux_area(self):
 		transistor_area = self.transistor_tech * self.transistor_tech / 1000000
-		demux_area_dict = {2: 8*transistor_area,
-						   4: 24*transistor_area,
+		demux_area_dict = {2: 8*transistor_area, # 2-1: 8 transistors
+						   4: 24*transistor_area, # 4-1: 3 * 2-1
 						   8: 72*transistor_area,
 						   16: 216*transistor_area,
 						   32: 648*transistor_area,
