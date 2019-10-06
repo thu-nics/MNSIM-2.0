@@ -530,12 +530,13 @@ class ProcessElement(crossbar, DAC, ADC):
 								+ self.PE_DAC_write_latency + self.PE_digital_write_latency
 
 	def calculate_demux_power(self):
-		demux_power_dict = {2: 0,
-						   4: 0,
-						   8: 0,
-						   16: 0,
-						   32: 0,
-						   64: 0
+		transistor_power = 10*1.2/1e9
+		demux_power_dict = {2: 8*transistor_power,
+						 4: 24*transistor_power,
+						 8: 72*transistor_power,
+						 16: 216*transistor_power,
+						 32: 648*transistor_power,
+						 64: 1944*transistor_power
 		}
 		# unit: W
 		# TODO: add circuits simulation results
@@ -553,12 +554,13 @@ class ProcessElement(crossbar, DAC, ADC):
 			self.input_demux_power = demux_power_dict[64]
 
 	def calculate_mux_power(self):
-		mux_power_dict = {2: 0,
-						 4: 0,
-						 8: 0,
-						 16: 0,
-						 32: 0,
-						 64: 0
+		transistor_power = 10*1.2/1e9
+		mux_power_dict = {2: 8*transistor_power,
+						 4: 24*transistor_power,
+						 8: 72*transistor_power,
+						 16: 216*transistor_power,
+						 32: 648*transistor_power,
+						 64: 1944*transistor_power
 		}
 		# unit: W
 		# TODO: add circuits simulation results
