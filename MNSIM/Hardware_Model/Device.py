@@ -26,10 +26,10 @@ class device(object):
 		self.device_read_latency = float(device_config.get('Device level', 'Read_Latency'))
 		self.device_write_latency = float(device_config.get('Device level', 'Write_Latency'))
 
-		self.device_bit_level = int(device_config.get('Device level', 'Device_Bit_Level'))
-		assert self.device_bit_level >= 0, "NVM resistance level < 0"
+		self.device_level = int(device_config.get('Device level', 'Device_Level'))
+		assert self.device_level >= 0, "NVM resistance level < 0"
 		self.device_resistance = list(map(float, device_config.get('Device level', 'Device_Resistance').split(',')))
-		assert self.device_bit_level == len(self.device_resistance), "NVM resistance setting error"
+		assert self.device_level == len(self.device_resistance), "NVM resistance setting error"
 
 		self.decice_variation = float(device_config.get('Device level', 'Device_Variation'))
 			# Device variation is defined as \Delta R / R
@@ -69,7 +69,7 @@ class device(object):
 		print("write_voltage:", self.device_write_voltage, "V")
 		print("read_latency:", self.device_read_latency, "ns")
 		print("write_latency:", self.device_write_latency, "ns")
-		print("device_bit_level", self.device_bit_level)
+		print("device_level", self.device_level)
 		print("device_resistance:", self.device_resistance, "(ohm)")
 		print("device_variation:", self.decice_variation, "%")
 		print("device_read_power:", self.device_read_power, "W")
