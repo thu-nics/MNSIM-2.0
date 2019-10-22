@@ -21,6 +21,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		ADC.__init__(self, SimConfig_path)
 		PE_config = cp.ConfigParser()
 		PE_config.read(SimConfig_path, encoding='UTF-8')
+		self.sub_position = -1
 		__xbar_polarity = int(PE_config.get('Process element level', 'Xbar_Polarity'))
 		# self.PE_multiplex_xbar_num = list(
 		# 	map(int, PE_config.get('Process element level', 'Multiplex_Xbar_Num').split(',')))
@@ -29,6 +30,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		else:
 			assert __xbar_polarity == 2, "Crossbar polarity must be 1 or 2"
 			self.PE_multiplex_xbar_num = [1,2]
+			self.sub_position = int(PE_config.get('Process element level', 'Sub_Position'))
 		self.group_num = int(PE_config.get('Process element level', 'Group_Num'))
 		if self.group_num == 0:
 			self.group_num = 1
