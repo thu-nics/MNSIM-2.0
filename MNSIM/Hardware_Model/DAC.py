@@ -17,11 +17,12 @@ class DAC(object):
 		self.DAC_power = float(DAC_config.get('Interface level', 'DAC_Power'))
 		self.DAC_sample_rate = float(DAC_config.get('Interface level', 'DAC_Sample_Rate'))
 		self.DAC_energy = 0
+		self.DAC_latency = 0
 		# print("DAC configuration is loaded")
 		# self.calculate_DAC_area()
 		self.calculate_DAC_precision()
 		# self.calculate_DAC_power()
-		# self.calculate_DAC_sample_rate()
+		self.calculate_DAC_sample_rate()
 		# self.calculate_DAC_energy()
 
 	def calculate_DAC_area(self):
@@ -66,13 +67,17 @@ class DAC(object):
 			self.DAC_power = DAC_power_dict[self.DAC_choice]
 
 	def calculate_DAC_sample_rate(self):
-		#unit: GSamples/s
+		# unit: GSamples/s
 		if self.DAC_choice != -1:
 			self.DAC_sample_rate = 1
 
+	def calculate_DAC_latency(self):
+		# unit: ns
+		self.DAC_latency = 1 / self.DAC_sample_rate * (self.DAC_precision + 2)
+
 	def calculate_DAC_energy(self):
 		#unit: nJ
-		self.DAC_energy = 1 / self.DAC_sample_rate * self.DAC_power
+		self.DAC_energy = self.DAC_latency * self.DAC_power
 
 	def DAC_output(self):
 		if self.DAC_choice == -1:
@@ -84,6 +89,7 @@ class DAC(object):
 		print("DAC_power:", self.DAC_power, "W")
 		print("DAC_sample_rate:", self.DAC_sample_rate, "Gbit/s")
 		print("DAC_energy:", self.DAC_energy, "nJ")
+		print("DAC_latency:", self.DAC_latency, "ns")
 	
 def DAC_test():
 	print("load file:",test_SimConfig_path)
@@ -91,6 +97,7 @@ def DAC_test():
 	_DAC.calculate_DAC_area()
 	_DAC.calculate_DAC_power()
 	_DAC.calculate_DAC_sample_rate()
+	_DAC.calculate_DAC_latency()
 	_DAC.calculate_DAC_energy()
 	_DAC.DAC_output()
 
