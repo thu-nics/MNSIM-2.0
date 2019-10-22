@@ -4,7 +4,7 @@ import configparser as cp
 import os
 import math
 test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"SimConfig.ini")
-	#Default SimConfig file path: MNSIM_Python/SimConfig.ini
+# Default SimConfig file path: MNSIM_Python/SimConfig.ini
 
 
 class device(object):
@@ -32,13 +32,13 @@ class device(object):
 		assert self.device_level == len(self.device_resistance), "NVM resistance setting error"
 
 		self.decice_variation = float(device_config.get('Device level', 'Device_Variation'))
-			# Device variation is defined as \Delta R / R
+		# Device variation is defined as \Delta R / R
 		self.device_read_power = 0
 		self.device_write_power = 0
 		# print("Device configuration is loaded")
 
 	def calculate_device_read_power(self, R = None, V = None):
-		#R is the resistance of memristor, None means use default resistance (Sqrt(R_on*R_off))
+		# R is the resistance of memristor, None means use default resistance (Sqrt(R_on*R_off))
 		if R is None:
 			# R = math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1]))
 			# R = float(self.device_resistance[-1]) #worst case estimation
@@ -54,9 +54,9 @@ class device(object):
 		self.device_read_power = V ** 2 / R
 
 	def calculate_device_write_power(self, R = None, V = None):
-		#R is the resistance of memristor, None means use default resistance (Sqrt(R_on*R_off))
+		# R is the resistance of memristor, None means use default resistance (Sqrt(R_on*R_off))
 		if R is None:
-			R= math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1]))
+			R = math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1]))
 		assert R > 0, "Resistance <= 0"
 		if V is None:
 			V = (self.device_write_voltage[0] + self.device_write_voltage[-1])/2
