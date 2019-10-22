@@ -169,7 +169,7 @@ class crossbar(device):
 		self.calculate_wire_resistance()
 		self.calculate_wire_capacity()
 		wire_latency = 0
-		# wire_latency = 0.5 * self.wire_resistance * self.wire_capacity * 1e3
+		# wire_latency = 0.5 * self.wire_resistance * self.wire_capacity * self.xbar_row 1e3
 			#unit: ns
 			#TODO: Update the calculation formula considering the branches
 		self.xbar_read_latency = self.device_read_latency + wire_latency
