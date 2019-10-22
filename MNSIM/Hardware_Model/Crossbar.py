@@ -147,9 +147,9 @@ class crossbar(device):
 			WL_ratio = 3
 			# WL_ratio is the technology parameter W/L of the transistor
 			if self.cell_type[0] == '0':
-				self.xbar_area = 4 * self.xbar_row * self.xbar_column * self.device_tech**2
+				self.xbar_area = 4 * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
 			else:
-				self.xbar_area = 3 * (WL_ratio + 1) * self.xbar_row * self.xbar_column * self.device_tech**2
+				self.xbar_area = 3 * (WL_ratio + 1) * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
 
 
 	def calculate_wire_resistance(self):
