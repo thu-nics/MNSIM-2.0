@@ -171,7 +171,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		# print("ADC_num", self.PE_group_ADC_num)
 		self.PE_ADC_num = self.group_num * self.PE_group_ADC_num
 		# self.output_mux = math.ceil(self.xbar_column*self.PE_multiplex_xbar_num[1]/self.PE_group_ADC_num)
-		self.output_mux = math.ceil(self.xbar_column/self.PE_group_ADC_num)
+		self.output_mux = math.ceil(self.xbar_column/self.PE_group_ADC_num * (self.sub_position+1))
 		# print("output_mux",self.output_mux)
 		assert self.output_mux > 0
 
