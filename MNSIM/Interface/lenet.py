@@ -3,6 +3,7 @@ import quantize
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import collections
 
 class LeNet(nn.Module):
     def __init__(self, num_classes):
@@ -43,6 +44,26 @@ class LeNet(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.relu4(self.fc4(x))
         x = self.fc5(x)
+        return x
+    def get_weight(self):
+        net_bit_weights = collections.OrderedDict()
+        net_bit_weights['c1'] = self.c1.get_weight()
+        net_bit_weights['c2'] = self.c2.get_weight()
+        net_bit_weights['c3'] = self.c3.get_weight()
+        net_bit_weights['fc4'] = self.fc4.get_weight()
+        net_bit_weights['fc5'] = self.fc5.get_weight()
+        return net_bit_weights
+    def set_weight_forward(self, x, net_bit_weights):
+        # 对输入进行尺寸和定点位置的说明
+        quantize.last_activation_scale = 1. / 255.
+        quantize.last_activation_bit = 9
+        # 前向计算
+        x = self.s1(self.relu1(self.c1.set_weight_forward(x, net_bit_weights['c1'])))
+        x = self.s2(self.relu2(self.c2.set_weight_forward(x, net_bit_weights['c2'])))
+        x = self.relu3(self.c3.set_weight_forward(x, net_bit_weights['c3']))
+        x = x.view(x.size(0), -1)
+        x = self.relu4(self.fc4.set_weight_forward(x, net_bit_weights['fc4']))
+        x = self.fc5.set_weight_forward(x, net_bit_weights['fc5'])
         return x
 
 def get_net():
