@@ -1,5 +1,5 @@
 #-*-coding:utf-8-*-
-import quantize
+from . import quantize
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
@@ -8,7 +8,7 @@ import collections
 class LeNet(nn.Module):
     def __init__(self, num_classes):
         super(LeNet, self).__init__()
-        hardware_config = {'fix_method': 'SINGLE_FIX_TEST', 'xbar_size': 512, 'input_bit': 2, 'quantize_bit': 10}
+        hardware_config = {'fix_method': 'SINGLE_FIX_TEST', 'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'quantize_bit': 10}
         # hardware_config = {'fix_method': 'FIX_TRAIN', 'xbar_size': 512, 'input_bit': 2, 'quantize_bit': 10}
         quantize_config = {'weight_bit': 9, 'activation_bit': 9, 'point_shift': -2}
         # conv layer 1

@@ -153,14 +153,17 @@ class QuantizeLayer(nn.Module):
                 thres = 2 ** (weight_bit - 1) - 1
                 weight_digit = torch.clamp(torch.round(l.weight / weight_scale), 0 - thres, thres - 0)
                 # 对weight进行分解
+                assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
+                weight_cycle = (weight_bit - 1) // self.hardware_config['weight_bit']
                 sign_weight = torch.sign(weight_digit)
                 weight_digit = torch.abs(weight_digit)
                 base = 1
+                step = 2 ** self.hardware_config['weight_bit']
                 weight_container = []
-                for j in range(weight_bit - 1):
-                    tmp = torch.fmod(weight_digit, base * 2) - torch.fmod(weight_digit, base)
+                for j in range(weight_cycle):
+                    tmp = torch.fmod(weight_digit, base * step) - torch.fmod(weight_digit, base)
                     weight_container.append(torch.mul(sign_weight, tmp) * weight_scale)
-                    base = base * 2
+                    base = base * step
                 # 根据存储的结果来计算
                 activation_in_bit = int(self.bit_scale_list[0, 0].item())
                 activation_in_scale = self.bit_scale_list[0, 1].item()
@@ -182,7 +185,7 @@ class QuantizeLayer(nn.Module):
                 point_shift = self.quantize_config['point_shift']
                 Q = self.hardware_config['quantize_bit']
                 for i in range(activation_in_cycle):
-                    for j in range(weight_bit - 1):
+                    for j in range(weight_cycle):
                         tmp = None
                         if self.layer_config['type'] == 'conv':
                             tmp = F.conv2d(activation_in_container[i], weight_container[j], None, 1, 0, 1, 1)
@@ -193,7 +196,7 @@ class QuantizeLayer(nn.Module):
                         # 除以scale，得到的结果应该在某个范围以内
                         tmp = tmp / scale
                         # 计算此种情况下的小数点偏移，由于存在符号位，最后量化为Q - 1
-                        transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + (weight_bit - 2 - j) + (Q - 1)
+                        transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + (weight_cycle - 1 - j) * self.hardware_config['weight_bit'] + (Q - 1)
                         tmp = tmp * (2 ** transfer_point)
                         tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
                         tmp = tmp / (2 ** transfer_point)
@@ -218,6 +221,8 @@ class QuantizeLayer(nn.Module):
         weight_bit = int(self.bit_scale_list[1, 0].item())
         weight_scale = self.bit_scale_list[1, 1].item()
         for layer_num, l in enumerate(self.layer_list):
+            assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
+            weight_cycle = (weight_bit - 1) // self.hardware_config['weight_bit']
             # transfer part weight
             thres = 2 ** (weight_bit - 1) - 1
             weight_digit = torch.clamp(torch.round(l.weight / weight_scale), 0 - thres, thres - 0)
@@ -225,11 +230,12 @@ class QuantizeLayer(nn.Module):
             sign_weight = torch.sign(weight_digit)
             weight_digit = torch.abs(weight_digit)
             base = 1
-            for j in range(weight_bit - 1):
-                tmp = torch.fmod(weight_digit, base * 2) - torch.fmod(weight_digit, base)
+            step = 2 ** self.hardware_config['weight_bit']
+            for j in range(weight_cycle):
+                tmp = torch.fmod(weight_digit, base * step) - torch.fmod(weight_digit, base)
                 tmp = torch.mul(sign_weight, tmp)
                 bit_weights[f'split{layer_num}_weight{j}'] = copy.deepcopy((tmp / base).detach().cpu().numpy())
-                base = base * 2
+                base = base * step
         return bit_weights
     def set_weight_forward(self, input, bit_weights):
         assert self.hardware_config['fix_method'] == 'SINGLE_FIX_TEST'
@@ -241,12 +247,15 @@ class QuantizeLayer(nn.Module):
         weight_bit = int(self.bit_scale_list[1, 0].item())
         weight_scale = self.bit_scale_list[1, 1].item()
         for layer_num, l in enumerate(self.layer_list):
+            assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
+            weight_cycle = (weight_bit - 1) // self.hardware_config['weight_bit']
             weight_container = []
             base = 1
-            for j in range(weight_bit - 1):
+            step = 2 ** self.hardware_config['weight_bit']
+            for j in range(weight_cycle):
                 tmp = torch.from_numpy(bit_weights[f'split{layer_num}_weight{j}']) * base * weight_scale
                 weight_container.append(tmp.to(input.device))
-                base = base * 2
+                base = base * step
             # 根据存储的结果来计算
             activation_in_bit = int(self.bit_scale_list[0, 0].item())
             activation_in_scale = self.bit_scale_list[0, 1].item()
@@ -268,7 +277,7 @@ class QuantizeLayer(nn.Module):
             point_shift = self.quantize_config['point_shift']
             Q = self.hardware_config['quantize_bit']
             for i in range(activation_in_cycle):
-                for j in range(weight_bit - 1):
+                for j in range(weight_cycle):
                     tmp = None
                     if self.layer_config['type'] == 'conv':
                         tmp = F.conv2d(activation_in_container[i], weight_container[j], None, 1, 0, 1, 1)
@@ -279,7 +288,7 @@ class QuantizeLayer(nn.Module):
                     # 除以scale，得到的结果应该在某个范围以内
                     tmp = tmp / scale
                     # 计算此种情况下的小数点偏移，由于存在符号位，最后量化为Q - 1
-                    transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + (weight_bit - 2 - j) + (Q - 1)
+                    transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + (weight_cycle - 1 - j) * self.hardware_config['weight_bit'] + (Q - 1)
                     tmp = tmp * (2 ** transfer_point)
                     tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
                     tmp = tmp / (2 ** transfer_point)

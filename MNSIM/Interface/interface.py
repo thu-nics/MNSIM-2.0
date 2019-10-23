@@ -8,15 +8,18 @@ import configparser
 from importlib import import_module
 
 class TrainTestInterface(object):
-    def __init__(self):
-        netwotk_module = 'lenet'
-        dataset_module = 'cifar10'
-        weights_file = './zoo/cifar10_lenet_train_params.pth'
+    def __init__(self, netwotk_module, dataset_module, weights_file, device = None):
+        # netwotk_module = 'lenet'
+        # dataset_module = 'cifar10'
+        # weights_file = './zoo/cifar10_lenet_train_params.pth'
         # load net, dataset, and weights
         self.net = import_module(netwotk_module).get_net()
         self.test_loader = import_module(dataset_module).get_dataloader()[1]
         self.net.load_state_dict(torch.load(weights_file))
-        self.device = torch.device(f'cuda:0' if torch.cuda.is_available() else 'cpu')
+        if device != None:
+            self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
+        else:
+            self.device = torch.device('cpu')
     def origin_evaluate(self):
         self.net.to(self.device)
         self.net.eval()
@@ -52,7 +55,8 @@ class TrainTestInterface(object):
         return test_correct / test_total
 
 if __name__ == '__main__':
-    inter = TrainTestInterface()
-    print(inter.origin_evaluate())
-    net_bit_weights = inter.get_bits()
-    print(inter.set_bit_evaluate(net_bit_weights))
+    pass
+    # inter = TrainTestInterface()
+    # print(inter.origin_evaluate())
+    # net_bit_weights = inter.get_bits()
+    # print(inter.set_bit_evaluate(net_bit_weights))

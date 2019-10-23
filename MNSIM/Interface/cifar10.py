@@ -9,7 +9,7 @@ TEST_BATCH_SIZE = 100
 TEST_NUM_WORKERS = 4
 
 def get_dataloader():
-    train_dataset = torchvision.datasets.CIFAR10(root = './cifar10',
+    train_dataset = torchvision.datasets.CIFAR10(root = './MNSIM/Interface/cifar10',
                                                  download = True,
                                                  train = True,
                                                  transform = Transforms.Compose([Transforms.Pad(padding = 4),
@@ -24,7 +24,7 @@ def get_dataloader():
                                    num_workers = TRAIN_NUM_WORKERS,
                                    drop_last = True,
                                    )
-    test_dataset = torchvision.datasets.CIFAR10(root = './cifar10',
+    test_dataset = torchvision.datasets.CIFAR10(root = './MNSIM/Interface/cifar10',
                                                 download = True,
                                                 train = False,
                                                 transform = Transforms.Compose([Transforms.ToTensor(),
