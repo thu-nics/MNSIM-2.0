@@ -2,3 +2,7 @@
 .idea/
 mnsim_weight.pt
 *.xml
+__pycache__/
+/MNSIM/Interface/zoo/
+/MNSIM/Interface/runs/
+/MNSIM/Interface/cifar10/
