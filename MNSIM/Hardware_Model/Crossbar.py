@@ -21,6 +21,7 @@ class crossbar(device):
 		self.transistor_tech = int(xbar_config.get('Crossbar level', 'Transistor_Tech'))
 		self.wire_resistance = float(xbar_config.get('Crossbar level', 'Wire_Resistance'))
 		self.wire_capacity = float(xbar_config.get('Crossbar level', 'Wire_Capacity'))
+		self.area_calculation_method = int(xbar_config.get('Crossbar level', 'Area_Calculation'))
 		self.xbar_area = 0
 		self.xbar_simulation_level = int(xbar_config.get('Algorithm Configuration', 'Simulation_Level'))
 
@@ -84,7 +85,7 @@ class crossbar(device):
 			else:
 				for i in range(len(write_matrix)):
 					for j in range(len(write_matrix[0])):
-						assert int(write_matrix[i][j]) < self.device_bit_level, "Weight value (write) exceeds the resistance range"
+						assert int(write_matrix[i][j]) < self.device_level, "Weight value (write) exceeds the resistance range"
 						self.xbar_write_matrix[i][j] = 1/self.device_resistance[int(write_matrix[i][j])]
 				self.xbar_num_write_row = len(write_matrix)
 				self.xbar_num_write_column = len(write_matrix[0])
@@ -122,7 +123,7 @@ class crossbar(device):
 			else:
 				for i in range(len(read_matrix)):
 					for j in range(len(read_matrix[0])):
-						assert int(read_matrix[i][j]) < self.device_bit_level, "Weight value (read) exceeds the resistance range"
+						assert int(read_matrix[i][j]) < self.device_level, "Weight value (read) exceeds the resistance range"
 						self.xbar_read_matrix[i][j] = 1/self.device_resistance[int(read_matrix[i][j])]
 				self.xbar_num_read_row = len(read_matrix)
 				self.xbar_num_read_column = len(read_matrix[0])
@@ -138,14 +139,18 @@ class crossbar(device):
 		self.xbar_utilization = self.xbar_num_read_row * self.xbar_num_read_column / (self.xbar_row * self.xbar_column)
 
 	def calculate_xbar_area(self):
-		WL_ratio = 3
-			#WL_ratio is the technology parameter W/L of the transistor
-		area_factor = 4
-		#Area unit: um^2
-		if self.cell_type[0] == '0':
+		# Area unit: um^2
+		if self.area_calculation_method == 0:
+			area_factor = 1
 			self.xbar_area = area_factor * self.xbar_row * self.xbar_column * self.device_area
 		else:
-			self.xbar_area = 3 * (WL_ratio + 1) * self.xbar_row * self.xbar_column * self.device_area
+			WL_ratio = 3
+			# WL_ratio is the technology parameter W/L of the transistor
+			if self.cell_type[0] == '0':
+				self.xbar_area = 4 * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
+			else:
+				self.xbar_area = 3 * (WL_ratio + 1) * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
+
 
 	def calculate_wire_resistance(self):
 		#unit: ohm
@@ -161,11 +166,11 @@ class crossbar(device):
 				#TODO: Update the wire capacity calculation according to different technology sizes
 
 	def calculate_xbar_read_latency(self):
+		# unit: ns
 		self.calculate_wire_resistance()
 		self.calculate_wire_capacity()
 		wire_latency = 0
-		# wire_latency = 0.5 * self.wire_resistance * self.wire_capacity * 1e3
-			#unit: ns
+		# wire_latency = 0.5 * self.wire_resistance * self.wire_capacity * self.xbar_row 1e3
 			#TODO: Update the calculation formula considering the branches
 		self.xbar_read_latency = self.device_read_latency + wire_latency
 

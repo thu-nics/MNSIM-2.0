@@ -21,6 +21,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		ADC.__init__(self, SimConfig_path)
 		PE_config = cp.ConfigParser()
 		PE_config.read(SimConfig_path, encoding='UTF-8')
+		self.sub_position = 0
 		__xbar_polarity = int(PE_config.get('Process element level', 'Xbar_Polarity'))
 		# self.PE_multiplex_xbar_num = list(
 		# 	map(int, PE_config.get('Process element level', 'Multiplex_Xbar_Num').split(',')))
@@ -29,6 +30,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		else:
 			assert __xbar_polarity == 2, "Crossbar polarity must be 1 or 2"
 			self.PE_multiplex_xbar_num = [1,2]
+			self.sub_position = int(PE_config.get('Process element level', 'Sub_Position'))
 		self.group_num = int(PE_config.get('Process element level', 'Group_Num'))
 		if self.group_num == 0:
 			self.group_num = 1
@@ -48,8 +50,8 @@ class ProcessElement(crossbar, DAC, ADC):
 				self.PE_xbar_list[i].append(__xbar)
 				self.PE_xbar_enable[i].append(0)
 
-		self.PE_multiplex_ADC_num = int(PE_config.get('Process element level', 'ADC_Num'))
-		self.PE_multiplex_DAC_num = int(PE_config.get('Process element level', 'DAC_Num'))
+		self.PE_group_ADC_num = int(PE_config.get('Process element level', 'ADC_Num'))
+		self.PE_group_DAC_num = int(PE_config.get('Process element level', 'DAC_Num'))
 		self.PE_ADC_num = 0
 		self.PE_DAC_num = 0
 
@@ -161,27 +163,28 @@ class ProcessElement(crossbar, DAC, ADC):
 		# print("xbar area", self.xbar_area)
 		# print("ADC area", self.ADC_area)
 		# print("mul", self.PE_multiplex_xbar_num[1])
-		if self.PE_multiplex_ADC_num == 0:
-			self.PE_multiplex_ADC_num = min(math.ceil(math.sqrt(self.xbar_area)*self.PE_multiplex_xbar_num[1]/math.sqrt(self.ADC_area)), self.xbar_column)
+		if self.PE_group_ADC_num == 0:
+			self.PE_group_ADC_num = min((self.sub_position+1) * math.ceil(math.sqrt(self.xbar_area)*self.PE_multiplex_xbar_num[1]/math.sqrt(self.ADC_area)),
+										self.xbar_column)
 		else:
-			assert self.PE_multiplex_ADC_num > 0, "ADC number in one group < 0"
-		# print("ADC_num", self.PE_multiplex_ADC_num)
-		self.PE_ADC_num = self.group_num * self.PE_multiplex_ADC_num
-		# self.output_mux = math.ceil(self.xbar_column*self.PE_multiplex_xbar_num[1]/self.PE_multiplex_ADC_num)
-		self.output_mux = math.ceil(self.xbar_column/self.PE_multiplex_ADC_num)
+			assert self.PE_group_ADC_num > 0, "ADC number in one group < 0"
+		# print("ADC_num", self.PE_group_ADC_num)
+		self.PE_ADC_num = self.group_num * self.PE_group_ADC_num
+		# self.output_mux = math.ceil(self.xbar_column*self.PE_multiplex_xbar_num[1]/self.PE_group_ADC_num)
+		self.output_mux = math.ceil(self.xbar_column/self.PE_group_ADC_num * (self.sub_position+1))
 		# print("output_mux",self.output_mux)
 		assert self.output_mux > 0
 
 	def calculate_DAC_num(self):
 		self.calculate_xbar_area()
 		self.calculate_DAC_area()
-		if self.PE_multiplex_DAC_num == 0:
-			self.PE_multiplex_DAC_num = min(math.ceil(math.sqrt(self.xbar_area) * self.PE_multiplex_xbar_num[0] / math.sqrt(self.DAC_area)), self.xbar_row)
+		if self.PE_group_DAC_num == 0:
+			self.PE_group_DAC_num = min(math.ceil(math.sqrt(self.xbar_area) * self.PE_multiplex_xbar_num[0] / math.sqrt(self.DAC_area)), self.xbar_row)
 		else:
-			assert self.PE_multiplex_DAC_num > 0, "DAC number in one group < 0"
-		self.PE_DAC_num = self.group_num * self.PE_multiplex_DAC_num
-		# print(self.PE_multiplex_DAC_num)
-		self.input_demux = math.ceil(self.xbar_row*self.PE_multiplex_xbar_num[0]/self.PE_multiplex_DAC_num)
+			assert self.PE_group_DAC_num > 0, "DAC number in one group < 0"
+		self.PE_DAC_num = self.group_num * self.PE_group_DAC_num
+		# print(self.PE_group_DAC_num)
+		self.input_demux = math.ceil(self.xbar_row*self.PE_multiplex_xbar_num[0]/self.PE_group_DAC_num)
 		assert self.input_demux > 0
 
 	def calculate_demux_area(self):
@@ -465,7 +468,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.PE_xbar_area = self.PE_xbar_num*self.xbar_area
 		self.PE_ADC_area = self.ADC_area*self.PE_ADC_num
 		self.PE_DAC_area = self.DAC_area*self.PE_DAC_num
-		self.PE_adder_area = self.PE_multiplex_ADC_num*self.PE_adder_num*self.PE_adder.adder_area
+		self.PE_adder_area = self.PE_group_ADC_num*self.PE_adder_num*self.PE_adder.adder_area
 		self.PE_shiftreg_area = self.PE_ADC_num*self.PE_shiftreg.shiftreg_area
 		self.PE_input_demux_area = self.input_demux_area*self.PE_DAC_num
 		self.PE_output_mux_area = self.output_mux_area*self.PE_ADC_num
@@ -482,8 +485,8 @@ class ProcessElement(crossbar, DAC, ADC):
 		max_multiple_time = 0
 		for i in range(self.group_num):
 			if self.PE_xbar_enable[i][0] == 1:
-				multiple_time = math.ceil(self.PE_xbar_list[i][0].xbar_num_read_row/self.PE_multiplex_DAC_num)\
-						   * math.ceil(self.PE_xbar_list[i][0].xbar_num_read_column/self.PE_multiplex_ADC_num)
+				multiple_time = math.ceil(self.PE_xbar_list[i][0].xbar_num_read_row/self.PE_group_DAC_num)\
+						   * math.ceil(self.PE_xbar_list[i][0].xbar_num_read_column/self.PE_group_ADC_num)
 				if multiple_time > max_multiple_time:
 					max_multiple_time = multiple_time
 		self.PE_xbar_read_latency = max_multiple_time * self.xbar_read_latency
@@ -690,9 +693,9 @@ class ProcessElement(crossbar, DAC, ADC):
 		print("			the number of crossbars sharing a set of interfaces:",self.PE_multiplex_xbar_num)
 		print("total utilization rate:", self.PE_utilization)
 		print("total DAC number in one PE:", self.PE_DAC_num)
-		print("			the number of DAC in one set of interfaces:", self.PE_multiplex_DAC_num)
+		print("			the number of DAC in one set of interfaces:", self.PE_group_DAC_num)
 		print("total ADC number in one PE:", self.PE_ADC_num)
-		print("			the number of ADC in one set of interfaces:", self.PE_multiplex_ADC_num)
+		print("			the number of ADC in one set of interfaces:", self.PE_group_ADC_num)
 		print("---------------------PE Area Simulation Results--------------------")
 		print("PE area:", self.PE_area, "um^2")
 		print("			crossbar area:", self.PE_xbar_area, "um^2")

@@ -16,13 +16,14 @@ class ADC(object):
 		self.ADC_precision = int(ADC_config.get('Interface level', 'ADC_Precision'))
 		self.ADC_power = float(ADC_config.get('Interface level', 'ADC_Power'))
 		self.ADC_sample_rate = float(ADC_config.get('Interface level', 'ADC_Sample_Rate'))
+		self.ADC_latency = 0
 		self.ADC_energy = 0
 		self.ADC_interval = list(map(int, ADC_config.get('Interface level', 'ADC_Interval_Thres').split(',')))
 		# print("ADC configuration is loaded")
 		# self.calculate_ADC_area()
 		self.calculate_ADC_precision()
 		# self.calculate_ADC_power()
-		# self.calculate_ADC_sample_rate()
+		self.calculate_ADC_sample_rate()
 		# self.calculate_ADC_energy()
 
 	def calculate_ADC_area(self):
@@ -80,9 +81,13 @@ class ADC(object):
 			assert self.ADC_choice in [1,2,3,4,5,6,7]
 			self.ADC_sample_rate = ADC_sample_rate_dict[self.ADC_choice]
 
+	def calculate_ADC_latency(self):
+		# unit: ns
+		self.ADC_latency = 1 / self.ADC_sample_rate * (self.ADC_precision + 2)
+
 	def calculate_ADC_energy(self):
 		#unit: nJ
-		self.ADC_energy = 1 / self.ADC_sample_rate * self.ADC_power
+		self.ADC_energy = self.ADC_latency * self.ADC_power
 
 	def config_ADC_interval(self, SimConfig_path, WL_num = 0):
 		if self.ADC_interval[0] == -1: #User defined
@@ -107,7 +112,7 @@ class ADC(object):
 					temp += step
 				else:
 					self.ADC_interval[i] = V_max
-			print(self.ADC_interval)
+			# print(self.ADC_interval)
 
 	def calculate_sensing_results(self, V_in):
 		# Notice: before calculating sensing results, config_ADC_interval must be calculated
@@ -142,6 +147,7 @@ class ADC(object):
 		print("ADC_precision:", self.ADC_precision, "bit")
 		print("ADC_power:", self.ADC_power, "W")
 		print("ADC_sample_rate:", self.ADC_sample_rate, "Gbit/s")
+		print("ADC_latency:", self.ADC_latency, "ns")
 		print("ADC_energy:", self.ADC_energy, "nJ")
 	
 def ADC_test():
@@ -150,10 +156,11 @@ def ADC_test():
 	_ADC.calculate_ADC_area()
 	_ADC.calculate_ADC_power()
 	_ADC.calculate_ADC_sample_rate()
+	_ADC.calculate_ADC_latency()
 	_ADC.calculate_ADC_energy()
 	_ADC.config_ADC_interval(test_SimConfig_path,256)
 	result = _ADC.calculate_sensing_results(100)
-	print("-------::::",result)
+	# print("-------::::",result)
 	_ADC.ADC_output()
 
 
