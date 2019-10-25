@@ -29,8 +29,31 @@ class TrainTestInterface(object):
         self.xbar_bit = int(xbar_config.get('Device level', 'Device_Level'))
         self.hardware_config['weight_bit'] = self.xbar_bit
         # input bit and ADC bit
-        self.input_bit = 2
-        self.quantize_bit = 10
+        ADC_choice = int(xbar_config.get('Interface level', 'ADC_Choice'))
+        DAC_choice = int(xbar_config.get('Interface level', 'DAC_Choice'))
+        temp_DAC_bit = int(xbar_config.get('Interface level', 'DAC_Precision'))
+        temp_ADC_bit = int(xbar_config.get('Interface level', 'ADC_Precision'))
+        ADC_precision_dict = {-1: temp_ADC_bit,
+                              1: 10,
+                              # reference: A 10b 1.5GS/s Pipelined-SAR ADC with Background Second-Stage Common-Mode Regulation and Offset Calibration in 14nm CMOS FinFET
+                              2: 8,
+                              # reference: ISAAC: A Convolutional Neural Network Accelerator with In-Situ Analog Arithmetic in Crossbars
+                              3: 8,  # reference: A >3GHz ERBW 1.1GS/s 8b Two-Step SAR ADC with Recursive-Weight DAC
+                              4: 6,  # reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
+                              5: 8,  # ASPDAC1
+                              6: 6,  # ASPDAC2
+                              7: 4  # ASPDAC3
+                              }
+        DAC_precision_dict = {-1: temp_DAC_bit,
+                              1: 1,  # 1-bit
+                              2: 2,  # 2-bit
+                              3: 3,  # 3-bit
+                              4: 4,  # 4-bit
+                              5: 6,  # 6-bit
+                              6: 8  # 8-bit
+                              }
+        self.input_bit = DAC_precision_dict[DAC_choice]
+        self.quantize_bit = ADC_precision_dict[ADC_choice]
         self.hardware_config['input_bit'] = self.input_bit
         self.hardware_config['quantize_bit'] = self.quantize_bit
         # group num
