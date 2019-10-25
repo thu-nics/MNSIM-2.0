@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Function
 import torch.nn.functional as F
+import numpy as np
 import math
 import copy
 import collections
@@ -100,6 +101,42 @@ class QuantizeLayer(nn.Module):
         # 用来存储权重比特数和scale等相关信息
         self.last_value = nn.Parameter(torch.zeros(1))
         self.bit_scale_list = nn.Parameter(torch.zeros(3, 2))
+        # 输入输出尺寸和层信息
+        self.input_shape = torch.Size()
+        self.output_shape = torch.Size()
+        self.layer_info = None
+
+    def structure_forward(self, input):
+        # test in TRADITION
+        self.input_shape = input.shape
+        input_list = torch.split(input, self.split_input, dim = 1)
+        output = None
+        for i in range(len(self.layer_list)):
+            if i == 0:
+                output = self.layer_list[i](input_list[i])
+            else:
+                output.add_(self.layer_list[i](input_list[i]))
+        self.output_shape = output.shape
+        # layer_info
+        self.layer_info = collections.OrderedDict()
+        if self.layer_config['type'] == 'conv':
+            self.layer_info['type'] = 'conv'
+            self.layer_info['Inputsize'] = list(self.input_shape)[2:]
+            self.layer_info['Outputsize'] = list(self.output_shape)[2:]
+            self.layer_info['Kernelsize'] = self.layer_config['kernel_size']
+            self.layer_info['Stride'] = 1
+            self.layer_info['Inputchannel'] = int(self.input_shape[1])
+            self.layer_info['Outputchannel'] = int(self.output_shape[1])
+        elif self.layer_config['type'] == 'fc':
+            self.layer_info['type'] = 'fc'
+            self.layer_info['Infeature'] = int(self.input_shape[1])
+            self.layer_info['Outfeature'] = int(self.input_shape[1])
+        self.layer_info['Inputbit'] = int(self.bit_scale_list[0,0].item())
+        self.layer_info['Weightbit'] = int(self.bit_scale_list[1,0].item())
+        self.layer_info['outputbit'] = int(self.bit_scale_list[2,0].item())
+        self.layer_info['row_split_num'] = len(self.layer_list)
+        self.layer_info['weight_cycle'] = (int(self.bit_scale_list[1, 0].item()) - 1) // (self.hardware_config['weight_bit'])
+        return output
 
     def forward(self, input):
         METHOD = self.hardware_config['fix_method']
@@ -213,9 +250,8 @@ class QuantizeLayer(nn.Module):
             output = output * scale / thres
             return output
         assert 0
-    def get_weight(self):
-        assert self.hardware_config['fix_method'] == 'SINGLE_FIX_TEST'
-        assert self.training == False
+    def get_bit_weights(self):
+        assert self.hardware_config['fix_method'] == 'SINGLE_FIX_TEST' or self.hardware_config['fix_method'] == 'FIX_TRAIN'
         bit_weights = collections.OrderedDict()
         # 先得到权重最大值，相当于在外部做了一遍权重的定点操作
         weight_bit = int(self.bit_scale_list[1, 0].item())
@@ -234,10 +270,12 @@ class QuantizeLayer(nn.Module):
             for j in range(weight_cycle):
                 tmp = torch.fmod(weight_digit, base * step) - torch.fmod(weight_digit, base)
                 tmp = torch.mul(sign_weight, tmp)
-                bit_weights[f'split{layer_num}_weight{j}'] = copy.deepcopy((tmp / base).detach().cpu().numpy())
+                tmp = copy.deepcopy((tmp / base).detach().cpu().numpy())
+                bit_weights[f'split{layer_num}_weight{j}_positive'] = np.where(tmp > 0, tmp, 0)
+                bit_weights[f'split{layer_num}_weight{j}_negative'] = np.where(tmp < 0, -tmp, 0)
                 base = base * step
         return bit_weights
-    def set_weight_forward(self, input, bit_weights):
+    def set_weights_forward(self, input, bit_weights):
         assert self.hardware_config['fix_method'] == 'SINGLE_FIX_TEST'
         assert self.training == False
         output = None
@@ -253,7 +291,8 @@ class QuantizeLayer(nn.Module):
             base = 1
             step = 2 ** self.hardware_config['weight_bit']
             for j in range(weight_cycle):
-                tmp = torch.from_numpy(bit_weights[f'split{layer_num}_weight{j}']) * base * weight_scale
+                tmp = bit_weights[f'split{layer_num}_weight{j}_positive'] - bit_weights[f'split{layer_num}_weight{j}_negative']
+                tmp = torch.from_numpy(tmp) * base * weight_scale
                 weight_container.append(tmp.to(input.device))
                 base = base * step
             # 根据存储的结果来计算

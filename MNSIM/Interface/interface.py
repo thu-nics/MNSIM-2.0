@@ -5,6 +5,7 @@ import torch
 import collections
 import configparser
 from importlib import import_module
+import copy
 
 class TrainTestInterface(object):
     def __init__(self, netwotk_module, dataset_module, SimConfig_path, weights_file, device = None):
@@ -59,10 +60,10 @@ class TrainTestInterface(object):
                 _, predicted = torch.max(outputs, 1)
                 test_correct += (predicted == labels).sum().item()
         return test_correct / test_total
-    def get_bits(self):
-        self.net_bit_weights = self.net.get_weight()
-        return self.net_bit_weights
-    def set_bit_evaluate(self, net_bit_weights):
+    def get_net_bits(self):
+        net_bit_weights = self.net.get_weights()
+        return net_bit_weights
+    def set_net_bits_evaluate(self, net_bit_weights):
         self.net.to(self.device)
         self.net.eval()
         test_correct = 0
@@ -71,12 +72,52 @@ class TrainTestInterface(object):
             for i, (images, labels) in enumerate(self.test_loader):
                 images = images.to(self.device)
                 test_total += labels.size(0)
-                outputs = self.net.set_weight_forward(images, net_bit_weights)
+                outputs = self.net.set_weights_forward(images, net_bit_weights)
                 # predicted
                 labels = labels.to(self.device)
                 _, predicted = torch.max(outputs, 1)
                 test_correct += (predicted == labels).sum().item()
         return test_correct / test_total
+    def get_structure(self):
+        net_bit_weights = self.net.get_weights()
+        net_structure_info = self.net.get_structure()
+        assert len(net_bit_weights) == len(net_structure_info)
+        total_array = []
+        for layer_num, (layer_bit_weights, layer_structure_info) in enumerate(zip(net_bit_weights, net_structure_info)):
+            assert len(layer_bit_weights.keys()) == layer_structure_info['row_split_num'] * layer_structure_info['weight_cycle'] * 2
+            layer_structure_info['Layernum'] = layer_num
+            # split
+            for i in range(layer_structure_info['row_split_num']):
+                for j in range(layer_structure_info['weight_cycle']):
+                    layer_bit_weights[f'split{i}_weight{j}_positive'] = mysplit(layer_bit_weights[f'split{i}_weight{j}_positive'], self.xbar_column)
+                    layer_bit_weights[f'split{i}_weight{j}_negative'] = mysplit(layer_bit_weights[f'split{i}_weight{j}_negative'], self.xbar_column)
+            # generate pe array
+            xbar_array = []
+            for i in range(layer_structure_info['row_split_num']):
+                L = len(layer_bit_weights[f'split{i}_weight{0}_positive'])
+                for j in range(L):
+                    pe_array = []
+                    for s in range(layer_structure_info['weight_cycle']):
+                        pe_array.append([layer_bit_weights[f'split{i}_weight{s}_positive'][j].astype(np.uint8), layer_bit_weights[f'split{i}_weight{s}_negative'][j].astype(np.uint8)])
+                    xbar_array.append(pe_array)
+            # store in xbar_array
+            L = math.ceil(len(xbar_array) / (self.bank_row * self.bank_column))
+            for i in range(L):
+                bank_array = []
+                for h in range(self.bank_row):
+                    for w in range(self.bank_column):
+                        serial_number = i * self.bank_row * self.bank_column + h * self.bank_column + w
+                        if serial_number < len(xbar_array):
+                            bank_array.append(xbar_array[serial_number])
+                total_array.append((layer_structure_info, bank_array))
+        return total_array
+
+def mysplit(array, length):
+    L = array.shape[1] // length
+    if L > 0:
+        return np.split(array[:,:(L*length)], length, axis = 1).append(array[:,(L*length):])
+    else:
+        return array
 
 if __name__ == '__main__':
     pass
