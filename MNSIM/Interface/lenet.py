@@ -1,14 +1,14 @@
 #-*-coding:utf-8-*-
-from . import quantize
+from MNSIM.Interface import quantize
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import collections
 
 class LeNet(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, hardware_config, num_classes):
         super(LeNet, self).__init__()
-        hardware_config = {'fix_method': 'SINGLE_FIX_TEST', 'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'quantize_bit': 10}
+        # hardware_config = {'fix_method': 'SINGLE_FIX_TEST', 'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'quantize_bit': 10}
         # hardware_config = {'fix_method': 'FIX_TRAIN', 'xbar_size': 512, 'input_bit': 2, 'quantize_bit': 10}
         quantize_config = {'weight_bit': 9, 'activation_bit': 9, 'point_shift': -2}
         # conv layer 1
@@ -66,8 +66,11 @@ class LeNet(nn.Module):
         x = self.fc5.set_weight_forward(x, net_bit_weights['fc5'])
         return x
 
-def get_net():
-    net = LeNet(10)
+def get_net(hardware_config = None):
+    # initial config
+    if hardware_config == None:
+        hardware_config = {'fix_method': 'SINGLE_FIX_TEST', 'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'quantize_bit': 10}
+    net = LeNet(hardware_config, 10)
     return net
 
 if __name__ == '__main__':
