@@ -6,6 +6,7 @@ import collections
 import configparser
 from importlib import import_module
 import copy
+import os
 
 class TrainTestInterface(object):
     def __init__(self, netwotk_module, dataset_module, SimConfig_path, weights_file, device = None):
@@ -62,12 +63,16 @@ class TrainTestInterface(object):
         self.bank_row = self.bank_size[0]
         self.bank_column = self.bank_size[1]
         # net and weights
-        self.net = import_module(netwotk_module).get_net(self.hardware_config)
-        self.net.load_state_dict(torch.load(weights_file))
         if device != None:
             self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
         else:
             self.device = torch.device('cpu')
+        self.net = import_module(netwotk_module).get_net(self.hardware_config)
+        self.net.load_state_dict(torch.load(weights_file, map_location=self.device))
+        # if device != None:
+        #     self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
+        # else:
+        #     self.device = torch.device('cpu')
     def origin_evaluate(self):
         self.net.to(self.device)
         self.net.eval()
@@ -143,4 +148,7 @@ def mysplit(array, length):
         return array
 
 if __name__ == '__main__':
-    pass
+    test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
+    test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cifar10_lenet_train_params.pth")
+    __TestInterface = TrainTestInterface('lenet', 'cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
+    print(__TestInterface.origin_evaluate())
