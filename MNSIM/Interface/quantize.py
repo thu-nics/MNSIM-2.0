@@ -8,8 +8,8 @@ import math
 import copy
 import collections
 
-# last_activation_scale, last_weight_scale 代表activation和weight在上次计算的放缩比例
-# last_activation_bit, last_weight_bit 代表activation和weight在上次计算的比特数
+# last_activation_scale, last_weight_scale for activation and weight scale in last calculation
+# last_activation_bit, last_weight_bit for activation and weight bit last time
 global last_activation_scale
 global last_weight_scale
 global last_activation_bit
@@ -22,9 +22,7 @@ class QuantizeFunction(Function):
         global last_activation_scale
         global last_weight_bit
         global last_activation_bit
-        # last_value是上一次的最大值矩阵，training_flag是training的标志，
-        # 如果是训练，那么last_value中的值要发生变化，否则以last_value中的值为准
-        # weight可以采用浮点数定点，但是activation不行，因为是在计算过程中
+        # last_value change only when training
         if mode == 'weight':
             last_weight_bit = qbit
             scale = torch.max(torch.abs(input)).item()
@@ -55,7 +53,6 @@ class QuantizeFunction(Function):
         return grad_output, None, None, None, None
 Quantize = QuantizeFunction.apply
 
-# # 和ReRAM相关的部分参数
 # AB = 1
 # N = 512
 # Q = 10
@@ -63,7 +60,7 @@ Quantize = QuantizeFunction.apply
 # # METHOD = 'FIX_TRAIN'
 # # METHOD = 'SINGLE_FIX_TEST'
 # METHOD = ''
-# 量化层，目前包含卷积层和全连接层，且这两层均不支持带有bias
+# quantize layer, include conv and fc without bias
 class QuantizeLayer(nn.Module):
     def __init__(self, hardware_config, layer_config, quantize_config):
         super(QuantizeLayer, self).__init__()
@@ -71,7 +68,7 @@ class QuantizeLayer(nn.Module):
         self.hardware_config = copy.deepcopy(hardware_config)
         self.layer_config = copy.deepcopy(layer_config)
         self.quantize_config = copy.deepcopy(quantize_config)
-        # 将卷积层进行分块，主要是对输入channel进行分块，对conv和fc有不同的实现
+        # split weights
         if self.layer_config['type'] == 'conv':
             channel_N = (self.hardware_config['xbar_size'] // (self.layer_config['kernel_size'] ** 2))
             complete_bar_num = self.layer_config['in_channels'] // channel_N
@@ -81,7 +78,7 @@ class QuantizeLayer(nn.Module):
                 in_channels_list = [channel_N] * complete_bar_num + [residual_col_num]
             else:
                 in_channels_list = [channel_N] * complete_bar_num
-            # 按照参数生成Module List
+            # generate Module List
             self.layer_list = nn.ModuleList([nn.Conv2d(i, self.layer_config['out_channels'], self.layer_config['kernel_size'],
                                                         stride = 1, padding = 0, dilation = 1, groups = 1, bias = False)
                                                         for i in in_channels_list])
@@ -93,15 +90,14 @@ class QuantizeLayer(nn.Module):
                 in_features_list = [self.hardware_config['xbar_size']] * complete_bar_num + [residual_col_num]
             else:
                 in_features_list = [self.hardware_config['xbar_size']] * complete_bar_num
-            # 按照参数生成Module List
+            # generate Module List
             self.layer_list = nn.ModuleList([nn.Linear(i, self.layer_config['out_features'], False) for i in in_features_list])
             self.split_input = self.hardware_config['xbar_size']
         else:
             raise NotImplementedError
-        # 用来存储权重比特数和scale等相关信息
         self.last_value = nn.Parameter(torch.zeros(1))
         self.bit_scale_list = nn.Parameter(torch.zeros(3, 2))
-        # 输入输出尺寸和层信息
+        # input shape, output shape, and layer information
         self.input_shape = torch.Size()
         self.output_shape = torch.Size()
         self.layer_info = None
@@ -140,7 +136,7 @@ class QuantizeLayer(nn.Module):
 
     def forward(self, input):
         METHOD = self.hardware_config['fix_method']
-        # 传统方法，直接将结果拼接即可
+        # float method
         if METHOD == 'TRADITION':
             input_list = torch.split(input, self.split_input, dim = 1)
             output = None
@@ -150,10 +146,10 @@ class QuantizeLayer(nn.Module):
                 else:
                     output.add_(self.layer_list[i](input_list[i]))
             return output
-        # 常规的定点方法，为了保证定点位数的正确性和简化操作，将所有的weight拼接在一起
+        # fix training
         if METHOD == 'FIX_TRAIN':
             weight = torch.cat([l.weight for l in self.layer_list], dim = 1)
-            # 在训练过程中采用简单的定点策略进行定点，先对weight进行定点
+            # quantize weight
             global last_weight_scale
             global last_activation_scale
             global last_weight_bit
@@ -179,17 +175,15 @@ class QuantizeLayer(nn.Module):
         if METHOD == 'SINGLE_FIX_TEST':
             assert self.training == False
             output = None
-            # 在测试过程中采用单比特定点策略进行训练
             input_list = torch.split(input, self.split_input, dim = 1)
             scale = self.last_value.item()
-            # 先得到权重最大值，相当于在外部做了一遍权重的定点操作
             weight_bit = int(self.bit_scale_list[1, 0].item())
             weight_scale = self.bit_scale_list[1, 1].item()
             for layer_num, l in enumerate(self.layer_list):
                 # transfer part weight
                 thres = 2 ** (weight_bit - 1) - 1
                 weight_digit = torch.clamp(torch.round(l.weight / weight_scale), 0 - thres, thres - 0)
-                # 对weight进行分解
+                # split weight into bit
                 assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
                 weight_cycle = (weight_bit - 1) // self.hardware_config['weight_bit']
                 sign_weight = torch.sign(weight_digit)
@@ -201,14 +195,13 @@ class QuantizeLayer(nn.Module):
                     tmp = torch.fmod(weight_digit, base * step) - torch.fmod(weight_digit, base)
                     weight_container.append(torch.mul(sign_weight, tmp) * weight_scale)
                     base = base * step
-                # 根据存储的结果来计算
                 activation_in_bit = int(self.bit_scale_list[0, 0].item())
                 activation_in_scale = self.bit_scale_list[0, 1].item()
                 thres = 2 ** (activation_in_bit - 1) - 1
                 activation_in_digit = torch.clamp(torch.round(input_list[layer_num] / activation_in_scale), 0 - thres, thres - 0)
                 assert (activation_in_bit - 1) % self.hardware_config['input_bit'] == 0
                 activation_in_cycle = (activation_in_bit - 1) // self.hardware_config['input_bit']
-                # 对activation_in进行分解
+                # split activation_in into bit
                 sign_activation_in = torch.sign(activation_in_digit)
                 activation_digit_in = torch.abs(activation_in_digit)
                 base = 1
@@ -218,7 +211,7 @@ class QuantizeLayer(nn.Module):
                     tmp = torch.fmod(activation_in_digit, base * step) -  torch.fmod(activation_in_digit, base)
                     activation_in_container.append(torch.mul(sign_activation_in, tmp) * activation_in_scale)
                     base = base * step
-                # 对划分完成的weight和input进行逐顺序计算，对最终的结果进行拼接, scale变化，Q比特截取
+                # calculation and add
                 point_shift = self.quantize_config['point_shift']
                 Q = self.hardware_config['quantize_bit']
                 for i in range(activation_in_cycle):
@@ -230,19 +223,16 @@ class QuantizeLayer(nn.Module):
                             tmp = F.linear(activation_in_container[i], weight_container[j], None)
                         else:
                             raise NotImplementedError
-                        # 除以scale，得到的结果应该在某个范围以内
                         tmp = tmp / scale
-                        # 计算此种情况下的小数点偏移，由于存在符号位，最后量化为Q - 1
                         transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + (weight_cycle - 1 - j) * self.hardware_config['weight_bit'] + (Q - 1)
                         tmp = tmp * (2 ** transfer_point)
                         tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
                         tmp = tmp / (2 ** transfer_point)
-                        # 之后将结果累计即可
                         if torch.is_tensor(output):
                             output = output + tmp
                         else:
                             output = tmp
-            # 此时output为小数，需要进行定点量化
+            # quantize output
             activation_out_bit = int(self.bit_scale_list[0, 0].item())
             activation_out_scale = self.bit_scale_list[0, 1].item()
             thres = 2 ** (activation_out_bit - 1) - 1
@@ -253,7 +243,6 @@ class QuantizeLayer(nn.Module):
     def get_bit_weights(self):
         assert self.hardware_config['fix_method'] == 'SINGLE_FIX_TEST' or self.hardware_config['fix_method'] == 'FIX_TRAIN'
         bit_weights = collections.OrderedDict()
-        # 先得到权重最大值，相当于在外部做了一遍权重的定点操作
         weight_bit = int(self.bit_scale_list[1, 0].item())
         weight_scale = self.bit_scale_list[1, 1].item()
         for layer_num, l in enumerate(self.layer_list):
@@ -262,7 +251,7 @@ class QuantizeLayer(nn.Module):
             # transfer part weight
             thres = 2 ** (weight_bit - 1) - 1
             weight_digit = torch.clamp(torch.round(l.weight / weight_scale), 0 - thres, thres - 0)
-            # 对weight进行分解
+            # split weight into bit
             sign_weight = torch.sign(weight_digit)
             weight_digit = torch.abs(weight_digit)
             base = 1
@@ -279,7 +268,6 @@ class QuantizeLayer(nn.Module):
         assert self.hardware_config['fix_method'] == 'SINGLE_FIX_TEST'
         assert self.training == False
         output = None
-        # 在测试过程中采用单比特定点策略进行训练
         input_list = torch.split(input, self.split_input, dim = 1)
         scale = self.last_value.item()
         weight_bit = int(self.bit_scale_list[1, 0].item())
@@ -295,14 +283,13 @@ class QuantizeLayer(nn.Module):
                 tmp = torch.from_numpy(tmp) * base * weight_scale
                 weight_container.append(tmp.to(input.device))
                 base = base * step
-            # 根据存储的结果来计算
             activation_in_bit = int(self.bit_scale_list[0, 0].item())
             activation_in_scale = self.bit_scale_list[0, 1].item()
             thres = 2 ** (activation_in_bit - 1) - 1
             activation_in_digit = torch.clamp(torch.round(input_list[layer_num] / activation_in_scale), 0 - thres, thres - 0)
             assert (activation_in_bit - 1) % self.hardware_config['input_bit'] == 0
             activation_in_cycle = (activation_in_bit - 1) // self.hardware_config['input_bit']
-            # 对activation_in进行分解
+            # split activation into bit
             sign_activation_in = torch.sign(activation_in_digit)
             activation_digit_in = torch.abs(activation_in_digit)
             base = 1
@@ -312,7 +299,7 @@ class QuantizeLayer(nn.Module):
                 tmp = torch.fmod(activation_in_digit, base * step) -  torch.fmod(activation_in_digit, base)
                 activation_in_container.append(torch.mul(sign_activation_in, tmp) * activation_in_scale)
                 base = base * step
-            # 对划分完成的weight和input进行逐顺序计算，对最终的结果进行拼接, scale变化，Q比特截取
+            # calculation and add
             point_shift = self.quantize_config['point_shift']
             Q = self.hardware_config['quantize_bit']
             for i in range(activation_in_cycle):
@@ -324,19 +311,16 @@ class QuantizeLayer(nn.Module):
                         tmp = F.linear(activation_in_container[i], weight_container[j], None)
                     else:
                         raise NotImplementedError
-                    # 除以scale，得到的结果应该在某个范围以内
                     tmp = tmp / scale
-                    # 计算此种情况下的小数点偏移，由于存在符号位，最后量化为Q - 1
                     transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + (weight_cycle - 1 - j) * self.hardware_config['weight_bit'] + (Q - 1)
                     tmp = tmp * (2 ** transfer_point)
                     tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
                     tmp = tmp / (2 ** transfer_point)
-                    # 之后将结果累计即可
                     if torch.is_tensor(output):
                         output = output + tmp
                     else:
                         output = tmp
-        # 此时output为小数，需要进行定点量化
+        # quantize output
         activation_out_bit = int(self.bit_scale_list[0, 0].item())
         activation_out_scale = self.bit_scale_list[0, 1].item()
         thres = 2 ** (activation_out_bit - 1) - 1

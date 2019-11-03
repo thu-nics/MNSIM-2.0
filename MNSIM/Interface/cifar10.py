@@ -41,4 +41,4 @@ if __name__  == '__main__':
     train_loader, test_loader = get_dataloader()
     print(len(train_loader))
     print(len(test_loader))
-    print('此为cifar10的输出数据集，输出尺寸调整为3x32x32')
+    print('this is the cifar10 dataset, output shape is 32*32*3')

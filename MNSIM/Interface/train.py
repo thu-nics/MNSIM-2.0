@@ -38,7 +38,7 @@ def train_net(net, train_loader, test_loader, device, prefix):
     net.to(device)
     # loss and optimizer
     criterion = nn.CrossEntropyLoss()
-    # 用来将scale的学习率和weight_decay均置为0
+    # scale's lr and weight_decay set to 0
     standard_params = []
     individu_params = []
     for param in net.parameters():
@@ -70,9 +70,6 @@ def train_net(net, train_loader, test_loader, device, prefix):
         eval_net(net, test_loader, epoch + 1, device)
         torch.save(net.state_dict(), f'./MNSIM/Interface/zoo/{prefix}_params.pth')
 
-# show_sche 是一个模式， 0 代表正常训练，不显示进度，记录
-# 1 代表RRAM测试，显示进度，不记录
-# 2 代表单纯测试，不显示进度，不记录
 
 def eval_net(net, test_loader, epoch, device):
     # set net on gpu

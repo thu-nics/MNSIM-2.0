@@ -35,10 +35,10 @@ class LeNet(nn.Module):
         self.fc5 = quantize.QuantizeLayer(hardware_config, fc5_layer_config, quantize_config)
 
     def forward(self, x):
-        # 对输入进行尺寸和定点位置的说明
+        # input fix information
         quantize.last_activation_scale = 1. / 255.
         quantize.last_activation_bit = 9
-        # 前向计算
+        # forward
         x = self.s1(self.relu1(self.c1(x)))
         x = self.s2(self.relu2(self.c2(x)))
         x = self.relu3(self.c3(x))
@@ -53,10 +53,10 @@ class LeNet(nn.Module):
                 net_bit_weights.append(module.get_bit_weights())
         return net_bit_weights
     def set_weights_forward(self, x, net_bit_weights):
-        # 对输入进行尺寸和定点位置的说明
+        # input fix information
         quantize.last_activation_scale = 1. / 255.
         quantize.last_activation_bit = 9
-        # 前向计算
+        # forward
         x = self.s1(self.relu1(self.c1.set_weights_forward(x, net_bit_weights[0])))
         x = self.s2(self.relu2(self.c2.set_weights_forward(x, net_bit_weights[1])))
         x = self.relu3(self.c3.set_weights_forward(x, net_bit_weights[2]))
@@ -65,7 +65,7 @@ class LeNet(nn.Module):
         x = self.fc5.set_weights_forward(x, net_bit_weights[4])
         return x
     def get_structure(self):
-        # 前向计算查找网络信息
+        # forward structure
         x = torch.zeros((1, 3, 32, 32))
         x = self.s1(self.relu1(self.c1.structure_forward(x)))
         x = self.s2(self.relu2(self.c2.structure_forward(x)))
@@ -73,7 +73,7 @@ class LeNet(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.relu4(self.fc4.structure_forward(x))
         x = self.fc5.structure_forward(x)
-        # 在此进行信息的统计，按照列表为存储格式
+        # structure information, stored as list
         net_info = []
         for module in self.modules():
             if isinstance(module, quantize.QuantizeLayer):
@@ -92,4 +92,4 @@ if __name__ == '__main__':
     print(net)
     for param in net.parameters():
         print(type(param.data), param.size())
-    print('这是LeNet网络，要求输入尺寸必为3x32x32，输出为10维分类结果')
+    print('this is lenet input shape 3x32x32，output shape 10')
