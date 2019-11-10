@@ -110,8 +110,9 @@ class TrainTestInterface(object):
         net_bit_weights = self.net.get_weights()
         net_structure_info = self.net.get_structure()
         assert len(net_bit_weights) == len(net_structure_info)
-        total_array = []
+        net_array = []
         for layer_num, (layer_bit_weights, layer_structure_info) in enumerate(zip(net_bit_weights, net_structure_info)):
+            total_array = []
             assert len(layer_bit_weights.keys()) == layer_structure_info['row_split_num'] * layer_structure_info['weight_cycle'] * 2
             layer_structure_info['Layernum'] = layer_num
             # split
@@ -138,7 +139,8 @@ class TrainTestInterface(object):
                         if serial_number < len(xbar_array):
                             bank_array.append(xbar_array[serial_number])
                 total_array.append((layer_structure_info, bank_array))
-        return total_array
+            net_array.append(total_array)
+        return net_array
 
 def mysplit(array, length):
     L = array.shape[1] // length
