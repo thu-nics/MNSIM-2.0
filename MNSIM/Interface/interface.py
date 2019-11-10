@@ -151,4 +151,6 @@ if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cifar10_lenet_train_params.pth")
     __TestInterface = TrainTestInterface('lenet', 'cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
+    # print(__TestInterface.get_net_bits())
     print(__TestInterface.origin_evaluate())
+    print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))

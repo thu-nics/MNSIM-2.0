@@ -224,7 +224,8 @@ class QuantizeLayer(nn.Module):
                         else:
                             raise NotImplementedError
                         tmp = tmp / scale
-                        transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + (weight_cycle - 1 - j) * self.hardware_config['weight_bit'] + (Q - 1)
+                        transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] \
+                                         + (weight_cycle - 1 - j) * self.hardware_config['weight_bit'] + (Q - 1)
                         tmp = tmp * (2 ** transfer_point)
                         tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
                         tmp = tmp / (2 ** transfer_point)
