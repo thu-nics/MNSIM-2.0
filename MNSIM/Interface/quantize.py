@@ -193,7 +193,7 @@ class QuantizeLayer(nn.Module):
                 weight_container = []
                 for j in range(weight_cycle):
                     tmp = torch.fmod(weight_digit, base * step) - torch.fmod(weight_digit, base)
-                    weight_container.append(torch.mul(sign_weight, tmp) * weight_scale)
+                    weight_container.append(torch.mul(sign_weight, tmp) * weight_scale / base)
                     base = base * step
                 activation_in_bit = int(self.bit_scale_list[0, 0].item())
                 activation_in_scale = self.bit_scale_list[0, 1].item()
@@ -209,7 +209,7 @@ class QuantizeLayer(nn.Module):
                 activation_in_container = []
                 for i in range(activation_in_cycle):
                     tmp = torch.fmod(activation_in_digit, base * step) -  torch.fmod(activation_in_digit, base)
-                    activation_in_container.append(torch.mul(sign_activation_in, tmp) * activation_in_scale)
+                    activation_in_container.append(torch.mul(sign_activation_in, tmp) * activation_in_scale / base)
                     base = base * step
                 # calculation and add
                 point_shift = self.quantize_config['point_shift']
@@ -223,12 +223,19 @@ class QuantizeLayer(nn.Module):
                             tmp = F.linear(activation_in_container[i], weight_container[j], None)
                         else:
                             raise NotImplementedError
-                        tmp = tmp / scale
-                        transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] \
-                                         + (weight_cycle - 1 - j) * self.hardware_config['weight_bit'] + (Q - 1)
+                        # tmp = tmp / scale
+                        # transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + \
+                                         # (weight_cycle - 1 - j) * self.hardware_config['weight_bit'] + (Q - 1)
+                        tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
+                                                   (weight_cycle - 1) * self.hardware_config['weight_bit']))
+                        transfer_point = point_shift + (Q - 1)
                         tmp = tmp * (2 ** transfer_point)
                         tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
                         tmp = tmp / (2 ** transfer_point)
+                        # scale
+                        scale_point = (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + \
+                                      (weight_cycle - 1 - j) * self.hardware_config['weight_bit']
+                        tmp = tmp / (2 ** scale_point)
                         if torch.is_tensor(output):
                             output = output + tmp
                         else:
@@ -281,7 +288,7 @@ class QuantizeLayer(nn.Module):
             step = 2 ** self.hardware_config['weight_bit']
             for j in range(weight_cycle):
                 tmp = bit_weights[f'split{layer_num}_weight{j}_positive'] - bit_weights[f'split{layer_num}_weight{j}_negative']
-                tmp = torch.from_numpy(tmp) * base * weight_scale
+                tmp = torch.from_numpy(tmp) * weight_scale
                 weight_container.append(tmp.to(input.device))
                 base = base * step
             activation_in_bit = int(self.bit_scale_list[0, 0].item())
@@ -298,7 +305,7 @@ class QuantizeLayer(nn.Module):
             activation_in_container = []
             for i in range(activation_in_cycle):
                 tmp = torch.fmod(activation_in_digit, base * step) -  torch.fmod(activation_in_digit, base)
-                activation_in_container.append(torch.mul(sign_activation_in, tmp) * activation_in_scale)
+                activation_in_container.append(torch.mul(sign_activation_in, tmp) * activation_in_scale / base)
                 base = base * step
             # calculation and add
             point_shift = self.quantize_config['point_shift']
@@ -312,11 +319,16 @@ class QuantizeLayer(nn.Module):
                         tmp = F.linear(activation_in_container[i], weight_container[j], None)
                     else:
                         raise NotImplementedError
-                    tmp = tmp / scale
-                    transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + (weight_cycle - 1 - j) * self.hardware_config['weight_bit'] + (Q - 1)
+                    tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
+                                               (weight_cycle - 1) * self.hardware_config['weight_bit']))
+                    transfer_point = point_shift + (Q - 1)
                     tmp = tmp * (2 ** transfer_point)
                     tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
                     tmp = tmp / (2 ** transfer_point)
+                    # scale
+                    scale_point = (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + \
+                                  (weight_cycle - 1 - j) * self.hardware_config['weight_bit']
+                    tmp = tmp / (2 ** scale_point)
                     if torch.is_tensor(output):
                         output = output + tmp
                     else:

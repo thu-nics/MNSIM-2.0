@@ -40,7 +40,7 @@ def main():
     print(args.disable_hardware_modeling)
 
     print(os.path.join(os.path.dirname(os.getcwd()), "Interface/cifar10"))
-    __TestInterface = TrainTestInterface('MNSIM.Interface.lenet', 'MNSIM.Interface.cifar10', SimConfig_path, weights_file_path, 'cpu')
+    __TestInterface = TrainTestInterface('MNSIM.Interface.lenet', 'MNSIM.Interface.cifar10', SimConfig_path, weights_file_path, 0)
     structure_file = __TestInterface.get_structure()
     weight = __TestInterface.get_net_bits()
     print(structure_file)
