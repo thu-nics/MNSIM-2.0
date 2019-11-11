@@ -28,7 +28,7 @@ class TrainTestInterface(object):
         self.hardware_config['xbar_size'] = xbar_size[0]
         # xbar bit
         self.xbar_bit = int(xbar_config.get('Device level', 'Device_Level'))
-        self.hardware_config['weight_bit'] = math.ceil(math.log2(self.xbar_bit))
+        self.hardware_config['weight_bit'] = math.floor(math.log2(self.xbar_bit))
         # input bit and ADC bit
         ADC_choice = int(xbar_config.get('Interface level', 'ADC_Choice'))
         DAC_choice = int(xbar_config.get('Interface level', 'DAC_Choice'))
