@@ -155,4 +155,4 @@ if __name__ == '__main__':
     __TestInterface = TrainTestInterface('lenet', 'cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
     # print(__TestInterface.get_net_bits())
     print(__TestInterface.origin_evaluate())
-    print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
+    # print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))

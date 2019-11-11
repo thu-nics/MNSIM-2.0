@@ -289,7 +289,7 @@ class QuantizeLayer(nn.Module):
             for j in range(weight_cycle):
                 tmp = bit_weights[f'split{layer_num}_weight{j}_positive'] - bit_weights[f'split{layer_num}_weight{j}_negative']
                 tmp = torch.from_numpy(tmp) * weight_scale
-                weight_container.append(tmp.to(input.device))
+                weight_container.append(tmp.to(device=input.device,dtype=input.dtype))
                 base = base * step
             activation_in_bit = int(self.bit_scale_list[0, 0].item())
             activation_in_scale = self.bit_scale_list[0, 1].item()
