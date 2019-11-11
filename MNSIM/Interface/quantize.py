@@ -203,7 +203,7 @@ class QuantizeLayer(nn.Module):
                 activation_in_cycle = (activation_in_bit - 1) // self.hardware_config['input_bit']
                 # split activation_in into bit
                 sign_activation_in = torch.sign(activation_in_digit)
-                activation_digit_in = torch.abs(activation_in_digit)
+                activation_in_digit = torch.abs(activation_in_digit)
                 base = 1
                 step = 2 ** self.hardware_config['input_bit']
                 activation_in_container = []
