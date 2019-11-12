@@ -9,10 +9,10 @@ from MNSIM.Hardware_Model.Crossbar import crossbar
 from MNSIM.Interface.interface import *
 
 def weight_update(SimConfig_path, weight, is_SAF=1, is_Variation=1):
-    print("Hardware config file is loaded:", SimConfig_path)
+    # print("Hardware config file is loaded:", SimConfig_path)
     wu_config = cp.ConfigParser()
     wu_config.read(SimConfig_path, encoding='UTF-8')
-    SAF = list(map(int, wu_config.get('Device level', 'Device_SAF').split(',')))
+    SAF_dist = list(map(int, wu_config.get('Device level', 'Device_SAF').split(',')))
     variation = float(wu_config.get('Device level', 'Device_Variation'))
     device_level = int(wu_config.get('Device level', 'Device_Level'))
     assert device_level >= 0, "NVM resistance level < 0"
@@ -37,8 +37,8 @@ def weight_update(SimConfig_path, weight, is_SAF=1, is_Variation=1):
                     # print(temp_var)
             if (is_SAF):
                 SAF = np.random.random_sample(value.shape)
-                value = np.where(SAF < float(SAF[0] / 100), 0, value)
-                value = np.where(SAF > 1 - float(SAF[-1] / 100), max_value, value)
+                value = np.where(SAF < float(SAF_dist[0] / 100), 0, value)
+                value = np.where(SAF > 1 - float(SAF_dist[-1] / 100), max_value, value)
                 # print(value)
             weight[i].update({label: value.astype(float)})
     return weight
