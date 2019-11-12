@@ -14,6 +14,9 @@ class TrainTestInterface(object):
         # dataset_module = 'cifar10'
         # weights_file = './zoo/cifar10_lenet_train_params.pth'
         # load net, dataset, and weights
+        self.network_module = netwotk_module
+        self.dataset_module = dataset_module
+        self.weights_file = weights_file
         self.test_loader = import_module(dataset_module).get_dataloader()[1]
         # load simconfig
         ## xbar_size, input_bit, weight_bit, quantize_bit
@@ -74,15 +77,19 @@ class TrainTestInterface(object):
         # else:
         #     self.device = torch.device('cpu')
     def origin_evaluate(self):
-        self.net.to(self.device)
-        self.net.eval()
+        hardware_config = self.hardware_config
+        hardware_config['fix_method'] = 'FIX_TRAIN'
+        net = import_module(self.network_module).get_net(hardware_config)
+        net.load_state_dict(torch.load(self.weights_file, map_location=self.device))
+        net.to(self.device)
+        net.eval()
         test_correct = 0
         test_total = 0
         with torch.no_grad():
             for i, (images, labels) in enumerate(self.test_loader):
                 images = images.to(self.device)
                 test_total += labels.size(0)
-                outputs = self.net(images)
+                outputs = net(images)
                 # predicted
                 labels = labels.to(self.device)
                 _, predicted = torch.max(outputs, 1)
