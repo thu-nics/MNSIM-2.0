@@ -61,7 +61,7 @@ def train_net(net, train_loader, test_loader, device, prefix):
             net.zero_grad()
             images = images.to(device)
             labels = labels.to(device)
-            outputs = net(images)
+            outputs = net(images, 'FIX_TRAIN')
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -81,7 +81,7 @@ def eval_net(net, test_loader, epoch, device):
         for i, (images, labels) in enumerate(test_loader):
             images = images.to(device)
             test_total += labels.size(0)
-            outputs = net(images)
+            outputs = net(images, 'FIX_TRAIN')
             # predicted
             labels = labels.to(device)
             _, predicted = torch.max(outputs, 1)

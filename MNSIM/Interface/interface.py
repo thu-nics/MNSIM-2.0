@@ -23,7 +23,6 @@ class TrainTestInterface(object):
         xbar_config = configparser.ConfigParser()
         xbar_config.read(SimConfig_path, encoding = 'UTF-8')
         self.hardware_config = collections.OrderedDict()
-        self.hardware_config['fix_method'] = 'SINGLE_FIX_TEST'
         # xbar_size
         xbar_size = list(map(int, xbar_config.get('Crossbar level', 'Xbar_Size').split(',')))
         self.xbar_row = xbar_size[0]
@@ -76,29 +75,7 @@ class TrainTestInterface(object):
         #     self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
         # else:
         #     self.device = torch.device('cpu')
-    def origin_evaluate(self):
-        hardware_config = self.hardware_config
-        hardware_config['fix_method'] = 'FIX_TRAIN'
-        net = import_module(self.network_module).get_net(hardware_config)
-        net.load_state_dict(torch.load(self.weights_file, map_location=self.device))
-        net.to(self.device)
-        net.eval()
-        test_correct = 0
-        test_total = 0
-        with torch.no_grad():
-            for i, (images, labels) in enumerate(self.test_loader):
-                images = images.to(self.device)
-                test_total += labels.size(0)
-                outputs = net(images)
-                # predicted
-                labels = labels.to(self.device)
-                _, predicted = torch.max(outputs, 1)
-                test_correct += (predicted == labels).sum().item()
-        return test_correct / test_total
-    def get_net_bits(self):
-        net_bit_weights = self.net.get_weights()
-        return net_bit_weights
-    def set_net_bits_evaluate(self, net_bit_weights):
+    def origin_evaluate(self, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
         self.net.to(self.device)
         self.net.eval()
         test_correct = 0
@@ -107,7 +84,25 @@ class TrainTestInterface(object):
             for i, (images, labels) in enumerate(self.test_loader):
                 images = images.to(self.device)
                 test_total += labels.size(0)
-                outputs = self.net.set_weights_forward(images, net_bit_weights)
+                outputs = self.net(images, method, adc_action)
+                # predicted
+                labels = labels.to(self.device)
+                _, predicted = torch.max(outputs, 1)
+                test_correct += (predicted == labels).sum().item()
+        return test_correct / test_total
+    def get_net_bits(self):
+        net_bit_weights = self.net.get_weights()
+        return net_bit_weights
+    def set_net_bits_evaluate(self, net_bit_weights, adc_action = 'SCALE'):
+        self.net.to(self.device)
+        self.net.eval()
+        test_correct = 0
+        test_total = 0
+        with torch.no_grad():
+            for i, (images, labels) in enumerate(self.test_loader):
+                images = images.to(self.device)
+                test_total += labels.size(0)
+                outputs = self.net.set_weights_forward(images, net_bit_weights, adc_action)
                 # predicted
                 labels = labels.to(self.device)
                 _, predicted = torch.max(outputs, 1)

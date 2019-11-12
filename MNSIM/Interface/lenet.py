@@ -34,17 +34,17 @@ class LeNet(nn.Module):
         fc5_layer_config = {'type': 'fc', 'in_features': 84, 'out_features': num_classes}
         self.fc5 = quantize.QuantizeLayer(hardware_config, fc5_layer_config, quantize_config)
 
-    def forward(self, x):
+    def forward(self, x, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
         # input fix information
         quantize.last_activation_scale = 1. / 255.
         quantize.last_activation_bit = 9
         # forward
-        x = self.s1(self.relu1(self.c1(x)))
-        x = self.s2(self.relu2(self.c2(x)))
-        x = self.relu3(self.c3(x))
+        x = self.s1(self.relu1(self.c1(x, method, adc_action)))
+        x = self.s2(self.relu2(self.c2(x, method, adc_action)))
+        x = self.relu3(self.c3(x, method, adc_action))
         x = x.view(x.size(0), -1)
-        x = self.relu4(self.fc4(x))
-        x = self.fc5(x)
+        x = self.relu4(self.fc4(x, method, adc_action))
+        x = self.fc5(x, method, adc_action)
         return x
     def get_weights(self):
         net_bit_weights = []
@@ -52,17 +52,17 @@ class LeNet(nn.Module):
             if isinstance(module, quantize.QuantizeLayer):
                 net_bit_weights.append(module.get_bit_weights())
         return net_bit_weights
-    def set_weights_forward(self, x, net_bit_weights):
+    def set_weights_forward(self, x, net_bit_weights, adc_action = 'SCALE'):
         # input fix information
         quantize.last_activation_scale = 1. / 255.
         quantize.last_activation_bit = 9
         # forward
-        x = self.s1(self.relu1(self.c1.set_weights_forward(x, net_bit_weights[0])))
-        x = self.s2(self.relu2(self.c2.set_weights_forward(x, net_bit_weights[1])))
-        x = self.relu3(self.c3.set_weights_forward(x, net_bit_weights[2]))
+        x = self.s1(self.relu1(self.c1.set_weights_forward(x, net_bit_weights[0], adc_action)))
+        x = self.s2(self.relu2(self.c2.set_weights_forward(x, net_bit_weights[1], adc_action)))
+        x = self.relu3(self.c3.set_weights_forward(x, net_bit_weights[2], adc_action))
         x = x.view(x.size(0), -1)
-        x = self.relu4(self.fc4.set_weights_forward(x, net_bit_weights[3]))
-        x = self.fc5.set_weights_forward(x, net_bit_weights[4])
+        x = self.relu4(self.fc4.set_weights_forward(x, net_bit_weights[3], adc_action))
+        x = self.fc5.set_weights_forward(x, net_bit_weights[4], adc_action)
         return x
     def get_structure(self):
         # forward structure
@@ -83,7 +83,7 @@ class LeNet(nn.Module):
 def get_net(hardware_config = None):
     # initial config
     if hardware_config == None:
-        hardware_config = {'fix_method': 'SINGLE_FIX_TEST', 'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'quantize_bit': 10}
+        hardware_config = {'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'quantize_bit': 10}
     net = LeNet(hardware_config, 10)
     return net
 

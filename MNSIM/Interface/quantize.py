@@ -134,8 +134,8 @@ class QuantizeLayer(nn.Module):
         self.layer_info['weight_cycle'] = (int(self.bit_scale_list[1, 0].item()) - 1) // (self.hardware_config['weight_bit'])
         return output
 
-    def forward(self, input):
-        METHOD = self.hardware_config['fix_method']
+    def forward(self, input, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
+        METHOD = method
         # float method
         if METHOD == 'TRADITION':
             input_list = torch.split(input, self.split_input, dim = 1)
@@ -174,88 +174,17 @@ class QuantizeLayer(nn.Module):
             return output
         if METHOD == 'SINGLE_FIX_TEST':
             assert self.training == False
-            output = None
-            input_list = torch.split(input, self.split_input, dim = 1)
-            scale = self.last_value.item()
-            weight_bit = int(self.bit_scale_list[1, 0].item())
-            weight_scale = self.bit_scale_list[1, 1].item()
-            for layer_num, l in enumerate(self.layer_list):
-                # transfer part weight
-                thres = 2 ** (weight_bit - 1) - 1
-                weight_digit = torch.clamp(torch.round(l.weight / weight_scale), 0 - thres, thres - 0)
-                # split weight into bit
-                # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
-                weight_cycle = math.ceil((weight_bit - 1) / self.hardware_config['weight_bit'])
-                sign_weight = torch.sign(weight_digit)
-                weight_digit = torch.abs(weight_digit)
-                base = 1
-                step = 2 ** self.hardware_config['weight_bit']
-                weight_container = []
-                for j in range(weight_cycle):
-                    tmp = torch.fmod(weight_digit, base * step) - torch.fmod(weight_digit, base)
-                    weight_container.append(torch.mul(sign_weight, tmp) / base)
-                    base = base * step
-                activation_in_bit = int(self.bit_scale_list[0, 0].item())
-                activation_in_scale = self.bit_scale_list[0, 1].item()
-                thres = 2 ** (activation_in_bit - 1) - 1
-                activation_in_digit = torch.clamp(torch.round(input_list[layer_num] / activation_in_scale), 0 - thres, thres - 0)
-                # assert (activation_in_bit - 1) % self.hardware_config['input_bit'] == 0
-                activation_in_cycle = math.ceil((activation_in_bit - 1) / self.hardware_config['input_bit'])
-                # split activation_in into bit
-                sign_activation_in = torch.sign(activation_in_digit)
-                activation_in_digit = torch.abs(activation_in_digit)
-                base = 1
-                step = 2 ** self.hardware_config['input_bit']
-                activation_in_container = []
-                for i in range(activation_in_cycle):
-                    tmp = torch.fmod(activation_in_digit, base * step) -  torch.fmod(activation_in_digit, base)
-                    activation_in_container.append(torch.mul(sign_activation_in, tmp) / base)
-                    base = base * step
-                # calculation and add
-                point_shift = self.quantize_config['point_shift']
-                Q = self.hardware_config['quantize_bit']
-                for i in range(activation_in_cycle):
-                    for j in range(weight_cycle):
-                        tmp = None
-                        if self.layer_config['type'] == 'conv':
-                            tmp = F.conv2d(activation_in_container[i], weight_container[j], None, 1, 0, 1, 1)
-                        elif self.layer_config['type'] == 'fc':
-                            tmp = F.linear(activation_in_container[i], weight_container[j], None)
-                        else:
-                            raise NotImplementedError
-                        # tmp = tmp / scale
-                        # transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + \
-                                         # (weight_cycle - 1 - j) * self.hardware_config['weight_bit'] + (Q - 1)
-                        tmp = tmp * weight_scale * activation_in_scale
-                        tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
-                                                   (weight_cycle - 1) * self.hardware_config['weight_bit']))
-                        transfer_point = point_shift + (Q - 1)
-                        tmp = tmp * (2 ** transfer_point)
-                        tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
-                        tmp = tmp / (2 ** transfer_point)
-                        # scale
-                        scale_point = (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + \
-                                      (weight_cycle - 1 - j) * self.hardware_config['weight_bit']
-                        tmp = tmp / (2 ** scale_point)
-                        if torch.is_tensor(output):
-                            output = output + tmp
-                        else:
-                            output = tmp
-            # quantize output
-            activation_out_bit = int(self.bit_scale_list[0, 0].item())
-            activation_out_scale = self.bit_scale_list[0, 1].item()
-            thres = 2 ** (activation_out_bit - 1) - 1
-            output = torch.clamp(torch.round(output * thres), 0 - thres, thres - 0)
-            output = output * scale / thres
+            bit_weights = self.get_bit_weights()
+            output = self.set_weights_forward(input, bit_weights, adc_action)
             return output
         assert 0
     def get_bit_weights(self):
-        assert self.hardware_config['fix_method'] == 'SINGLE_FIX_TEST' or self.hardware_config['fix_method'] == 'FIX_TRAIN'
-        bit_weights = collections.OrderedDict()
         weight_bit = int(self.bit_scale_list[1, 0].item())
         weight_scale = self.bit_scale_list[1, 1].item()
+        assert weight_bit != 0 and weight_scale != 0, f'weight bit and scale should be given by the params'
+        bit_weights = collections.OrderedDict()
         for layer_num, l in enumerate(self.layer_list):
-            # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
+            # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0, generate weight cycle
             weight_cycle = math.ceil((weight_bit - 1) / self.hardware_config['weight_bit'])
             # transfer part weight
             thres = 2 ** (weight_bit - 1) - 1
@@ -273,8 +202,7 @@ class QuantizeLayer(nn.Module):
                 bit_weights[f'split{layer_num}_weight{j}_negative'] = np.where(tmp < 0, -tmp, 0)
                 base = base * step
         return bit_weights
-    def set_weights_forward(self, input, bit_weights):
-        assert self.hardware_config['fix_method'] == 'SINGLE_FIX_TEST'
+    def set_weights_forward(self, input, bit_weights, adc_action):
         assert self.training == False
         output = None
         input_list = torch.split(input, self.split_input, dim = 1)
@@ -282,7 +210,7 @@ class QuantizeLayer(nn.Module):
         weight_bit = int(self.bit_scale_list[1, 0].item())
         weight_scale = self.bit_scale_list[1, 1].item()
         for layer_num, l in enumerate(self.layer_list):
-            # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
+            # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0, generate weight cycle
             weight_cycle = math.ceil((weight_bit - 1) / self.hardware_config['weight_bit'])
             weight_container = []
             base = 1
@@ -290,13 +218,13 @@ class QuantizeLayer(nn.Module):
             for j in range(weight_cycle):
                 tmp = bit_weights[f'split{layer_num}_weight{j}_positive'] - bit_weights[f'split{layer_num}_weight{j}_negative']
                 tmp = torch.from_numpy(tmp)
-                weight_container.append(tmp.to(device=input.device,dtype=input.dtype))
+                weight_container.append(tmp.to(device = input.device, dtype = input.dtype))
                 base = base * step
             activation_in_bit = int(self.bit_scale_list[0, 0].item())
             activation_in_scale = self.bit_scale_list[0, 1].item()
             thres = 2 ** (activation_in_bit - 1) - 1
             activation_in_digit = torch.clamp(torch.round(input_list[layer_num] / activation_in_scale), 0 - thres, thres - 0)
-            # assert (activation_in_bit - 1) % self.hardware_config['input_bit'] == 0
+            # assert (activation_in_bit - 1) % self.hardware_config['input_bit'] == 0, generate activation_in cycle
             activation_in_cycle = math.ceil((activation_in_bit - 1) / self.hardware_config['input_bit'])
             # split activation into bit
             sign_activation_in = torch.sign(activation_in_digit)
@@ -320,17 +248,32 @@ class QuantizeLayer(nn.Module):
                         tmp = F.linear(activation_in_container[i], weight_container[j], None)
                     else:
                         raise NotImplementedError
-                    tmp = tmp * weight_scale * activation_in_scale
-                    tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
-                                               (weight_cycle - 1) * self.hardware_config['weight_bit']))
-                    transfer_point = point_shift + (Q - 1)
-                    tmp = tmp * (2 ** transfer_point)
-                    tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
-                    tmp = tmp / (2 ** transfer_point)
+                    if adc_action == 'SCALE':
+                        tmp = tmp * weight_scale * activation_in_scale
+                        tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
+                                                   (weight_cycle - 1) * self.hardware_config['weight_bit']))
+                        transfer_point = point_shift + (Q - 1)
+                        tmp = tmp * (2 ** transfer_point)
+                        tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
+                        tmp = tmp / (2 ** transfer_point)
+                    elif adc_action == 'FIX':
+                        # fix scale range
+                        fix_scale_range = (2 ** self.hardware_config['input_bit'] - 1) * \
+                                          (2 ** self.hardware_config['weight_bit'] - 1) * \
+                                          self.hardware_config['xbar_size']
+                        tmp = tmp / fix_scale_range * (2 ** (Q - 1))
+                        tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
+                        tmp = tmp * fix_scale_range / (2 ** (Q - 1))
+                        tmp = tmp * weight_scale * activation_in_scale
+                        tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
+                                                   (weight_cycle - 1) * self.hardware_config['weight_bit']))
+                    else:
+                        assert 0, f'can not support {adc_action}'
                     # scale
                     scale_point = (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + \
                                   (weight_cycle - 1 - j) * self.hardware_config['weight_bit']
                     tmp = tmp / (2 ** scale_point)
+                    # add
                     if torch.is_tensor(output):
                         output = output + tmp
                     else:
