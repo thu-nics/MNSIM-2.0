@@ -184,8 +184,8 @@ class QuantizeLayer(nn.Module):
                 thres = 2 ** (weight_bit - 1) - 1
                 weight_digit = torch.clamp(torch.round(l.weight / weight_scale), 0 - thres, thres - 0)
                 # split weight into bit
-                assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
-                weight_cycle = (weight_bit - 1) // self.hardware_config['weight_bit']
+                # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
+                weight_cycle = math.ceil((weight_bit - 1) / self.hardware_config['weight_bit'])
                 sign_weight = torch.sign(weight_digit)
                 weight_digit = torch.abs(weight_digit)
                 base = 1
@@ -193,14 +193,14 @@ class QuantizeLayer(nn.Module):
                 weight_container = []
                 for j in range(weight_cycle):
                     tmp = torch.fmod(weight_digit, base * step) - torch.fmod(weight_digit, base)
-                    weight_container.append(torch.mul(sign_weight, tmp) * weight_scale / base)
+                    weight_container.append(torch.mul(sign_weight, tmp) / base)
                     base = base * step
                 activation_in_bit = int(self.bit_scale_list[0, 0].item())
                 activation_in_scale = self.bit_scale_list[0, 1].item()
                 thres = 2 ** (activation_in_bit - 1) - 1
                 activation_in_digit = torch.clamp(torch.round(input_list[layer_num] / activation_in_scale), 0 - thres, thres - 0)
-                assert (activation_in_bit - 1) % self.hardware_config['input_bit'] == 0
-                activation_in_cycle = (activation_in_bit - 1) // self.hardware_config['input_bit']
+                # assert (activation_in_bit - 1) % self.hardware_config['input_bit'] == 0
+                activation_in_cycle = math.ceil((activation_in_bit - 1) / self.hardware_config['input_bit'])
                 # split activation_in into bit
                 sign_activation_in = torch.sign(activation_in_digit)
                 activation_in_digit = torch.abs(activation_in_digit)
@@ -209,7 +209,7 @@ class QuantizeLayer(nn.Module):
                 activation_in_container = []
                 for i in range(activation_in_cycle):
                     tmp = torch.fmod(activation_in_digit, base * step) -  torch.fmod(activation_in_digit, base)
-                    activation_in_container.append(torch.mul(sign_activation_in, tmp) * activation_in_scale / base)
+                    activation_in_container.append(torch.mul(sign_activation_in, tmp) / base)
                     base = base * step
                 # calculation and add
                 point_shift = self.quantize_config['point_shift']
@@ -226,6 +226,7 @@ class QuantizeLayer(nn.Module):
                         # tmp = tmp / scale
                         # transfer_point = point_shift + (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + \
                                          # (weight_cycle - 1 - j) * self.hardware_config['weight_bit'] + (Q - 1)
+                        tmp = tmp * weight_scale * activation_in_scale
                         tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
                                                    (weight_cycle - 1) * self.hardware_config['weight_bit']))
                         transfer_point = point_shift + (Q - 1)
@@ -254,8 +255,8 @@ class QuantizeLayer(nn.Module):
         weight_bit = int(self.bit_scale_list[1, 0].item())
         weight_scale = self.bit_scale_list[1, 1].item()
         for layer_num, l in enumerate(self.layer_list):
-            assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
-            weight_cycle = (weight_bit - 1) // self.hardware_config['weight_bit']
+            # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
+            weight_cycle = math.ceil((weight_bit - 1) / self.hardware_config['weight_bit'])
             # transfer part weight
             thres = 2 ** (weight_bit - 1) - 1
             weight_digit = torch.clamp(torch.round(l.weight / weight_scale), 0 - thres, thres - 0)
@@ -281,31 +282,31 @@ class QuantizeLayer(nn.Module):
         weight_bit = int(self.bit_scale_list[1, 0].item())
         weight_scale = self.bit_scale_list[1, 1].item()
         for layer_num, l in enumerate(self.layer_list):
-            assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
-            weight_cycle = (weight_bit - 1) // self.hardware_config['weight_bit']
+            # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0
+            weight_cycle = math.ceil((weight_bit - 1) / self.hardware_config['weight_bit'])
             weight_container = []
             base = 1
             step = 2 ** self.hardware_config['weight_bit']
             for j in range(weight_cycle):
                 tmp = bit_weights[f'split{layer_num}_weight{j}_positive'] - bit_weights[f'split{layer_num}_weight{j}_negative']
-                tmp = torch.from_numpy(tmp) * weight_scale
+                tmp = torch.from_numpy(tmp)
                 weight_container.append(tmp.to(device=input.device,dtype=input.dtype))
                 base = base * step
             activation_in_bit = int(self.bit_scale_list[0, 0].item())
             activation_in_scale = self.bit_scale_list[0, 1].item()
             thres = 2 ** (activation_in_bit - 1) - 1
             activation_in_digit = torch.clamp(torch.round(input_list[layer_num] / activation_in_scale), 0 - thres, thres - 0)
-            assert (activation_in_bit - 1) % self.hardware_config['input_bit'] == 0
-            activation_in_cycle = (activation_in_bit - 1) // self.hardware_config['input_bit']
+            # assert (activation_in_bit - 1) % self.hardware_config['input_bit'] == 0
+            activation_in_cycle = math.ceil((activation_in_bit - 1) / self.hardware_config['input_bit'])
             # split activation into bit
             sign_activation_in = torch.sign(activation_in_digit)
-            activation_digit_in = torch.abs(activation_in_digit)
+            activation_in_digit = torch.abs(activation_in_digit)
             base = 1
             step = 2 ** self.hardware_config['input_bit']
             activation_in_container = []
             for i in range(activation_in_cycle):
                 tmp = torch.fmod(activation_in_digit, base * step) -  torch.fmod(activation_in_digit, base)
-                activation_in_container.append(torch.mul(sign_activation_in, tmp) * activation_in_scale / base)
+                activation_in_container.append(torch.mul(sign_activation_in, tmp) / base)
                 base = base * step
             # calculation and add
             point_shift = self.quantize_config['point_shift']
@@ -319,6 +320,7 @@ class QuantizeLayer(nn.Module):
                         tmp = F.linear(activation_in_container[i], weight_container[j], None)
                     else:
                         raise NotImplementedError
+                    tmp = tmp * weight_scale * activation_in_scale
                     tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
                                                (weight_cycle - 1) * self.hardware_config['weight_bit']))
                     transfer_point = point_shift + (Q - 1)
