@@ -207,7 +207,7 @@ class behavior_mapping(bank):
                         read_column.append(temp_occupied_group*[temp_width])
                         if current_PE_num == self.bank_PE_total_num or \
                                 ((kernel_length_2bsplit==0)&(channel_width_2bsplit==0)&(weight_precision_2bsplit==0)):
-                            print("yes")
+                            # print("yes")
                             __temp_bank = bank(self.SimConfig_path)
                             self.bank_list[layer_id].append(__temp_bank)
                             self.bank_list[layer_id][bank_index].bank_read_config(
@@ -221,7 +221,7 @@ class behavior_mapping(bank):
                             current_PE_num = 0
                             read_column = []
                             read_row = []
-            print(layer_id,':',self.PE_num[layer_id],self.bank_num[layer_id],bank_index)
+            # print(layer_id,':',self.PE_num[layer_id],self.bank_num[layer_id],bank_index)
 
 
 
