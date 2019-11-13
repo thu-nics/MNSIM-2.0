@@ -79,8 +79,12 @@ class QuantizeLayer(nn.Module):
             else:
                 in_channels_list = [channel_N] * complete_bar_num
             # generate Module List
+            if 'stride' not in self.layer_config.keys():
+                self.layer_config['stride'] = 1
+            if 'padding' not in self.layer_config.keys():
+                self.layer_config['padding'] = 0
             self.layer_list = nn.ModuleList([nn.Conv2d(i, self.layer_config['out_channels'], self.layer_config['kernel_size'],
-                                                        stride = 1, padding = 0, dilation = 1, groups = 1, bias = False)
+                                                        stride = self.layer_config['stride'], padding = self.layer_config['padding'], dilation = 1, groups = 1, bias = False)
                                                         for i in in_channels_list])
             self.split_input = channel_N
         elif self.layer_config['type'] == 'fc':
@@ -162,7 +166,7 @@ class QuantizeLayer(nn.Module):
             self.bit_scale_list.data[1, 0] = last_weight_bit
             self.bit_scale_list.data[1, 1] = last_weight_scale
             if self.layer_config['type'] == 'conv':
-                output = F.conv2d(input, weight, None, 1, 0, 1, 1)
+                output = F.conv2d(input, weight, None, self.layer_config['stride'], self.layer_config['padding'], 1, 1)
             elif self.layer_config['type'] == 'fc':
                 output = F.linear(input, weight, None)
             else:

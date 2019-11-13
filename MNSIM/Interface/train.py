@@ -33,7 +33,7 @@ EPOCHS,
 
 def train_net(net, train_loader, test_loader, device, prefix):
     global tensorboard_writer
-    tensorboard_writer = SummaryWriter(logdir = './MNSIM/Interface/runs/', comment = prefix)
+    tensorboard_writer = SummaryWriter(comment = prefix)
     # set net on gpu
     net.to(device)
     # loss and optimizer
@@ -42,7 +42,7 @@ def train_net(net, train_loader, test_loader, device, prefix):
     standard_params = []
     individu_params = []
     for param in net.parameters():
-        if (param.size() == torch.Size([1])):
+        if (param.size() == torch.Size([1])) or (param.size() == torch.Size([3, 2])):
             individu_params.append(param)
         else:
             standard_params.append(param)
@@ -68,7 +68,7 @@ def train_net(net, train_loader, test_loader, device, prefix):
             print(f'epoch {epoch+1:3d}, {i:3d}|{len(train_loader):3d}, loss: {loss.item():2.4f}', end = '\r')
             tensorboard_writer.add_scalars('train_loss', {'train_loss': loss.item()}, epoch * len(train_loader) + i)
         eval_net(net, test_loader, epoch + 1, device)
-        torch.save(net.state_dict(), f'./MNSIM/Interface/zoo/{prefix}_params.pth')
+        torch.save(net.state_dict(), f'./{prefix}_params.pth')
 
 
 def eval_net(net, test_loader, epoch, device):
