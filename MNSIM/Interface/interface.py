@@ -145,11 +145,15 @@ class TrainTestInterface(object):
         return net_array
 
 def mysplit(array, length):
-    L = array.shape[1] // length
-    if L > 0:
-        return np.split(array[:,:(L*length)], length, axis = 1).append(array[:,(L*length):])
-    else:
-        return array
+    # reshape
+    array = np.reshape(array, (array.shape[0], -1))
+    # split on output
+    assert array.shape[0] > 0
+    tmp_index = []
+    for i in range(1, array.shape[0]):
+        if i % length == 0:
+            tmp_index.append(i)
+    return np.split(array, tmp_index, axis = 0)
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")

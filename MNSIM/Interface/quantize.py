@@ -135,7 +135,7 @@ class QuantizeLayer(nn.Module):
         self.layer_info['Weightbit'] = int(self.bit_scale_list[1,0].item())
         self.layer_info['outputbit'] = int(self.bit_scale_list[2,0].item())
         self.layer_info['row_split_num'] = len(self.layer_list)
-        self.layer_info['weight_cycle'] = (int(self.bit_scale_list[1, 0].item()) - 1) // (self.hardware_config['weight_bit'])
+        self.layer_info['weight_cycle'] = math.ceil((int(self.bit_scale_list[1, 0].item()) - 1) / (self.hardware_config['weight_bit']))
         return output
 
     def forward(self, input, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
@@ -166,7 +166,8 @@ class QuantizeLayer(nn.Module):
             self.bit_scale_list.data[1, 0] = last_weight_bit
             self.bit_scale_list.data[1, 1] = last_weight_scale
             if self.layer_config['type'] == 'conv':
-                output = F.conv2d(input, weight, None, self.layer_config['stride'], self.layer_config['padding'], 1, 1)
+                output = F.conv2d(input, weight, None, \
+                                  self.layer_config['stride'], self.layer_config['padding'], 1, 1)
             elif self.layer_config['type'] == 'fc':
                 output = F.linear(input, weight, None)
             else:
@@ -247,7 +248,8 @@ class QuantizeLayer(nn.Module):
                 for j in range(weight_cycle):
                     tmp = None
                     if self.layer_config['type'] == 'conv':
-                        tmp = F.conv2d(activation_in_container[i], weight_container[j], None, 1, 0, 1, 1)
+                        tmp = F.conv2d(activation_in_container[i], weight_container[j], None, \
+                                       self.layer_config['stride'], self.layer_config['padding'], 1, 1)
                     elif self.layer_config['type'] == 'fc':
                         tmp = F.linear(activation_in_container[i], weight_container[j], None)
                     else:

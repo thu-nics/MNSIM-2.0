@@ -96,10 +96,10 @@ class LeNet(nn.Module):
         tmp_state_dict = collections.OrderedDict()
         for tmp_key, key_list in keys_map.items():
             if len(key_list) == 1 and tmp_key == key_list[0]:
-                print('origin weights')
+                # print('origin weights')
                 tmp_state_dict[tmp_key] = state_dict[key_list[0]]
             else:
-                print(f'transfer weights {tmp_key}')
+                # print(f'transfer weights {tmp_key}')
                 # get layer info
                 layer_config = None
                 hardware_config = None
@@ -111,7 +111,7 @@ class LeNet(nn.Module):
                 assert layer_config, 'layer must have layer config'
                 assert hardware_config, 'layer must have hardware config'
                 # concat weights
-                total_weights = torch.cat([state_dict[key] for key in key_list])
+                total_weights = torch.cat([state_dict[key] for key in key_list], dim = 1)
                 # split weights
                 if layer_config['type'] == 'conv':
                     split_len = (hardware_config['xbar_size'] // (layer_config['kernel_size'] ** 2))

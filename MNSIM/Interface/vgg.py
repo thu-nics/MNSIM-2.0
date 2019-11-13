@@ -119,32 +119,32 @@ class VGG(nn.Module):
         quantize.last_activation_scale = 1. / 255.
         quantize.last_activation_bit = 9
         # forward
-        x = self.relu1_1(self.conv1_1(x, net_bit_weights[0], adc_action))
-        x = self.relu1_2(self.conv1_2(x, net_bit_weights[1], adc_action))
+        x = self.relu1_1(self.conv1_1.set_weights_forward(x, net_bit_weights[0], adc_action))
+        x = self.relu1_2(self.conv1_2.set_weights_forward(x, net_bit_weights[1], adc_action))
         x = F.max_pool2d(x, 2)
 
-        x = self.relu2_1(self.conv2_1(x, net_bit_weights[2], adc_action))
-        x = self.relu2_2(self.conv2_2(x, net_bit_weights[3], adc_action))
+        x = self.relu2_1(self.conv2_1.set_weights_forward(x, net_bit_weights[2], adc_action))
+        x = self.relu2_2(self.conv2_2.set_weights_forward(x, net_bit_weights[3], adc_action))
         x = F.max_pool2d(x, 2)
 
-        x = self.relu3_1(self.conv3_1(x, net_bit_weights[4], adc_action))
-        x = self.relu3_2(self.conv3_2(x, net_bit_weights[5], adc_action))
-        x = self.relu3_3(self.conv3_3(x, net_bit_weights[6], adc_action))
+        x = self.relu3_1(self.conv3_1.set_weights_forward(x, net_bit_weights[4], adc_action))
+        x = self.relu3_2(self.conv3_2.set_weights_forward(x, net_bit_weights[5], adc_action))
+        x = self.relu3_3(self.conv3_3.set_weights_forward(x, net_bit_weights[6], adc_action))
         x = F.max_pool2d(x, 2)
 
-        x = self.relu4_1(self.conv4_1(x, net_bit_weights[7], adc_action))
-        x = self.relu4_2(self.conv4_2(x, net_bit_weights[8], adc_action))
-        x = self.relu4_3(self.conv4_3(x, net_bit_weights[9], adc_action))
+        x = self.relu4_1(self.conv4_1.set_weights_forward(x, net_bit_weights[7], adc_action))
+        x = self.relu4_2(self.conv4_2.set_weights_forward(x, net_bit_weights[8], adc_action))
+        x = self.relu4_3(self.conv4_3.set_weights_forward(x, net_bit_weights[9], adc_action))
         x = F.max_pool2d(x, 2)
 
-        x = self.relu5_1(self.conv5_1(x, net_bit_weights[10], adc_action))
-        x = self.relu5_2(self.conv5_2(x, net_bit_weights[11], adc_action))
-        x = self.relu5_3(self.conv5_3(x, net_bit_weights[12], adc_action))
+        x = self.relu5_1(self.conv5_1.set_weights_forward(x, net_bit_weights[10], adc_action))
+        x = self.relu5_2(self.conv5_2.set_weights_forward(x, net_bit_weights[11], adc_action))
+        x = self.relu5_3(self.conv5_3.set_weights_forward(x, net_bit_weights[12], adc_action))
         x = F.max_pool2d(x, 2)
 
         x = x.view(x.size(0), -1)
-        x = self.fc6_dropout(self.fc6_relu(self.fc6(x, net_bit_weights[13], adc_action)))
-        x = self.fc7(x, net_bit_weights[14], adc_action)
+        x = self.fc6_dropout(self.fc6_relu(self.fc6.set_weights_forward(x, net_bit_weights[13], adc_action)))
+        x = self.fc7.set_weights_forward(x, net_bit_weights[14], adc_action)
         return x
     def get_structure(self):
         # forward structure
@@ -195,10 +195,10 @@ class VGG(nn.Module):
         tmp_state_dict = collections.OrderedDict()
         for tmp_key, key_list in keys_map.items():
             if len(key_list) == 1 and tmp_key == key_list[0]:
-                print('origin weights')
+                # print('origin weights')
                 tmp_state_dict[tmp_key] = state_dict[key_list[0]]
             else:
-                print(f'transfer weights {tmp_key}')
+                # print(f'transfer weights {tmp_key}')
                 # get layer info
                 layer_config = None
                 hardware_config = None
@@ -210,7 +210,7 @@ class VGG(nn.Module):
                 assert layer_config, 'layer must have layer config'
                 assert hardware_config, 'layer must have hardware config'
                 # concat weights
-                total_weights = torch.cat([state_dict[key] for key in key_list])
+                total_weights = torch.cat([state_dict[key] for key in key_list], dim = 1)
                 # split weights
                 if layer_config['type'] == 'conv':
                     split_len = (hardware_config['xbar_size'] // (layer_config['kernel_size'] ** 2))
