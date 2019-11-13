@@ -20,7 +20,7 @@ def main():
     sys.path.append(work_path)
     SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "cifar10_lenet_train_params.pth")
+                                          "cifar10_vgg_fix_params.pth")
     # print(SimConfig_path)
     parser = argparse.ArgumentParser(description='MNSIM example')
     parser.add_argument("-HWdes", "--hardware_description", default=SimConfig_path,
@@ -54,7 +54,7 @@ def main():
         print("Quantization range: fixed range (depends on the maximum value)")
     else:
         print("Quantization range: dynamic range (depends on the data distribution)")
-    __TestInterface = TrainTestInterface('MNSIM.Interface.lenet', 'MNSIM.Interface.cifar10', args.hardware_description,
+    __TestInterface = TrainTestInterface('MNSIM.Interface.vgg', 'MNSIM.Interface.cifar10', args.hardware_description,
                                          args.software_model_description, args.device)
     structure_file = __TestInterface.get_structure()
     weight = __TestInterface.get_net_bits()
