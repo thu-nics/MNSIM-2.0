@@ -12,6 +12,7 @@ import configparser
 from importlib import import_module
 from MNSIM.Interface.interface import *
 from MNSIM.Accuracy_Model.Weight_update import weight_update
+from MNSIM.Mapping_Model.Behavior_mapping import behavior_mapping
 
 def main():
     work_path = os.path.dirname(os.getcwd())
@@ -22,22 +23,26 @@ def main():
                                           "cifar10_lenet_train_params.pth")
     # print(SimConfig_path)
     parser = argparse.ArgumentParser(description='MNSIM example')
-    parser.add_argument("-H", "--hardware_description", default=SimConfig_path,
+    parser.add_argument("-HWdes", "--hardware_description", default=SimConfig_path,
                         help="Hardware description file location & name, default:/MNSIM_Python_v1.5/SimConfig.ini")
-    parser.add_argument("-S", "--software_model_description", default=weights_file_path,
+    parser.add_argument("-SWdes", "--software_model_description", default=weights_file_path,
                         help="Hardware description file location & name, default:/MNSIM_Python_v1.5/cifar10_lenet_train_params.pth")
-    parser.add_argument("-DH", "--disable_hardware_modeling", action='store_true', default=False,
+    parser.add_argument("-DisHW", "--disable_hardware_modeling", action='store_true', default=False,
                         help="Disable hardware modeling, default: false")
-    parser.add_argument("-DA", "--disable_accuracy_simulation", action='store_true', default=False,
+    parser.add_argument("-DisAccu", "--disable_accuracy_simulation", action='store_true', default=False,
                         help="Disable accuracy simulation, default: false")
     parser.add_argument("-SAF", "--enable_SAF", action='store_true', default=False,
                         help="Enable simulate SAF, default: false")
     parser.add_argument("-Var", "--enable_variation", action='store_true', default=False,
                         help="Enable simulate variation, default: false")
-    parser.add_argument("-FR", "--enable_fixed_Qrange", action='store_true', default=False,
+    parser.add_argument("-FixRange", "--enable_fixed_Qrange", action='store_true', default=False,
                         help="Enable fixed quantization range (max value), default: false")
     parser.add_argument("-D", "--device", default=0,
                         help="Determine hardware device for simulation, default: CPU")
+    parser.add_argument("-DisModOut", "--disable_module_output", action='store_true', default=False,
+                        help="Disable module simulation results output, default: false")
+    parser.add_argument("-DisLayOut", "--disable_layer_output", action='store_true', default=False,
+                        help="Disable layer-wise simulation results output, default: false")
     args = parser.parse_args()
     print("Hardware description file location:", args.hardware_description)
     print("Software model file location:", args.software_model_description)
@@ -57,10 +62,21 @@ def main():
     # print(__TestInterface.origin_evaluate(method = 'FIX_TRAIN', adc_action = 'SCALE'))
     # print(__TestInterface.set_net_bits_evaluate(weight, adc_action = 'SCALE'))
 
+    if not(args.disable_hardware_modeling):
+        __bm = behavior_mapping(structure_file,args.hardware_description)
+        __bm.config_behavior_mapping()
+        __bm.behavior_mapping_area()
+        __bm.behavior_mapping_utilization()
+        __bm.behavior_mapping_latency()
+        __bm.behavior_mapping_power()
+        __bm.behavior_mapping_energy()
+        __bm.behavior_mapping_output(not(args.disable_module_output), not(args.disable_layer_output))
+
     if not(args.disable_accuracy_simulation):
         weight = __TestInterface.get_net_bits()
-        weight_2 = weight_update(SimConfig_path, weight,
+        weight_2 = weight_update(args.hardware_description, weight,
                                  is_Variation=args.enable_variation, is_SAF=args.enable_SAF)
+        print("===================================================")
         if not(args.enable_fixed_Qrange):
             print("Original accuracy:", __TestInterface.origin_evaluate(method = 'FIX_TRAIN', adc_action = 'SCALE'))
             print("PIM-based computing accuracy:", __TestInterface.set_net_bits_evaluate(weight_2,adc_action='SCALE'))
