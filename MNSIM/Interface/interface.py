@@ -70,7 +70,7 @@ class TrainTestInterface(object):
         else:
             self.device = torch.device('cpu')
         self.net = import_module(netwotk_module).get_net(self.hardware_config)
-        self.net.load_state_dict(torch.load(weights_file, map_location=self.device))
+        self.net.load_change_weights(torch.load(weights_file, map_location=self.device))
         # if device != None:
         #     self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
         # else:

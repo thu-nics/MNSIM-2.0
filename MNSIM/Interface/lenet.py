@@ -5,12 +5,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import collections
+import copy
+import re
 
 class LeNet(nn.Module):
     def __init__(self, hardware_config, num_classes):
         super(LeNet, self).__init__()
         # hardware_config = {'fix_method': 'SINGLE_FIX_TEST', 'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'quantize_bit': 10}
         # hardware_config = {'fix_method': 'FIX_TRAIN', 'xbar_size': 512, 'input_bit': 2, 'quantize_bit': 10}
+        self.hardware_config = copy.deepcopy(hardware_config)
         quantize_config = {'weight_bit': 9, 'activation_bit': 9, 'point_shift': -2}
         # conv layer 1
         c1_layer_config = {'type': 'conv', 'in_channels': 3, 'out_channels': 6, 'kernel_size': 5}
@@ -79,6 +82,49 @@ class LeNet(nn.Module):
             if isinstance(module, quantize.QuantizeLayer):
                 net_info.append(module.layer_info)
         return net_info
+    def load_change_weights(self, state_dict):
+        # input is a state dict, weights
+        # concat all layer_list weights
+        keys_map = collections.OrderedDict()
+        for key in state_dict.keys():
+            tmp_key = re.sub('\.layer_list\.\d+\.weight$', '', key)
+            if tmp_key not in keys_map.keys():
+                keys_map[tmp_key] = [key]
+            else:
+                keys_map[tmp_key].append(key)
+        # concat and split
+        tmp_state_dict = collections.OrderedDict()
+        for tmp_key, key_list in keys_map.items():
+            if len(key_list) == 1 and tmp_key == key_list[0]:
+                print('origin weights')
+                tmp_state_dict[tmp_key] = state_dict[key_list[0]]
+            else:
+                print(f'transfer weights {tmp_key}')
+                # get layer info
+                layer_config = None
+                hardware_config = None
+                for name, module in self.named_children():
+                    if name == tmp_key:
+                        layer_config = module.layer_config
+                        hardware_config = module.hardware_config
+                        layer_list_len = len(module.layer_list)
+                assert layer_config, 'layer must have layer config'
+                assert hardware_config, 'layer must have hardware config'
+                # concat weights
+                total_weights = torch.cat([state_dict[key] for key in key_list])
+                # split weights
+                if layer_config['type'] == 'conv':
+                    split_len = (hardware_config['xbar_size'] // (layer_config['kernel_size'] ** 2))
+                elif layer_config['type'] == 'fc':
+                    split_len = hardware_config['xbar_size']
+                else:
+                    raise NotImplementedError
+                weights_list = torch.split(total_weights, split_len, dim = 1)
+                # load weights
+                for i, weights in enumerate(weights_list):
+                    tmp_state_dict[tmp_key + f'.layer_list.{i}.weight'] = weights
+        # load weights
+        self.load_state_dict(tmp_state_dict)
 
 def get_net(hardware_config = None):
     # initial config
