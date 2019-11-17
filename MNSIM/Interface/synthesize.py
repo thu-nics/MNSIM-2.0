@@ -22,8 +22,8 @@ assert args.mode
 dataset_module = import_module(args.dataset)
 train_loader, test_loader = dataset_module.get_dataloader()
 # net
-net_module = import_module(args.net)
-net = net_module.get_net()
+net_module = import_module('MNSIM.Interface.network')
+net = net_module.get_net(cate = args.net)
 # train
 train_module = import_module(args.train)
 device = torch.device(f'cuda:{args.gpu}' if torch.cuda.is_available() else 'cpu')
@@ -31,5 +31,5 @@ if args.mode == 'train':
     train_module.train_net(net, train_loader, test_loader, device, args.prefix)
 if args.mode == 'test':
     assert args.weight
-    net.load_state_dict(torch.load(args.weight))
+    net.load_change_weights(torch.load(args.weight))
     train_module.eval_net(net, test_loader, 0, device)

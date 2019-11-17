@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import time
+import os
 from tensorboardX import SummaryWriter
 tensorboard_writer = None
 
@@ -33,7 +34,7 @@ EPOCHS,
 
 def train_net(net, train_loader, test_loader, device, prefix):
     global tensorboard_writer
-    tensorboard_writer = SummaryWriter(comment = prefix)
+    tensorboard_writer = SummaryWriter(log_dir = os.path.join(os.path.dirname(__file__), f'runs/{prefix}'))
     # set net on gpu
     net.to(device)
     # loss and optimizer
@@ -68,8 +69,7 @@ def train_net(net, train_loader, test_loader, device, prefix):
             print(f'epoch {epoch+1:3d}, {i:3d}|{len(train_loader):3d}, loss: {loss.item():2.4f}', end = '\r')
             tensorboard_writer.add_scalars('train_loss', {'train_loss': loss.item()}, epoch * len(train_loader) + i)
         eval_net(net, test_loader, epoch + 1, device)
-        torch.save(net.state_dict(), f'./{prefix}_params.pth')
-
+        torch.save(net.state_dict(), os.path.join(os.path.dirname(__file__), f'zoo/{prefix}_params.pth'))
 
 def eval_net(net, test_loader, epoch, device):
     # set net on gpu

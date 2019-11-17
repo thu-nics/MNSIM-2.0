@@ -9,12 +9,12 @@ import copy
 import os
 
 class TrainTestInterface(object):
-    def __init__(self, netwotk_module, dataset_module, SimConfig_path, weights_file, device = None):
+    def __init__(self, network_module, dataset_module, SimConfig_path, weights_file, device = None):
         # netwotk_module = 'lenet'
         # dataset_module = 'cifar10'
         # weights_file = './zoo/cifar10_lenet_train_params.pth'
         # load net, dataset, and weights
-        self.network_module = netwotk_module
+        self.network_module = network_module
         self.dataset_module = dataset_module
         self.weights_file = weights_file
         self.test_loader = import_module(dataset_module).get_dataloader()[1]
@@ -69,7 +69,7 @@ class TrainTestInterface(object):
             self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
         else:
             self.device = torch.device('cpu')
-        self.net = import_module(netwotk_module).get_net(self.hardware_config)
+        self.net = import_module('MNSIM.Interface.network').get_net(self.hardware_config, cate = self.network_module)
         self.net.load_change_weights(torch.load(weights_file, map_location=self.device))
         # if device != None:
         #     self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
@@ -115,6 +115,9 @@ class TrainTestInterface(object):
         net_array = []
         for layer_num, (layer_bit_weights, layer_structure_info) in enumerate(zip(net_bit_weights, net_structure_info)):
             total_array = []
+            if layer_bit_weights == None:
+                net_array.append((layer_structure_info, total_array))
+                continue
             assert len(layer_bit_weights.keys()) == layer_structure_info['row_split_num'] * layer_structure_info['weight_cycle'] * 2
             layer_structure_info['Layernum'] = layer_num
             # split
@@ -156,9 +159,10 @@ def mysplit(array, length):
     return np.split(array, tmp_index, axis = 0)
 
 if __name__ == '__main__':
-    test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
-    test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cifar10_lenet_train_params.pth")
-    __TestInterface = TrainTestInterface('lenet', 'cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
+    pass
+    # test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
+    # test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cifar10_lenet_train_params.pth")
+    # __TestInterface = TrainTestInterface('lenet', 'cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
     # print(__TestInterface.get_net_bits())
-    print(__TestInterface.origin_evaluate())
+    # print(__TestInterface.origin_evaluate())
     # print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))

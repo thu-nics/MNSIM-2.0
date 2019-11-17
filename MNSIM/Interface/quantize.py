@@ -35,7 +35,7 @@ class QuantizeFunction(Function):
                 last_value.data[0] = tmp
             scale = last_value.data[0]
         else:
-            assert 0, 'not support %s' % mode
+            assert 0, f'not support {mode}'
         # transfer
         thres = 2 ** (qbit - 1) - 1
         output = input / scale
@@ -46,7 +46,7 @@ class QuantizeFunction(Function):
         elif mode == 'activation':
             last_activation_scale = scale / thres
         else:
-            assert 0, 'not support %s' % mode
+            assert 0, f'not support {mode}'
         return output
     @staticmethod
     def backward(ctx, grad_output):
@@ -70,6 +70,7 @@ class QuantizeLayer(nn.Module):
         self.quantize_config = copy.deepcopy(quantize_config)
         # split weights
         if self.layer_config['type'] == 'conv':
+            assert 'in_channels' in self.layer_config.keys()
             channel_N = (self.hardware_config['xbar_size'] // (self.layer_config['kernel_size'] ** 2))
             complete_bar_num = self.layer_config['in_channels'] // channel_N
             residual_col_num = self.layer_config['in_channels'] % channel_N
@@ -79,6 +80,8 @@ class QuantizeLayer(nn.Module):
             else:
                 in_channels_list = [channel_N] * complete_bar_num
             # generate Module List
+            assert 'out_channels' in self.layer_config.keys()
+            assert 'kernel_size' in self.layer_config.keys()
             if 'stride' not in self.layer_config.keys():
                 self.layer_config['stride'] = 1
             if 'padding' not in self.layer_config.keys():
@@ -88,6 +91,7 @@ class QuantizeLayer(nn.Module):
                                                         for i in in_channels_list])
             self.split_input = channel_N
         elif self.layer_config['type'] == 'fc':
+            assert 'in_features' in self.layer_config.keys()
             complete_bar_num = self.layer_config['in_features'] // self.hardware_config['xbar_size']
             residual_col_num = self.layer_config['in_features'] % self.hardware_config['xbar_size']
             if residual_col_num > 0:
@@ -95,20 +99,18 @@ class QuantizeLayer(nn.Module):
             else:
                 in_features_list = [self.hardware_config['xbar_size']] * complete_bar_num
             # generate Module List
+            assert 'out_features' in self.layer_config.keys()
             self.layer_list = nn.ModuleList([nn.Linear(i, self.layer_config['out_features'], False) for i in in_features_list])
             self.split_input = self.hardware_config['xbar_size']
         else:
-            raise NotImplementedError
+            assert 0, f'not support {self.layer_config["type"]}'
         self.last_value = nn.Parameter(torch.zeros(1))
         self.bit_scale_list = nn.Parameter(torch.zeros(3, 2))
-        # input shape, output shape, and layer information
-        self.input_shape = torch.Size()
-        self.output_shape = torch.Size()
+        # layer information
         self.layer_info = None
-
     def structure_forward(self, input):
-        # test in TRADITION
-        self.input_shape = input.shape
+        # TRADITION
+        input_shape = input.shape
         input_list = torch.split(input, self.split_input, dim = 1)
         output = None
         for i in range(len(self.layer_list)):
@@ -116,28 +118,30 @@ class QuantizeLayer(nn.Module):
                 output = self.layer_list[i](input_list[i])
             else:
                 output.add_(self.layer_list[i](input_list[i]))
-        self.output_shape = output.shape
+        output_shape = output.shape
         # layer_info
         self.layer_info = collections.OrderedDict()
         if self.layer_config['type'] == 'conv':
             self.layer_info['type'] = 'conv'
-            self.layer_info['Inputsize'] = list(self.input_shape)[2:]
-            self.layer_info['Outputsize'] = list(self.output_shape)[2:]
+            self.layer_info['Inputchannel'] = int(input_shape[1])
+            self.layer_info['Inputsize'] = list(input_shape[2:])
             self.layer_info['Kernelsize'] = self.layer_config['kernel_size']
-            self.layer_info['Stride'] = 1
-            self.layer_info['Inputchannel'] = int(self.input_shape[1])
-            self.layer_info['Outputchannel'] = int(self.output_shape[1])
+            self.layer_info['Stride'] = self.layer_config['stride']
+            self.layer_info['Padding'] = self.layer_config['padding']
+            self.layer_info['Outputchannel'] = int(output_shape[1])
+            self.layer_info['Outputsize'] = list(output_shape[2:])
         elif self.layer_config['type'] == 'fc':
             self.layer_info['type'] = 'fc'
-            self.layer_info['Infeature'] = int(self.input_shape[1])
-            self.layer_info['Outfeature'] = int(self.input_shape[1])
+            self.layer_info['Infeature'] = int(input_shape[1])
+            self.layer_info['Outfeature'] = int(output_shape[1])
+        else:
+            assert 0, f'not support {self.layer_config["type"]}'
         self.layer_info['Inputbit'] = int(self.bit_scale_list[0,0].item())
         self.layer_info['Weightbit'] = int(self.bit_scale_list[1,0].item())
         self.layer_info['outputbit'] = int(self.bit_scale_list[2,0].item())
         self.layer_info['row_split_num'] = len(self.layer_list)
         self.layer_info['weight_cycle'] = math.ceil((int(self.bit_scale_list[1, 0].item()) - 1) / (self.hardware_config['weight_bit']))
         return output
-
     def forward(self, input, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
         METHOD = method
         # float method
@@ -171,7 +175,7 @@ class QuantizeLayer(nn.Module):
             elif self.layer_config['type'] == 'fc':
                 output = F.linear(input, weight, None)
             else:
-                raise NotImplementedError
+                assert 0, f'not support {self.layer_config["type"]}'
             output = Quantize(output, self.quantize_config['activation_bit'], 'activation', self.last_value, self.training)
             # output activation bit and scale
             self.bit_scale_list.data[2, 0] = last_activation_bit
@@ -182,7 +186,7 @@ class QuantizeLayer(nn.Module):
             bit_weights = self.get_bit_weights()
             output = self.set_weights_forward(input, bit_weights, adc_action)
             return output
-        assert 0
+        assert 0, f'not support {METHOD}'
     def get_bit_weights(self):
         weight_bit = int(self.bit_scale_list[1, 0].item())
         weight_scale = self.bit_scale_list[1, 1].item()
@@ -253,7 +257,7 @@ class QuantizeLayer(nn.Module):
                     elif self.layer_config['type'] == 'fc':
                         tmp = F.linear(activation_in_container[i], weight_container[j], None)
                     else:
-                        raise NotImplementedError
+                        assert 0, f'not support {self.layer_config["type"]}'
                     if adc_action == 'SCALE':
                         tmp = tmp * weight_scale * activation_in_scale
                         tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
@@ -292,4 +296,73 @@ class QuantizeLayer(nn.Module):
         output = output * scale / thres
         return output
     def extra_repr(self):
-        return str(self.hardware_config) + str(self.layer_config) + str(self.quantize_config)
+        return str(self.hardware_config) + ' ' + str(self.layer_config) + ' ' + str(self.quantize_config)
+QuantizeLayerStr = ['conv', 'fc']
+
+class ViewLayer(nn.Module):
+    def __init__(self):
+        super(ViewLayer, self).__init__()
+    def forward(self, x):
+        return x.view(x.size(0), -1)
+
+class StraightLayer(nn.Module):
+    def __init__(self, hardware_config, layer_config, quantize_config):
+        super(StraightLayer, self).__init__()
+        # load hardware layer and quantize config in setting
+        self.hardware_config = copy.deepcopy(hardware_config)
+        self.layer_config = copy.deepcopy(layer_config)
+        self.quantize_config = copy.deepcopy(quantize_config)
+        # generate layer
+        if self.layer_config['type'] == 'pooling':
+            assert 'kernel_size' in self.layer_config.keys()
+            assert 'stride' in self.layer_config.keys()
+            if 'padding' not in self.layer_config.keys():
+                self.layer_config['padding'] = 0
+            if self.layer_config['mode'] == 'AVE':
+                self.layer = nn.AvgPool2d(kernel_size = self.layer_config['kernel_size'], \
+                                          stride = self.layer_config['stride'], \
+                                          padding = self.layer_config['padding'])
+            elif self.layer_config['mode'] == 'MAX':
+                self.layer = nn.MaxPool2d(kernel_size = self.layer_config['kernel_size'], \
+                                          stride = self.layer_config['stride'], \
+                                          padding = self.layer_config['padding'])
+            else:
+                assert 0, f'not support {self.layer_config["mode"]}'
+        elif self.layer_config['type'] == 'relu':
+            self.layer = nn.ReLU()
+        elif self.layer_config['type'] == 'view':
+            self.layer = ViewLayer()
+        else:
+            assert 0, f'not support {self.layer_config["type"]}'
+        self.layer_info = None
+    def structure_forward(self, input):
+        # generate input shape and output shape
+        self.input_shape = input.shape
+        output = self.layer.forward(input)
+        self.output_shape = output.shape
+        # generate layer_info
+        self.layer_info = collections.OrderedDict()
+        if self.layer_config['type'] == 'pooling':
+            self.layer_info['type'] = 'pooling'
+            self.layer_info['Inputchannel'] = int(self.input_shape[1])
+            self.layer_info['Inputsize'] = list(self.input_shape)[2:]
+            self.layer_info['Kernelsize'] = self.layer_config['kernel_size']
+            self.layer_info['Stride'] = self.layer_config['stride']
+            self.layer_info['Padding'] = self.layer_config['padding']
+            self.layer_info['Outputchannel'] = int(self.output_shape[1])
+            self.layer_info['Outputsize'] = list(self.output_shape)[2:]
+        elif self.layer_config['type'] == 'relu':
+            self.layer_info['type'] = 'relu'
+        elif self.layer_config['type'] == 'view':
+            self.layer_info['type'] = 'view'
+        else:
+            assert 0, f'not support {self.layer_config["type"]}'
+        return output
+    def forward(self, input, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
+        # DOES NOT use method and adc_action, for unifing with QuantizeLayer
+        return self.layer(input)
+    def get_bit_weights(self):
+        return None
+    def extra_repr(self):
+        return str(self.hardware_config) + ' ' + str(self.layer_config) + ' ' + str(self.quantize_config)
+StraightLayerStr = ['pooling', 'relu', 'view']
