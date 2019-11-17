@@ -85,10 +85,19 @@ class PCG():
                 tmp_bankinfo['my'] = math.ceil(int(layer_dict['Inputchannel'])/
                                              (self.bank.xbar_row // (int(layer_dict['Kernelsize'])**2)))
                     # my: PE number in y-axis
-                tmp_PEinfo['PEnum'] = tmp_PEinfo['mx'] * tmp_PEinfo['my']
-                start_PEid += tmp_PEinfo['PEnum']
-                self.layer_PEinfo.append(tmp_PEinfo)
-            elif layer_type
+            elif layer_type == 'fc':
+                tmp_bankinfo['type'] = 'fc'
+                tmp_bankinfo['mx'] = math.ceil(weight_precision/self.bank.group_num) * \
+                                   math.ceil(int(layer_dict['Outfeature'])/self.bank.xbar_column)
+                    # mx: PE number in x-axis
+                tmp_bankinfo['my'] = math.ceil(int(layer_dict['Inputchannel'])/self.bank.xbar_row)
+                    # my: PE number in y-axis
+            else:
+                tmp_bankinfo['type'] = 'pooling'
+            tmp_bankinfo['PEnum'] = tmp_bankinfo['mx'] * tmp_bankinfo['my']
+            tmp_bankinfo['banknum'] = math.ceil(tmp_bankinfo['PEnum'] / self.bank.bank_PE_total_num)
+            start_bankid += tmp_bankinfo['banknum']
+            self.layer_bankinfo.append(tmp_bankinfo)
 
 class behavior_mapping(bank):
     def __init__(self, NetStruct, SimConfig_path):
