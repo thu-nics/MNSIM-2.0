@@ -15,7 +15,7 @@ import collections
 
 class PE_node():
     def __init__(self, PE_id = 0, ltype='conv', lnum = 0):
-        # PE_id: the id of PE node, ltype: layer type of this PE, lnum: layer number of this PE
+        # PE_id: the id of P                                E node, ltype: layer type of this PE, lnum: layer number of this PE
         self.id = PE_id
         self.type = ltype
         self.lnum = lnum
@@ -245,14 +245,12 @@ class PCG():
                 tmp_bankinfo['my'] = 1
             if layer_id < self.layer_num-1:
                 next_layer_dict = self.net[layer_id+1][0][0]
-                if next_layer_dict['type'] == 'conv':
-                    self.trans_time[layer_id] = int(layer_dict['Outputsize'][1]) * (
-                                int(next_layer_dict['Kernelsize']) - 1) + int(next_layer_dict['Kernelsize'])
+                if next_layer_dict['type'] == 'conv' or next_layer_dict['type'] == 'pooling':
+                    self.trans_time[0][layer_id] = int(layer_dict['Outputsize'][1]) * \
+                                                   max(int(next_layer_dict['Kernelsize'])-int(next_layer_dict['Padding'])-1, 0) +\
+                                                   max(int(next_layer_dict['Kernelsize'])-int(next_layer_dict['Padding'])-1, 0)
                 elif next_layer_dict['type'] == 'fc':
-                    self.trans_time[layer_id] = 1
-                elif next_layer_dict['type'] == 'pooling':
-                    self.trans_time['type'] = int(layer_dict['Outputsize'][1]) * (
-                                int(next_layer_dict['Kernelsize']) - 1) + int(next_layer_dict['Kernelsize'])
+                    self.trans_time[0][layer_id] = 1
             tmp_bankinfo['PEnum'] = tmp_bankinfo['mx'] * tmp_bankinfo['my']
             tmp_bankinfo['banknum'] = math.ceil(tmp_bankinfo['PEnum'] / self.bank.bank_PE_total_num)
             start_bankid += tmp_bankinfo['banknum']
@@ -260,7 +258,7 @@ class PCG():
         self.bank_num = start_bankid
         assert self.bank_num <= self.bank_total_num, "Bank number is not enough"
         self.inLayer_distance = np.ones([1, self.layer_num])
-        self.transLayer_distance = np.ones([1, self.layer_num-1])
+        self.transLayer_distance = np.ones([1, self.layer_num])
         self.aggregate_arg = np.zeros([self.layer_num,2])
 
     def mapping_matrix_gen(self):
@@ -288,6 +286,7 @@ class PCG():
 
     def calculate_transfer_distance(self):
         for layer_id in range(self.layer_num-1):
+            # Determine the aggregate node for layer 0~N-1
             src_pos = np.argwhere(self.mapping_result == layer_id)
             dst_pos = np.argwhere(self.mapping_result == layer_id+1)
             if len(src_pos) == 1:
@@ -320,6 +319,7 @@ class PCG():
                         self.aggregate_arg[layer_id] = src_pos[A]
                         mindis_total = tempdis
         final_pos = np.argwhere(self.mapping_result == self.layer_num-1)
+            # Determine the aggregate node for layer N (output layer)
         mindis = 100
         for i in range(len(final_pos)):
             maxdis = 0
@@ -332,22 +332,15 @@ class PCG():
                 mindis = maxdis
                 self.inLayer_distance[0][self.layer_num-1] = mindis
                 self.aggregate_arg[self.layer_num-1] = final_pos[i]
-        self.total_distance = sum(self.inLayer_distance[0])+sum(self.transLayer_distance[0])
+                self.transLayer_distance[0][self.layer_num-1] = 0
+        self.total_distance = sum(sum(self.trans_time * (self.inLayer_distance+self.transLayer_distance)))
 
 if __name__ == '__main__':
-    # print("ok")
-    # net_structure_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "vgg_a4_w4_structure.pt")
-    # net_structure_path = "/Users/zzh/Desktop/lab/MNSIM_python_v1.2/mnist_net.pt"
-    # SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
-    # SimConfig_path = "/Users/zzh/Desktop/lab/MNSIM_python_v1.2/SimConfig.ini"
-    # _bank = bank(SimConfig_path)
-    # print(net_structure_path)
-    # print(SimConfig_path)
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "cifar10_vgg_fix_params.pth")
+                                          "cifar10_vgg8_params.pth")
 
-    __TestInterface = TrainTestInterface('MNSIM.Interface.vgg', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
+    __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
     structure_file = __TestInterface.get_structure()
 
     test = PCG(structure_file, test_SimConfig_path)
