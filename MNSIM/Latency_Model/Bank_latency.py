@@ -7,15 +7,9 @@ import math
 import configparser as cp
 work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
-from MNSIM.Hardware_Model import *
-from MNSIM.Hardware_Model.Crossbar import crossbar
-from MNSIM.Hardware_Model.PE import ProcessElement
-from MNSIM.Hardware_Model.Buffer import buffer
-from MNSIM.Hardware_Model.Bank import bank
 from MNSIM.Interface.interface import *
-from MNSIM.Mapping_Model.Bank_connection_graph import BCG
 from MNSIM.Latency_Model.PE_latency import PE_latency_analysis
-import collections
+
 
 class bank_latency_analysis(PE_latency_analysis):
     def __init__(self, SimConfig_path, read_row=0, read_column=0, indata=0, rdata=0, inprecision = 8, PE_num=0):
