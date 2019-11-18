@@ -42,6 +42,10 @@ class bank_latency_analysis(PE_latency_analysis):
         self.bank_buf_wtime = self.buf.buf_wlatency
          # do not consider
         self.bank_latency = self.PE_latency + self.merge_latency + self.transfer_latency
+    def update_bank_latency(self, indata = 0, rdata = 0):
+        self.update_PE_latency(indata=indata,rdata=rdata)
+        self.bank_latency = self.PE_latency + self.merge_latency + self.transfer_latency
+
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")

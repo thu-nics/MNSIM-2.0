@@ -44,6 +44,14 @@ class PE_latency_analysis():
         self.inPE_add_latency = math.ceil(math.log2(self.PE.group_num))*self.digital_period
         self.oreg_latency = self.digital_period
         self.PE_latency = self.buf_wlatency + self.buf_rlatency + self.computing_latency + self.inPE_add_latency + self.oreg_latency
+    def update_PE_latency(self, indata=0, rdata=0):
+        # update the latency computing when indata and rdata change
+        self.buf.calculate_buf_write_latency(indata)
+        self.buf_wlatency = self.buf.buf_wlatency
+        self.buf.calculate_buf_read_latency(rdata)
+        self.buf_rlatency = self.buf.buf_rlatency
+        self.PE_latency = self.buf_wlatency + self.buf_rlatency + self.computing_latency + self.inPE_add_latency + self.oreg_latency
+
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
