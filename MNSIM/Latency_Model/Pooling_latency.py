@@ -24,6 +24,14 @@ class pooling_latency_analysis():
         self.buf_rlatency = self.buf.buf_rlatency
         self.digital_period = 1/float(Poolingl_config.get('Digital module', 'Digital_Frequency'))*1e3
         self.pooling_latency = self.buf_wlatency + self.digital_period + self.buf_wlatency
+        # Todo: update pooling latency estimation
+    def update_pooling_latency(self, indata=0, rdata=0):
+        # update the latency computing when indata and rdata change
+        self.buf.calculate_buf_write_latency(indata)
+        self.buf_wlatency = self.buf.buf_wlatency
+        self.buf.calculate_buf_read_latency(rdata)
+        self.buf_rlatency = self.buf.buf_rlatency
+        self.pooling_latency = self.buf_wlatency + self.digital_period + self.buf_wlatency
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
