@@ -1,9 +1,9 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea/
-mnsim_weight.pt
 *.xml
+/.vscode
 __pycache__/
+*.pyc
 /MNSIM/Interface/zoo/
 /MNSIM/Interface/runs/
 /MNSIM/Interface/cifar10/
-*.pth

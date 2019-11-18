@@ -116,7 +116,9 @@ class TrainTestInterface(object):
         for layer_num, (layer_bit_weights, layer_structure_info) in enumerate(zip(net_bit_weights, net_structure_info)):
             total_array = []
             if layer_bit_weights == None:
-                net_array.append((layer_structure_info, total_array))
+                if layer_structure_info['type'] == 'pooling':
+                    total_array.append((layer_structure_info, None))
+                    net_array.append(total_array)
                 continue
             assert len(layer_bit_weights.keys()) == layer_structure_info['row_split_num'] * layer_structure_info['weight_cycle'] * 2
             layer_structure_info['Layernum'] = layer_num
