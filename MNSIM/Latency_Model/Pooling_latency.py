@@ -10,7 +10,7 @@ sys.path.append(work_path)
 from MNSIM.Hardware_Model.Buffer import buffer
 from MNSIM.Interface.interface import *
 
-class Pooling_latency_analysis():
+class pooling_latency_analysis():
     def __init__(self, SimConfig_path, indata=0, rdata=0):
         # indata: volume of input data (for pooling) (Byte)
         # rdata: volume of data from buffer to iReg (Byte)
@@ -27,5 +27,5 @@ class Pooling_latency_analysis():
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
-    _test = Pooling_latency_analysis(test_SimConfig_path, 8, 4)
+    _test = pooling_latency_analysis(test_SimConfig_path, 8, 4)
     print(_test)
