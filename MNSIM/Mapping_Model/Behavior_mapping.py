@@ -123,7 +123,7 @@ class behavior_mapping(bank):
         for layer_id in range(len(self.net_structure)):
             layer_dict = self.net_structure[layer_id][0][0]
             layer_type = layer_dict['type']
-            if layer_type =='conv':
+            if layer_type =='conv' or layer_type=='pooling':
                 inputsize = list(map(int, layer_dict['Inputsize']))
                 inputsize = inputsize[0]*inputsize[1]
                 outputsize = list(map(int, layer_dict['Outputsize']))
