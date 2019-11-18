@@ -192,17 +192,17 @@ def generate_zigzag_matrix(row, column):
         start += 1
     return matrix
 
-class PCG():
+class BCG():
     def __init__(self, NetStruct, SimConfig_path):
-        pcg_config = cp.ConfigParser()
-        pcg_config.read(SimConfig_path, encoding='UTF-8')
+        BCG_config = cp.ConfigParser()
+        BCG_config.read(SimConfig_path, encoding='UTF-8')
         self.bank = bank(SimConfig_path)
         self.net = NetStruct
         self.layer_num = len(self.net)
         self.layer_bankinfo = []
-        self.xbar_polarity = int(pcg_config.get('Process element level', 'Xbar_Polarity'))
-        self.bank_connection = int(pcg_config.get('Architecture level', 'Bank_Connection'))
-        self.bank_num = list(map(int, pcg_config.get('Architecture level', 'Bank_Num').split(',')))
+        self.xbar_polarity = int(BCG_config.get('Process element level', 'Xbar_Polarity'))
+        self.bank_connection = int(BCG_config.get('Architecture level', 'Bank_Connection'))
+        self.bank_num = list(map(int, BCG_config.get('Architecture level', 'Bank_Num').split(',')))
         if self.bank_num[0] == 0:
             self.bank_num[0] = 8
             self.bank_num[1] = 8
@@ -343,7 +343,7 @@ if __name__ == '__main__':
     __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
     structure_file = __TestInterface.get_structure()
 
-    test = PCG(structure_file, test_SimConfig_path)
+    test = BCG(structure_file, test_SimConfig_path)
     test.mapping_net()
     test.calculate_transfer_distance()
     print(test.total_distance)
