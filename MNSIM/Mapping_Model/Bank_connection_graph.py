@@ -232,6 +232,11 @@ class BCG():
                 tmp_bankinfo['my'] = math.ceil(int(layer_dict['Inputchannel'])/
                                              (self.bank.xbar_row // (int(layer_dict['Kernelsize'])**2)))
                     # my: PE number in y-axis
+                tmp_bankinfo['max_row'] = min((self.bank.xbar_row // (int(layer_dict['Kernelsize'])**2)),
+                                              int(layer_dict['Inputchannel'])) * (int(layer_dict['Kernelsize'])**2)
+                    # max_row: maximum used row in one crossbar of this layer
+                tmp_bankinfo['max_column'] = min(int(layer_dict['Outputchannel']), self.bank.xbar_column)
+                    # max_row: maximum used column in one crossbar of this layer
             elif layer_type == 'fc':
                 tmp_bankinfo['type'] = 'fc'
                 tmp_bankinfo['mx'] = math.ceil(weight_precision/self.bank.group_num) * \
@@ -239,10 +244,16 @@ class BCG():
                     # mx: PE number in x-axis
                 tmp_bankinfo['my'] = math.ceil(int(layer_dict['Infeature'])/self.bank.xbar_row)
                     # my: PE number in y-axis
+                tmp_bankinfo['max_row'] = min(int(layer_dict['Infeature']), self.bank.xbar_row)
+                # max_row: maximum used row in one crossbar of this layer
+                tmp_bankinfo['max_column'] = min(int(layer_dict['Outfeature']), self.bank.xbar_column)
+                # max_row: maximum used column in one crossbar of this layer
             else:
                 tmp_bankinfo['type'] = 'pooling'
                 tmp_bankinfo['mx'] = 1
                 tmp_bankinfo['my'] = 1
+                tmp_bankinfo['max_row'] = 0
+                tmp_bankinfo['max_column'] = 0
             if layer_id < self.layer_num-1:
                 next_layer_dict = self.net[layer_id+1][0][0]
                 if next_layer_dict['type'] == 'conv' or next_layer_dict['type'] == 'pooling':
@@ -253,6 +264,7 @@ class BCG():
                     self.trans_time[0][layer_id] = 1
             tmp_bankinfo['PEnum'] = tmp_bankinfo['mx'] * tmp_bankinfo['my']
             tmp_bankinfo['banknum'] = math.ceil(tmp_bankinfo['PEnum'] / self.bank.bank_PE_total_num)
+            tmp_bankinfo['max_PE'] = min(tmp_bankinfo['PEnum'], self.bank.bank_PE_total_num)
             start_bankid += tmp_bankinfo['banknum']
             self.layer_bankinfo.append(tmp_bankinfo)
         self.bank_num = start_bankid
