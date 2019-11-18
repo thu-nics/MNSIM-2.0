@@ -213,8 +213,8 @@ class PCG():
         self.mapping_result = -1*np.ones(self.bank_num)
         start_bankid = 0
             # the start PEid
+        self.trans_time = np.ones([1, self.layer_num])
         for layer_id in range(self.layer_num):
-            print(layer_id)
             layer_dict = self.net[layer_id][0][0]
             tmp_bankinfo = collections.OrderedDict()
             layer_type = layer_dict['type']
@@ -243,6 +243,16 @@ class PCG():
                 tmp_bankinfo['type'] = 'pooling'
                 tmp_bankinfo['mx'] = 1
                 tmp_bankinfo['my'] = 1
+            if layer_id < self.layer_num-1:
+                next_layer_dict = self.net[layer_id+1][0][0]
+                if next_layer_dict['type'] == 'conv':
+                    self.trans_time[layer_id] = int(layer_dict['Outputsize'][1]) * (
+                                int(next_layer_dict['Kernelsize']) - 1) + int(next_layer_dict['Kernelsize'])
+                elif next_layer_dict['type'] == 'fc':
+                    self.trans_time[layer_id] = 1
+                elif next_layer_dict['type'] == 'pooling':
+                    self.trans_time['type'] = int(layer_dict['Outputsize'][1]) * (
+                                int(next_layer_dict['Kernelsize']) - 1) + int(next_layer_dict['Kernelsize'])
             tmp_bankinfo['PEnum'] = tmp_bankinfo['mx'] * tmp_bankinfo['my']
             tmp_bankinfo['banknum'] = math.ceil(tmp_bankinfo['PEnum'] / self.bank.bank_PE_total_num)
             start_bankid += tmp_bankinfo['banknum']
@@ -335,12 +345,13 @@ if __name__ == '__main__':
     # print(SimConfig_path)
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "cifar10_vgg8_params.pth")
+                                          "cifar10_vgg_fix_params.pth")
 
-    __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
+    __TestInterface = TrainTestInterface('MNSIM.Interface.vgg', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
     structure_file = __TestInterface.get_structure()
-    print(structure_file[1][0])
+
     test = PCG(structure_file, test_SimConfig_path)
     test.mapping_net()
     test.calculate_transfer_distance()
     print(test.total_distance)
+
