@@ -15,18 +15,15 @@ from MNSIM.Accuracy_Model.Weight_update import weight_update
 from MNSIM.Mapping_Model.Behavior_mapping import behavior_mapping
 
 def main():
-    work_path = os.path.dirname(os.getcwd())
-    print(work_path)
-    sys.path.append(work_path)
-    SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
-    weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "cifar10_lenet_params.pth")
+    home_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    SimConfig_path = os.path.join(home_path, "SimConfig.ini")
+    weights_file_path = os.path.join(home_path, "MNSIM/Interface/zoo/cifar10_lenet_params.pth")
     # print(SimConfig_path)
     parser = argparse.ArgumentParser(description='MNSIM example')
     parser.add_argument("-HWdes", "--hardware_description", default=SimConfig_path,
-                        help="Hardware description file location & name, default:/MNSIM_Python_v1.5/SimConfig.ini")
+                        help="Hardware description file location & name, default:/MNSIM_Python/SimConfig.ini")
     parser.add_argument("-SWdes", "--software_model_description", default=weights_file_path,
-                        help="Hardware description file location & name, default:/MNSIM_Python_v1.5/cifar10_lenet_train_params.pth")
+                        help="Hardware description file location & name, default:/MNSIM_Python/cifar10_lenet_train_params.pth")
     parser.add_argument("-DisHW", "--disable_hardware_modeling", action='store_true', default=False,
                         help="Disable hardware modeling, default: false")
     parser.add_argument("-DisAccu", "--disable_accuracy_simulation", action='store_true', default=False,
