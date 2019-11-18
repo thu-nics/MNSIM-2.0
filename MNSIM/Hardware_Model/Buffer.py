@@ -59,7 +59,7 @@ class buffer(object):
 			self.buf_wpower = buf_wpower_dict[self.buf_choice]
 
 	def calculate_buf_read_latency(self, rdata = 0):
-		# unit: ns
+		# unit: ns, Byte
 		self.buf_rlatency = rdata/self.buf_bitwidth/self.buf_rfrequency*1e3
 
 	def calculate_buf_write_latency(self, wdata = 0):
