@@ -357,6 +357,9 @@ class StraightLayer(nn.Module):
             self.layer_info['type'] = 'view'
         else:
             assert 0, f'not support {self.layer_config["type"]}'
+        self.layer_info['Inputbit'] = last_activation_bit
+        self.layer_info['Weightbit'] = self.quantize_config['weight_bit']
+        self.layer_info['outputbit'] = last_activation_bit
         return output
     def forward(self, input, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
         # DOES NOT use method and adc_action, for unifing with QuantizeLayer
