@@ -26,12 +26,14 @@ class Model_latency():
         self.graph = BCG(NetStruct, SimConfig_path)
         self.graph.mapping_net()
         self.graph.calculate_transfer_distance()
+        self.begin_time = []
         self.finish_time = []
         self.layer_bank_latency = []
         for layer_id in range(len(NetStruct)):
             layer_dict = NetStruct[layer_id][0][0]
             if layer_id == 0:
                 # for the first layer, first layer must be conv layer
+                self.begin_time.append([])
                 self.finish_time.append([])
                 output_size = list(map(int, layer_dict['Outputsize']))
                 input_size = list(map(int, layer_dict['Inputsize']))
@@ -68,6 +70,7 @@ class Model_latency():
                                 # from the line buffer to the input reg
                             temp_bank_latency.update_bank_latency(indata=indata,rdata=rdata)
                             compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time
+                            self.begin_time[0].append(0)
                             self.finish_time[0].append(compute_time)
                             # print(self.finish_time[0])
                         elif j==0:
@@ -76,8 +79,10 @@ class Model_latency():
                             rdata = self.graph.layer_bankinfo[layer_id]['max_row']
                                 # from the line buffer to the input reg
                             temp_bank_latency.update_bank_latency(indata=indata,rdata=rdata)
+                            begin_time = self.finish_time[0][(i-1)*output_size[1]+output_size[1]-1]
+                            self.begin_time[0].append(begin_time)
                             compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time +\
-                                           self.finish_time[0][(i-1)*output_size[1]+output_size[1]-1]
+                                           begin_time
                             self.finish_time[0].append(compute_time)
                             # print(self.finish_time[0])
                         else:
@@ -85,12 +90,17 @@ class Model_latency():
                                 # write new input data to line buffer
                             rdata = stride*kernelsize*input_channel_PE
                             temp_bank_latency.update_bank_latency(indata=indata,rdata=rdata)
+                            begin_time = self.finish_time[0][i * output_size[1] + j - 1]
+                            self.begin_time[0].append(begin_time)
                             compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
-                                           self.finish_time[0][i * output_size[1] + j - 1]
+                                           begin_time
                             self.finish_time[0].append(compute_time)
-                print(len(self.finish_time[0]))
+                print("start time: ", self.begin_time[0])
+                print("finish time:", self.finish_time[0])
+                print('==============================')
             else:
                 if layer_dict['type'] == 'conv':
+                    self.begin_time.append([])
                     self.finish_time.append([])
                     output_size = list(map(int, layer_dict['Outputsize']))
                     input_size = list(map(int, layer_dict['Inputsize']))
@@ -131,8 +141,10 @@ class Model_latency():
                                 rdata = self.graph.layer_bankinfo[layer_id]['max_row']
                                 # from the line buffer to the input reg
                                 temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
+                                begin_time = self.finish_time[layer_id-1][last_layer_pos]
+                                self.begin_time[layer_id].append(begin_time)
                                 compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
-                                               self.finish_time[layer_id-1][last_layer_pos]
+                                               begin_time
                                 # consider the input data generation time
                                 self.finish_time[layer_id].append(compute_time)
                                 # print(self.finish_time[layer_id])
@@ -142,9 +154,12 @@ class Model_latency():
                                 rdata = self.graph.layer_bankinfo[layer_id]['max_row']
                                 # from the line buffer to the input reg
                                 temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
-                                compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
-                                               max(self.finish_time[layer_id-1][last_layer_pos],
+                                begin_time = max(self.finish_time[layer_id-1][last_layer_pos],
                                                    self.finish_time[layer_id][(i - 1) * output_size[1] + output_size[1] - 1])
+                                # max (the required input data generation time, previous point computation complete time)
+                                self.begin_time[layer_id].append(begin_time)
+                                compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
+                                               begin_time
                                 self.finish_time[layer_id].append(compute_time)
                                 # print(self.finish_time[layer_id])
                             else:
@@ -152,11 +167,16 @@ class Model_latency():
                                 # write new input data to line buffer
                                 rdata = stride * kernelsize * input_channel_PE
                                 temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
-                                compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
-                                               max(self.finish_time[layer_id-1][last_layer_pos],
+                                begin_time = max(self.finish_time[layer_id-1][last_layer_pos],
                                                    self.finish_time[layer_id][i * output_size[1] + j - 1])
+                                # max (the required input data generation time, previous point computation complete time)
+                                self.begin_time[layer_id].append(begin_time)
+                                compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
+                                               begin_time
                                 self.finish_time[layer_id].append(compute_time)
-                    print(self.finish_time[layer_id])
+                    print("start time: ",self.begin_time[layer_id])
+                    print("finish time:",self.finish_time[layer_id])
+                    print('==============================')
                 elif layer_dict['type'] == 'fc':
                     output_size = int(layer_dict['Outfeature'])
                     input_size = int(layer_dict['Infeature'])
@@ -176,11 +196,16 @@ class Model_latency():
                     # Todo: update merge time (adder tree) and transfer data volume
                     transfer_time = self.graph.transLayer_distance[0][layer_id] * (
                             output_size * outputbit / self.inter_bank_bandwidth)
-                    compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + self.finish_time[layer_id-1][-1]
+                    begin_time = self.finish_time[layer_id-1][-1]
+                    self.begin_time.append(output_size*[begin_time])
+                    compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + begin_time
                     self.finish_time.append(output_size*[compute_time])
-                    print(self.finish_time[layer_id])
+                    print("start time: ",self.begin_time[layer_id])
+                    print("finish time:",self.finish_time[layer_id])
+                    print('==============================')
                 else:
                     assert layer_dict['type'] == 'pooling', "Layer type can only be conv/fc/pooling"
+                    self.begin_time.append([])
                     self.finish_time.append([])
                     output_size = list(map(int, layer_dict['Outputsize']))
                     input_size = list(map(int, layer_dict['Inputsize']))
@@ -211,8 +236,10 @@ class Model_latency():
                                 rdata = inputchannel*kernelsize**2
                                 # from the line buffer to the input reg
                                 temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                begin_time = self.finish_time[layer_id - 1][last_layer_pos]
+                                self.begin_time[layer_id].append(begin_time)
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
-                                               self.finish_time[layer_id - 1][last_layer_pos]
+                                               begin_time
                                 # consider the input data generation time
                                 self.finish_time[layer_id].append(compute_time)
                                 # print(self.finish_time[layer_id])
@@ -222,10 +249,11 @@ class Model_latency():
                                 rdata = inputchannel*kernelsize**2
                                 # from the line buffer to the input reg
                                 temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
+                                                   self.finish_time[layer_id][(i - 1) * output_size[1] + output_size[1] - 1])
+                                self.begin_time[layer_id].append(begin_time)
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
-                                               max(self.finish_time[layer_id - 1][last_layer_pos],
-                                                   self.finish_time[layer_id][
-                                                       (i - 1) * output_size[1] + output_size[1] - 1])
+                                               begin_time
                                 self.finish_time[layer_id].append(compute_time)
                                 # print(self.finish_time[layer_id])
                             else:
@@ -233,11 +261,15 @@ class Model_latency():
                                 # write new input data to line buffer
                                 rdata = stride * kernelsize * inputchannel
                                 temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
-                                compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
-                                               max(self.finish_time[layer_id - 1][last_layer_pos],
+                                begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
                                                    self.finish_time[layer_id][i * output_size[1] + j - 1])
+                                self.begin_time[layer_id].append(begin_time)
+                                compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
+                                               begin_time
                                 self.finish_time[layer_id].append(compute_time)
-                    print(self.finish_time[layer_id])
+                    print("start time: ",self.begin_time[layer_id])
+                    print("finish time:",self.finish_time[layer_id])
+                    print('==============================')
 
 
 if __name__ == '__main__':
@@ -250,4 +282,4 @@ if __name__ == '__main__':
     structure_file = __TestInterface.get_structure()
 
     test = Model_latency(structure_file, test_SimConfig_path)
-    print("ok")
+    print("Latency simulation finished!")
