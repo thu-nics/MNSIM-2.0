@@ -177,9 +177,9 @@ class Model_latency():
                                 compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
                                                begin_time
                                 self.finish_time[layer_id].append(compute_time)
-                    print("start time: ",self.begin_time[layer_id])
-                    print("finish time:",self.finish_time[layer_id])
-                    print('==============================')
+                    # print("start time: ",self.begin_time[layer_id])
+                    # print("finish time:",self.finish_time[layer_id])
+                    # print('==============================')
                 elif layer_dict['type'] == 'fc':
                     output_size = int(layer_dict['Outfeature'])
                     input_size = int(layer_dict['Infeature'])
@@ -203,9 +203,9 @@ class Model_latency():
                     self.begin_time.append(output_size*[begin_time])
                     compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + begin_time
                     self.finish_time.append(output_size*[compute_time])
-                    print("start time: ",self.begin_time[layer_id])
-                    print("finish time:",self.finish_time[layer_id])
-                    print('==============================')
+                    # print("start time: ",self.begin_time[layer_id])
+                    # print("finish time:",self.finish_time[layer_id])
+                    # print('==============================')
                 else:
                     assert layer_dict['type'] == 'pooling', "Layer type can only be conv/fc/pooling"
                     self.begin_time.append([])
@@ -270,9 +270,9 @@ class Model_latency():
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
                                                begin_time
                                 self.finish_time[layer_id].append(compute_time)
-                    print("start time: ",self.begin_time[layer_id])
-                    print("finish time:",self.finish_time[layer_id])
-                    print('==============================')
+                    # print("start time: ",self.begin_time[layer_id])
+                    # print("finish time:",self.finish_time[layer_id])
+                    # print('==============================')
 
 
 if __name__ == '__main__':
@@ -286,4 +286,8 @@ if __name__ == '__main__':
 
     test = Model_latency(structure_file, test_SimConfig_path)
     test.caculate_model_latency_1()
+    for i in range(len(test.begin_time)):
+        print("start time: ", test.begin_time[i])
+        print("finish time:",test.finish_time[i])
+        print('==============================')
     print("Latency simulation finished!")
