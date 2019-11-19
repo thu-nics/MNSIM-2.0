@@ -64,9 +64,9 @@ class Model_latency():
                     for j in range(output_size[1]):
                         if (i==0) & (j==0):
                             # the first output
-                            indata = input_channel_PE*output_size[1]*max(kernelsize-padding-1,0)+max(kernelsize-padding,0)
+                            indata = (input_channel_PE*output_size[1]*max(kernelsize-padding-1,0)+max(kernelsize-padding,0))*inputbit/8
                                 # fill the line buffer
-                            rdata = self.graph.layer_bankinfo[layer_id]['max_row']
+                            rdata = self.graph.layer_bankinfo[layer_id]['max_row']*inputbit/8
                                 # from the line buffer to the input reg
                             temp_bank_latency.update_bank_latency(indata=indata,rdata=rdata)
                             compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time
@@ -74,9 +74,9 @@ class Model_latency():
                             self.finish_time[0].append(compute_time)
                             # print(self.finish_time[0])
                         elif j==0:
-                            indata = input_channel_PE*stride*max(kernelsize-padding,0)
+                            indata = input_channel_PE*stride*max(kernelsize-padding,0)*inputbit/8
                                 # line feed in line buffer
-                            rdata = self.graph.layer_bankinfo[layer_id]['max_row']
+                            rdata = self.graph.layer_bankinfo[layer_id]['max_row']*inputbit/8
                                 # from the line buffer to the input reg
                             temp_bank_latency.update_bank_latency(indata=indata,rdata=rdata)
                             begin_time = self.finish_time[0][(i-1)*output_size[1]+output_size[1]-1]
@@ -86,9 +86,9 @@ class Model_latency():
                             self.finish_time[0].append(compute_time)
                             # print(self.finish_time[0])
                         else:
-                            indata = input_channel_PE*stride**2
+                            indata = input_channel_PE*stride**2*inputbit/8
                                 # write new input data to line buffer
-                            rdata = stride*kernelsize*input_channel_PE
+                            rdata = stride*kernelsize*input_channel_PE*inputbit/8
                             temp_bank_latency.update_bank_latency(indata=indata,rdata=rdata)
                             begin_time = self.finish_time[0][i * output_size[1] + j - 1]
                             self.begin_time[0].append(begin_time)
@@ -136,9 +136,9 @@ class Model_latency():
                             if (i == 0) & (j == 0):
                                 # the first output
                                 indata = input_channel_PE * output_size[1] * max(kernelsize - padding - 1, 0) + max(
-                                    kernelsize - padding, 0)
+                                    kernelsize - padding, 0)*inputbit/8
                                 # fill the line buffer
-                                rdata = self.graph.layer_bankinfo[layer_id]['max_row']
+                                rdata = self.graph.layer_bankinfo[layer_id]['max_row']*inputbit/8
                                 # from the line buffer to the input reg
                                 temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
                                 begin_time = self.finish_time[layer_id-1][last_layer_pos]
@@ -149,9 +149,9 @@ class Model_latency():
                                 self.finish_time[layer_id].append(compute_time)
                                 # print(self.finish_time[layer_id])
                             elif j == 0:
-                                indata = input_channel_PE * stride * max(kernelsize - padding, 0)
+                                indata = input_channel_PE * stride * max(kernelsize - padding, 0)*inputbit/8
                                 # line feed in line buffer
-                                rdata = self.graph.layer_bankinfo[layer_id]['max_row']
+                                rdata = self.graph.layer_bankinfo[layer_id]['max_row']*inputbit/8
                                 # from the line buffer to the input reg
                                 temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
                                 begin_time = max(self.finish_time[layer_id-1][last_layer_pos],
@@ -163,9 +163,9 @@ class Model_latency():
                                 self.finish_time[layer_id].append(compute_time)
                                 # print(self.finish_time[layer_id])
                             else:
-                                indata = input_channel_PE * stride ** 2
+                                indata = input_channel_PE * stride ** 2*inputbit/8
                                 # write new input data to line buffer
-                                rdata = stride * kernelsize * input_channel_PE
+                                rdata = stride * kernelsize * input_channel_PE*inputbit/8
                                 temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
                                 begin_time = max(self.finish_time[layer_id-1][last_layer_pos],
                                                    self.finish_time[layer_id][i * output_size[1] + j - 1])
@@ -182,8 +182,8 @@ class Model_latency():
                     input_size = int(layer_dict['Infeature'])
                     inputbit = int(layer_dict['Inputbit'])
                     outputbit = int(layer_dict['outputbit'])
-                    indata = self.graph.layer_bankinfo[layer_id]['max_row']
-                    rdata = indata
+                    indata = self.graph.layer_bankinfo[layer_id]['max_row']*inputbit/8
+                    rdata = indata*inputbit/8
                     temp_bank_latency = bank_latency_analysis(SimConfig_path=SimConfig_path,
                                                               read_row=self.graph.layer_bankinfo[layer_id]['max_row'],
                                                               read_column=self.graph.layer_bankinfo[layer_id]['max_column'],
@@ -231,9 +231,9 @@ class Model_latency():
                             if (i == 0) & (j == 0):
                                 # the first output
                                 indata = inputchannel * output_size[1] * max(kernelsize - padding - 1, 0) + max(
-                                    kernelsize - padding, 0)
+                                    kernelsize - padding, 0)*inputbit/8
                                 # fill the line buffer
-                                rdata = inputchannel*kernelsize**2
+                                rdata = inputchannel*kernelsize**2*inputbit/8
                                 # from the line buffer to the input reg
                                 temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
                                 begin_time = self.finish_time[layer_id - 1][last_layer_pos]
@@ -244,9 +244,9 @@ class Model_latency():
                                 self.finish_time[layer_id].append(compute_time)
                                 # print(self.finish_time[layer_id])
                             elif j == 0:
-                                indata = inputchannel * stride * max(kernelsize - padding, 0)
+                                indata = inputchannel * stride * max(kernelsize - padding, 0)*inputbit/8
                                 # line feed in line buffer
-                                rdata = inputchannel*kernelsize**2
+                                rdata = inputchannel*kernelsize**2*inputbit/8
                                 # from the line buffer to the input reg
                                 temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
                                 begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
@@ -257,9 +257,9 @@ class Model_latency():
                                 self.finish_time[layer_id].append(compute_time)
                                 # print(self.finish_time[layer_id])
                             else:
-                                indata = inputchannel * stride ** 2
+                                indata = inputchannel * stride ** 2*inputbit/8
                                 # write new input data to line buffer
-                                rdata = stride * kernelsize * inputchannel
+                                rdata = stride * kernelsize * inputchannel*inputbit/8
                                 temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
                                 begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
                                                    self.finish_time[layer_id][i * output_size[1] + j - 1])
