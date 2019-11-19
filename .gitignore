@@ -7,4 +7,5 @@ __pycache__/
 /MNSIM/Interface/zoo/
 /MNSIM/Interface/runs/
 /MNSIM/Interface/cifar10/
+/MNSIM/Latency_Model/exp_DAC20.py
 *.pth
