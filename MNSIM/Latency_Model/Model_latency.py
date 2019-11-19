@@ -98,9 +98,9 @@ class Model_latency():
                             compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
                                            begin_time
                             self.finish_time[0].append(compute_time)
-                print("start time: ", self.begin_time[0])
-                print("finish time:", self.finish_time[0])
-                print('==============================')
+                # print("start time: ", self.begin_time[0])
+                # print("finish time:", self.finish_time[0])
+                # print('==============================')
             else:
                 if layer_dict['type'] == 'conv':
                     self.begin_time.append([])
