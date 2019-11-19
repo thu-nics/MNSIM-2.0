@@ -29,8 +29,11 @@ class Model_latency():
         self.begin_time = []
         self.finish_time = []
         self.layer_bank_latency = []
-        for layer_id in range(len(NetStruct)):
-            layer_dict = NetStruct[layer_id][0][0]
+        self.NetStruct = NetStruct
+        self.SimConfig_path = SimConfig_path
+    def caculate_model_latency_1(self):
+        for layer_id in range(len(self.NetStruct)):
+            layer_dict = self.NetStruct[layer_id][0][0]
             if layer_id == 0:
                 # for the first layer, first layer must be conv layer
                 self.begin_time.append([])
@@ -47,7 +50,7 @@ class Model_latency():
                 # print(self.graph.layer_bankinfo[layer_id]['max_row'])
                 input_channel_PE = self.graph.layer_bankinfo[layer_id]['max_row']/(kernelsize**2)
                  # the input channel number each PE processes
-                temp_bank_latency = bank_latency_analysis(SimConfig_path=SimConfig_path,
+                temp_bank_latency = bank_latency_analysis(SimConfig_path=self.SimConfig_path,
                                                           read_row=self.graph.layer_bankinfo[layer_id]['max_row'],
                                                           read_column=self.graph.layer_bankinfo[layer_id]['max_column'],
                                                           indata=0, rdata=0, inprecision=inputbit,
@@ -114,7 +117,7 @@ class Model_latency():
                     # print(self.graph.layer_bankinfo[layer_id]['max_row'])
                     input_channel_PE = self.graph.layer_bankinfo[layer_id]['max_row'] / (kernelsize ** 2)
                     # the input channel number each PE processes
-                    temp_bank_latency = bank_latency_analysis(SimConfig_path=SimConfig_path,
+                    temp_bank_latency = bank_latency_analysis(SimConfig_path=self.SimConfig_path,
                                                               read_row=self.graph.layer_bankinfo[layer_id]['max_row'],
                                                               read_column=self.graph.layer_bankinfo[layer_id]['max_column'],
                                                               indata=0, rdata=0, inprecision=inputbit,
@@ -184,7 +187,7 @@ class Model_latency():
                     outputbit = int(layer_dict['outputbit'])
                     indata = self.graph.layer_bankinfo[layer_id]['max_row']*inputbit/8
                     rdata = indata*inputbit/8
-                    temp_bank_latency = bank_latency_analysis(SimConfig_path=SimConfig_path,
+                    temp_bank_latency = bank_latency_analysis(SimConfig_path=self.SimConfig_path,
                                                               read_row=self.graph.layer_bankinfo[layer_id]['max_row'],
                                                               read_column=self.graph.layer_bankinfo[layer_id]['max_column'],
                                                               indata=indata, rdata=rdata, inprecision=inputbit,
@@ -216,7 +219,7 @@ class Model_latency():
                     padding = int(layer_dict['Padding'])
                     inputbit = int(layer_dict['Inputbit'])
                     outputbit = int(layer_dict['outputbit'])
-                    temp_pooling_latency = pooling_latency_analysis(SimConfig_path=SimConfig_path,
+                    temp_pooling_latency = pooling_latency_analysis(SimConfig_path=self.SimConfig_path,
                                                                     indata=0, rdata=0)
                     merge_time = 0
                     # Todo: update merge time of pooling bank
@@ -282,4 +285,5 @@ if __name__ == '__main__':
     structure_file = __TestInterface.get_structure()
 
     test = Model_latency(structure_file, test_SimConfig_path)
+    test.caculate_model_latency_1()
     print("Latency simulation finished!")
