@@ -1,22 +1,14 @@
 #!/usr/bin/python
 # -*-coding:utf-8-*-
-import torch
 import sys
 import os
-import math
 import configparser as cp
 work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
-from MNSIM.Hardware_Model import *
-from MNSIM.Hardware_Model.Crossbar import crossbar
-from MNSIM.Hardware_Model.PE import ProcessElement
-from MNSIM.Hardware_Model.Buffer import buffer
-from MNSIM.Hardware_Model.Bank import bank
 from MNSIM.Interface.interface import *
 from MNSIM.Mapping_Model.Bank_connection_graph import BCG
 from MNSIM.Latency_Model.Bank_latency import bank_latency_analysis
 from MNSIM.Latency_Model.Pooling_latency import pooling_latency_analysis
-import collections
 
 def merge_interval(interval):
     if len(interval) == 0:
