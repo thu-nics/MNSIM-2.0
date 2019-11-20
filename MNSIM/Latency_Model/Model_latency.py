@@ -22,12 +22,19 @@ def merge_interval(interval):
     if len(interval) == 0:
         return []
     result = []
-    for layer_id in range(len(interval)):
-        if len(interval[layer_id])==0:
-            result.append([])
+    interval.sort()
+    lower_bound = interval[0][0]
+    upper_bound = interval[0][1]
+    for i in range(1,len(interval)):
+        if interval[i][0] > upper_bound:
+            result.append([lower_bound,upper_bound])
+            lower_bound = interval[i][0]
+            upper_bound = interval[i][1]
         else:
-            layer_interval = interval[layer_id]
-            layer_interval.sort()
+            if interval[i][1] > upper_bound:
+                upper_bound = interval[i][1]
+    result.append([lower_bound, upper_bound])
+    return result
 
 
 class Model_latency():
@@ -43,8 +50,7 @@ class Model_latency():
         self.layer_bank_latency = []
         self.NetStruct = NetStruct
         self.SimConfig_path = SimConfig_path
-        self.uni_begin_time = []
-        self.uni_finish_time = []
+        self.compute_interval = []
         self.occupancy = []
     def caculate_model_latency_1(self):
         for layer_id in range(len(self.NetStruct)):
@@ -53,8 +59,7 @@ class Model_latency():
                 # for the first layer, first layer must be conv layer
                 self.begin_time.append([])
                 self.finish_time.append([])
-                self.uni_begin_time.append([])
-                self.uni_finish_time.append([])
+                self.compute_interval.append([])
                 output_size = list(map(int, layer_dict['Outputsize']))
                 input_size = list(map(int, layer_dict['Inputsize']))
                 kernelsize = int(layer_dict['Kernelsize'])
@@ -92,8 +97,7 @@ class Model_latency():
                             compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time
                             self.begin_time[0].append(0)
                             self.finish_time[0].append(compute_time)
-                            self.uni_begin_time[0].append(0)
-                            self.uni_finish_time[0].append(compute_time)
+                            self.compute_interval[0].append([0,compute_time])
                             # print(self.finish_time[0])
                         elif j==0:
                             indata = input_channel_PE*stride*max(kernelsize-padding,0)*inputbit/8
@@ -104,14 +108,9 @@ class Model_latency():
                             begin_time = self.finish_time[0][(i-1)*output_size[1]+output_size[1]-1]
                             compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time +\
                                            begin_time
-                            if begin_time not in self.begin_time[0]:
-                                self.uni_begin_time[0].append(begin_time)
-                                self.uni_finish_time[0].append(compute_time)
-                            else:
-                                self.uni_finish_time[0][self.begin_time[0].index(begin_time)] = max(compute_time,
-                                                        self.uni_finish_time[0][self.begin_time[0].index(begin_time)])
                             self.begin_time[0].append(begin_time)
                             self.finish_time[0].append(compute_time)
+                            self.compute_interval[0].append([begin_time,compute_time])
                             # print(self.finish_time[0])
                         else:
                             indata = input_channel_PE*stride**2*inputbit/8
@@ -121,14 +120,9 @@ class Model_latency():
                             begin_time = self.finish_time[0][i * output_size[1] + j - 1]
                             compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
                                            begin_time
-                            if begin_time not in self.begin_time[0]:
-                                self.uni_begin_time[0].append(begin_time)
-                                self.uni_finish_time[0].append(compute_time)
-                            else:
-                                self.uni_finish_time[0][self.begin_time[0].index(begin_time)] = max(compute_time,
-                                                        self.uni_finish_time[0][self.begin_time[0].index(begin_time)])
                             self.begin_time[0].append(begin_time)
                             self.finish_time[0].append(compute_time)
+                            self.compute_interval[0].append([begin_time,compute_time])
                 # print("start time: ", self.begin_time[0])
                 # print("finish time:", self.finish_time[0])
                 # print('==============================')
@@ -136,8 +130,7 @@ class Model_latency():
                 if layer_dict['type'] == 'conv':
                     self.begin_time.append([])
                     self.finish_time.append([])
-                    self.uni_begin_time.append([])
-                    self.uni_finish_time.append([])
+                    self.compute_interval.append([])
                     output_size = list(map(int, layer_dict['Outputsize']))
                     input_size = list(map(int, layer_dict['Inputsize']))
                     kernelsize = int(layer_dict['Kernelsize'])
@@ -181,14 +174,9 @@ class Model_latency():
                                 compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
                                                begin_time
                                 # consider the input data generation time
-                                if begin_time not in self.begin_time[layer_id]:
-                                    self.uni_begin_time[layer_id].append(begin_time)
-                                    self.uni_finish_time[layer_id].append(compute_time)
-                                else:
-                                    self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)] =\
-                                        max(compute_time,self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)])
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
                                 # print(self.finish_time[layer_id])
                             elif j == 0:
                                 indata = input_channel_PE * stride * max(kernelsize - padding, 0)*inputbit/8
@@ -201,14 +189,9 @@ class Model_latency():
                                 # max (the required input data generation time, previous point computation complete time)
                                 compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
                                                begin_time
-                                if begin_time not in self.begin_time[layer_id]:
-                                    self.uni_begin_time[layer_id].append(begin_time)
-                                    self.uni_finish_time[layer_id].append(compute_time)
-                                else:
-                                    self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)] =\
-                                        max(compute_time,self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)])
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
                                 # print(self.finish_time[layer_id])
                             else:
                                 indata = input_channel_PE * stride ** 2*inputbit/8
@@ -220,14 +203,9 @@ class Model_latency():
                                 # max (the required input data generation time, previous point computation complete time)
                                 compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
                                                begin_time
-                                if begin_time not in self.begin_time[layer_id]:
-                                    self.uni_begin_time[layer_id].append(begin_time)
-                                    self.uni_finish_time[layer_id].append(compute_time)
-                                else:
-                                    self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)] =\
-                                        max(compute_time,self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)])
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
                     # print("start time: ",self.begin_time[layer_id])
                     # print("finish time:",self.finish_time[layer_id])
                     # print('==============================')
@@ -238,8 +216,7 @@ class Model_latency():
                     outputbit = int(layer_dict['outputbit'])
                     self.begin_time.append([])
                     self.finish_time.append([])
-                    self.uni_begin_time.append([])
-                    self.uni_finish_time.append([])
+                    self.compute_interval.append([])
                     indata = self.graph.layer_bankinfo[layer_id]['max_row']*inputbit/8
                     rdata = indata*inputbit/8
                     temp_bank_latency = bank_latency_analysis(SimConfig_path=self.SimConfig_path,
@@ -256,14 +233,9 @@ class Model_latency():
                             output_size * outputbit / self.inter_bank_bandwidth)
                     begin_time = self.finish_time[layer_id-1][-1]
                     compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + begin_time
-                    if begin_time not in self.begin_time[layer_id]:
-                        self.uni_begin_time[layer_id].append(begin_time)
-                        self.uni_finish_time[layer_id].append(compute_time)
-                    else:
-                        self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)] = \
-                            max(compute_time, self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)])
                     self.begin_time[layer_id] = output_size * [begin_time]
                     self.finish_time[layer_id]= output_size*[compute_time]
+                    self.compute_interval[layer_id].append([begin_time, compute_time])
                     # print("start time: ",self.begin_time[layer_id])
                     # print("finish time:",self.finish_time[layer_id])
                     # print('==============================')
@@ -271,8 +243,7 @@ class Model_latency():
                     assert layer_dict['type'] == 'pooling', "Layer type can only be conv/fc/pooling"
                     self.begin_time.append([])
                     self.finish_time.append([])
-                    self.uni_begin_time.append([])
-                    self.uni_finish_time.append([])
+                    self.compute_interval.append([])
                     output_size = list(map(int, layer_dict['Outputsize']))
                     input_size = list(map(int, layer_dict['Inputsize']))
                     kernelsize = int(layer_dict['Kernelsize'])
@@ -296,7 +267,7 @@ class Model_latency():
                                                  len(self.finish_time[layer_id - 1]) - 1)
                             if (i == 0) & (j == 0):
                                 # the first output
-                                indata = inputchannel * (output_size[1] * max(kernelsize - padding - 1, 0) + max(
+                                indata = inputchannel * (input_size[1] * max(kernelsize - padding - 1, 0) + max(
                                     kernelsize - padding, 0))*inputbit/8
                                 # fill the line buffer
                                 rdata = inputchannel*kernelsize**2*inputbit/8
@@ -306,14 +277,9 @@ class Model_latency():
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
                                                begin_time
                                 # consider the input data generation time
-                                if begin_time not in self.begin_time[layer_id]:
-                                    self.uni_begin_time[layer_id].append(begin_time)
-                                    self.uni_finish_time[layer_id].append(compute_time)
-                                else:
-                                    self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)] =\
-                                        max(compute_time,self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)])
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
                                 # print(self.finish_time[layer_id])
                             elif j == 0:
                                 indata = inputchannel * stride * max(kernelsize - padding, 0)*inputbit/8
@@ -325,14 +291,9 @@ class Model_latency():
                                                    self.finish_time[layer_id][(i - 1) * output_size[1] + output_size[1] - 1])
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
                                                begin_time
-                                if begin_time not in self.begin_time[layer_id]:
-                                    self.uni_begin_time[layer_id].append(begin_time)
-                                    self.uni_finish_time[layer_id].append(compute_time)
-                                else:
-                                    self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)] =\
-                                        max(compute_time,self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)])
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
                                 # print(self.finish_time[layer_id])
                             else:
                                 indata = inputchannel * stride ** 2*inputbit/8
@@ -343,19 +304,17 @@ class Model_latency():
                                                    self.finish_time[layer_id][i * output_size[1] + j - 1])
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
                                                begin_time
-                                if begin_time not in self.begin_time[layer_id]:
-                                    self.uni_begin_time[layer_id].append(begin_time)
-                                    self.uni_finish_time[layer_id].append(compute_time)
-                                else:
-                                    self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)] =\
-                                        max(compute_time,self.uni_finish_time[layer_id][self.begin_time[layer_id].index(begin_time)])
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
                     # print("start time: ",self.begin_time[layer_id])
                     # print("finish time:",self.finish_time[layer_id])
                     # print('==============================')
-            temp_runtime = list(map(lambda x: x[0]-x[1], zip(self.uni_finish_time[layer_id], self.uni_begin_time[layer_id])))
-            self.occupancy.append(sum(temp_runtime)/(max(self.uni_finish_time[layer_id])-min(self.uni_begin_time[layer_id])))
+            self.compute_interval[layer_id] = merge_interval(self.compute_interval[layer_id])
+            temp_runtime = 0
+            for l in range(len(self.compute_interval[layer_id])):
+                temp_runtime += (self.compute_interval[layer_id][l][1]-self.compute_interval[layer_id][l][0])
+            self.occupancy.append(temp_runtime/(max(self.finish_time[layer_id])-min(self.begin_time[layer_id])))
 
 
 if __name__ == '__main__':
@@ -372,7 +331,7 @@ if __name__ == '__main__':
     for i in range(len(test.begin_time)):
         print("start time: ", test.begin_time[i])
         print("finish time:",test.finish_time[i])
-        print("used time:", list(map(lambda x: x[0]-x[1], zip(test.uni_finish_time[i], test.uni_begin_time[i]))))
+        print("used time:", test.compute_interval[i])
         print("Occupancy:", test.occupancy[i])
         print('==============================')
     print("Latency simulation finished!")
