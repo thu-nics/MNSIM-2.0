@@ -17,14 +17,14 @@ def merge_interval(interval):
     interval.sort()
     lower_bound = interval[0][0]
     upper_bound = interval[0][1]
-    for i in range(1,len(interval)):
-        if interval[i][0] > upper_bound:
+    for index in range(1,len(interval)):
+        if interval[index][0] > upper_bound:
             result.append([lower_bound,upper_bound])
-            lower_bound = interval[i][0]
-            upper_bound = interval[i][1]
+            lower_bound = interval[index][0]
+            upper_bound = interval[index][1]
         else:
-            if interval[i][1] > upper_bound:
-                upper_bound = interval[i][1]
+            if interval[index][1] > upper_bound:
+                upper_bound = interval[index][1]
     result.append([lower_bound, upper_bound])
     return result
 
@@ -44,6 +44,29 @@ class Model_latency():
         self.SimConfig_path = SimConfig_path
         self.compute_interval = []
         self.occupancy = []
+
+        self.buffer_latency = []
+        self.computing_latency = []
+        self.DAC_latency = []
+        self.xbar_latency = []
+        self.ADC_latency = []
+        self.digital_latency = []
+        self.intra_bank_latency = []
+        self.inter_bank_latency = []
+        self.bank_merge_latency = []
+        self.bank_transfer_latency = []
+
+        self.total_buffer_latency = []
+        self.total_computing_latency = []
+        self.total_DAC_latency = []
+        self.total_xbar_latency = []
+        self.total_ADC_latency = []
+        self.total_digital_latency = []
+        self.total_intra_bank_latency = []
+        self.total_inter_bank_latency = []
+        self.total_bank_merge_latency = []
+        self.total_bank_transfer_latency = []
+
     def caculate_model_latency_1(self):
         for layer_id in range(len(self.NetStruct)):
             layer_dict = self.NetStruct[layer_id][0][0]
@@ -52,6 +75,17 @@ class Model_latency():
                 self.begin_time.append([])
                 self.finish_time.append([])
                 self.compute_interval.append([])
+
+                self.buffer_latency.append([])
+                self.computing_latency.append([])
+                self.DAC_latency.append([])
+                self.xbar_latency.append([])
+                self.ADC_latency.append([])
+                self.digital_latency.append([])
+                self.intra_bank_latency.append([])
+                self.inter_bank_latency.append([])
+                self.bank_merge_latency.append([])
+                self.bank_transfer_latency.append([])
                 output_size = list(map(int, layer_dict['Outputsize']))
                 input_size = list(map(int, layer_dict['Inputsize']))
                 kernelsize = int(layer_dict['Kernelsize'])
@@ -90,6 +124,19 @@ class Model_latency():
                             self.begin_time[0].append(0)
                             self.finish_time[0].append(compute_time)
                             self.compute_interval[0].append([0,compute_time])
+
+                            self.buffer_latency[layer_id].append(temp_bank_latency.buf_wlatency+temp_bank_latency.buf_rlatency)
+                            self.computing_latency[layer_id].append(temp_bank_latency.computing_latency)
+                            self.DAC_latency[layer_id].append(temp_bank_latency.DAC_latency)
+                            self.xbar_latency[layer_id].append(temp_bank_latency.xbar_latency)
+                            self.ADC_latency[layer_id].append(temp_bank_latency.ADC_latency)
+                            self.digital_latency[layer_id].append(temp_bank_latency.inPE_add_latency+
+                                                                  temp_bank_latency.ireg_latency+temp_bank_latency.shiftadd_latency+
+                                                                  temp_bank_latency.oreg_latency+temp_bank_latency.merge_latency)
+                            self.intra_bank_latency[layer_id].append(temp_bank_latency.transfer_latency)
+                            self.inter_bank_latency[layer_id].append(merge_time+transfer_time)
+                            self.bank_merge_latency[layer_id].append(merge_time)
+                            self.bank_transfer_latency[layer_id].append(transfer_time)
                             # print(self.finish_time[0])
                         elif j==0:
                             indata = input_channel_PE*stride*max(kernelsize-padding,0)*inputbit/8
@@ -103,6 +150,20 @@ class Model_latency():
                             self.begin_time[0].append(begin_time)
                             self.finish_time[0].append(compute_time)
                             self.compute_interval[0].append([begin_time,compute_time])
+
+                            self.buffer_latency[layer_id].append(
+                                temp_bank_latency.buf_wlatency + temp_bank_latency.buf_rlatency)
+                            self.computing_latency[layer_id].append(temp_bank_latency.computing_latency)
+                            self.DAC_latency[layer_id].append(temp_bank_latency.DAC_latency)
+                            self.xbar_latency[layer_id].append(temp_bank_latency.xbar_latency)
+                            self.ADC_latency[layer_id].append(temp_bank_latency.ADC_latency)
+                            self.digital_latency[layer_id].append(temp_bank_latency.inPE_add_latency +
+                                                                  temp_bank_latency.ireg_latency + temp_bank_latency.shiftadd_latency +
+                                                                  temp_bank_latency.oreg_latency + temp_bank_latency.merge_latency)
+                            self.intra_bank_latency[layer_id].append(temp_bank_latency.transfer_latency)
+                            self.inter_bank_latency[layer_id].append(merge_time + transfer_time)
+                            self.bank_merge_latency[layer_id].append(merge_time)
+                            self.bank_transfer_latency[layer_id].append(transfer_time)
                             # print(self.finish_time[0])
                         else:
                             indata = input_channel_PE*stride**2*inputbit/8
@@ -115,6 +176,20 @@ class Model_latency():
                             self.begin_time[0].append(begin_time)
                             self.finish_time[0].append(compute_time)
                             self.compute_interval[0].append([begin_time,compute_time])
+
+                            self.buffer_latency[layer_id].append(
+                                temp_bank_latency.buf_wlatency + temp_bank_latency.buf_rlatency)
+                            self.computing_latency[layer_id].append(temp_bank_latency.computing_latency)
+                            self.DAC_latency[layer_id].append(temp_bank_latency.DAC_latency)
+                            self.xbar_latency[layer_id].append(temp_bank_latency.xbar_latency)
+                            self.ADC_latency[layer_id].append(temp_bank_latency.ADC_latency)
+                            self.digital_latency[layer_id].append(temp_bank_latency.inPE_add_latency +
+                                                                  temp_bank_latency.ireg_latency + temp_bank_latency.shiftadd_latency +
+                                                                  temp_bank_latency.oreg_latency + temp_bank_latency.merge_latency)
+                            self.intra_bank_latency[layer_id].append(temp_bank_latency.transfer_latency)
+                            self.inter_bank_latency[layer_id].append(merge_time + transfer_time)
+                            self.bank_merge_latency[layer_id].append(merge_time)
+                            self.bank_transfer_latency[layer_id].append(transfer_time)
                 # print("start time: ", self.begin_time[0])
                 # print("finish time:", self.finish_time[0])
                 # print('==============================')
@@ -123,6 +198,17 @@ class Model_latency():
                     self.begin_time.append([])
                     self.finish_time.append([])
                     self.compute_interval.append([])
+
+                    self.buffer_latency.append([])
+                    self.computing_latency.append([])
+                    self.DAC_latency.append([])
+                    self.xbar_latency.append([])
+                    self.ADC_latency.append([])
+                    self.digital_latency.append([])
+                    self.intra_bank_latency.append([])
+                    self.inter_bank_latency.append([])
+                    self.bank_merge_latency.append([])
+                    self.bank_transfer_latency.append([])
                     output_size = list(map(int, layer_dict['Outputsize']))
                     input_size = list(map(int, layer_dict['Inputsize']))
                     kernelsize = int(layer_dict['Kernelsize'])
@@ -169,6 +255,20 @@ class Model_latency():
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
                                 self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                                self.buffer_latency[layer_id].append(
+                                    temp_bank_latency.buf_wlatency + temp_bank_latency.buf_rlatency)
+                                self.computing_latency[layer_id].append(temp_bank_latency.computing_latency)
+                                self.DAC_latency[layer_id].append(temp_bank_latency.DAC_latency)
+                                self.xbar_latency[layer_id].append(temp_bank_latency.xbar_latency)
+                                self.ADC_latency[layer_id].append(temp_bank_latency.ADC_latency)
+                                self.digital_latency[layer_id].append(temp_bank_latency.inPE_add_latency +
+                                                                      temp_bank_latency.ireg_latency + temp_bank_latency.shiftadd_latency +
+                                                                      temp_bank_latency.oreg_latency + temp_bank_latency.merge_latency)
+                                self.intra_bank_latency[layer_id].append(temp_bank_latency.transfer_latency)
+                                self.inter_bank_latency[layer_id].append(merge_time + transfer_time)
+                                self.bank_merge_latency[layer_id].append(merge_time)
+                                self.bank_transfer_latency[layer_id].append(transfer_time)
                                 # print(self.finish_time[layer_id])
                             elif j == 0:
                                 indata = input_channel_PE * stride * max(kernelsize - padding, 0)*inputbit/8
@@ -184,6 +284,20 @@ class Model_latency():
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
                                 self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                                self.buffer_latency[layer_id].append(
+                                    temp_bank_latency.buf_wlatency + temp_bank_latency.buf_rlatency)
+                                self.computing_latency[layer_id].append(temp_bank_latency.computing_latency)
+                                self.DAC_latency[layer_id].append(temp_bank_latency.DAC_latency)
+                                self.xbar_latency[layer_id].append(temp_bank_latency.xbar_latency)
+                                self.ADC_latency[layer_id].append(temp_bank_latency.ADC_latency)
+                                self.digital_latency[layer_id].append(temp_bank_latency.inPE_add_latency +
+                                                                      temp_bank_latency.ireg_latency + temp_bank_latency.shiftadd_latency +
+                                                                      temp_bank_latency.oreg_latency + temp_bank_latency.merge_latency)
+                                self.intra_bank_latency[layer_id].append(temp_bank_latency.transfer_latency)
+                                self.inter_bank_latency[layer_id].append(merge_time + transfer_time)
+                                self.bank_merge_latency[layer_id].append(merge_time)
+                                self.bank_transfer_latency[layer_id].append(transfer_time)
                                 # print(self.finish_time[layer_id])
                             else:
                                 indata = input_channel_PE * stride ** 2*inputbit/8
@@ -198,6 +312,20 @@ class Model_latency():
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
                                 self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                                self.buffer_latency[layer_id].append(
+                                    temp_bank_latency.buf_wlatency + temp_bank_latency.buf_rlatency)
+                                self.computing_latency[layer_id].append(temp_bank_latency.computing_latency)
+                                self.DAC_latency[layer_id].append(temp_bank_latency.DAC_latency)
+                                self.xbar_latency[layer_id].append(temp_bank_latency.xbar_latency)
+                                self.ADC_latency[layer_id].append(temp_bank_latency.ADC_latency)
+                                self.digital_latency[layer_id].append(temp_bank_latency.inPE_add_latency +
+                                                                      temp_bank_latency.ireg_latency + temp_bank_latency.shiftadd_latency +
+                                                                      temp_bank_latency.oreg_latency + temp_bank_latency.merge_latency)
+                                self.intra_bank_latency[layer_id].append(temp_bank_latency.transfer_latency)
+                                self.inter_bank_latency[layer_id].append(merge_time + transfer_time)
+                                self.bank_merge_latency[layer_id].append(merge_time)
+                                self.bank_transfer_latency[layer_id].append(transfer_time)
                     # print("start time: ",self.begin_time[layer_id])
                     # print("finish time:",self.finish_time[layer_id])
                     # print('==============================')
@@ -209,6 +337,17 @@ class Model_latency():
                     self.begin_time.append([])
                     self.finish_time.append([])
                     self.compute_interval.append([])
+
+                    self.buffer_latency.append([])
+                    self.computing_latency.append([])
+                    self.DAC_latency.append([])
+                    self.xbar_latency.append([])
+                    self.ADC_latency.append([])
+                    self.digital_latency.append([])
+                    self.intra_bank_latency.append([])
+                    self.inter_bank_latency.append([])
+                    self.bank_merge_latency.append([])
+                    self.bank_transfer_latency.append([])
                     indata = self.graph.layer_bankinfo[layer_id]['max_row']*inputbit/8
                     rdata = indata*inputbit/8
                     temp_bank_latency = bank_latency_analysis(SimConfig_path=self.SimConfig_path,
@@ -228,6 +367,20 @@ class Model_latency():
                     self.begin_time[layer_id] = output_size * [begin_time]
                     self.finish_time[layer_id]= output_size*[compute_time]
                     self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                    self.buffer_latency[layer_id].append(
+                        temp_bank_latency.buf_wlatency + temp_bank_latency.buf_rlatency)
+                    self.computing_latency[layer_id].append(temp_bank_latency.computing_latency)
+                    self.DAC_latency[layer_id].append(temp_bank_latency.DAC_latency)
+                    self.xbar_latency[layer_id].append(temp_bank_latency.xbar_latency)
+                    self.ADC_latency[layer_id].append(temp_bank_latency.ADC_latency)
+                    self.digital_latency[layer_id].append(temp_bank_latency.inPE_add_latency +
+                                                          temp_bank_latency.ireg_latency + temp_bank_latency.shiftadd_latency +
+                                                          temp_bank_latency.oreg_latency + temp_bank_latency.merge_latency)
+                    self.intra_bank_latency[layer_id].append(temp_bank_latency.transfer_latency)
+                    self.inter_bank_latency[layer_id].append(merge_time + transfer_time)
+                    self.bank_merge_latency[layer_id].append(merge_time)
+                    self.bank_transfer_latency[layer_id].append(transfer_time)
                     # print("start time: ",self.begin_time[layer_id])
                     # print("finish time:",self.finish_time[layer_id])
                     # print('==============================')
@@ -236,6 +389,17 @@ class Model_latency():
                     self.begin_time.append([])
                     self.finish_time.append([])
                     self.compute_interval.append([])
+
+                    self.buffer_latency.append([])
+                    self.computing_latency.append([])
+                    self.DAC_latency.append([])
+                    self.xbar_latency.append([])
+                    self.ADC_latency.append([])
+                    self.digital_latency.append([])
+                    self.intra_bank_latency.append([])
+                    self.inter_bank_latency.append([])
+                    self.bank_merge_latency.append([])
+                    self.bank_transfer_latency.append([])
                     output_size = list(map(int, layer_dict['Outputsize']))
                     input_size = list(map(int, layer_dict['Inputsize']))
                     kernelsize = int(layer_dict['Kernelsize'])
@@ -272,6 +436,19 @@ class Model_latency():
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
                                 self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                                self.buffer_latency[layer_id].append(
+                                    temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
+                                self.computing_latency[layer_id].append(0)
+                                self.DAC_latency[layer_id].append(0)
+                                self.xbar_latency[layer_id].append(0)
+                                self.ADC_latency[layer_id].append(0)
+                                self.digital_latency[layer_id].append(temp_pooling_latency.digital_period)
+                                    # TODO: update pooling latency analysis
+                                self.intra_bank_latency[layer_id].append(0)
+                                self.inter_bank_latency[layer_id].append(merge_time + transfer_time)
+                                self.bank_merge_latency[layer_id].append(merge_time)
+                                self.bank_transfer_latency[layer_id].append(transfer_time)
                                 # print(self.finish_time[layer_id])
                             elif j == 0:
                                 indata = inputchannel * stride * max(kernelsize - padding, 0)*inputbit/8
@@ -286,6 +463,19 @@ class Model_latency():
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
                                 self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                                self.buffer_latency[layer_id].append(
+                                    temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
+                                self.computing_latency[layer_id].append(0)
+                                self.DAC_latency[layer_id].append(0)
+                                self.xbar_latency[layer_id].append(0)
+                                self.ADC_latency[layer_id].append(0)
+                                self.digital_latency[layer_id].append(temp_pooling_latency.digital_period)
+                                # TODO: update pooling latency analysis
+                                self.intra_bank_latency[layer_id].append(0)
+                                self.inter_bank_latency[layer_id].append(merge_time + transfer_time)
+                                self.bank_merge_latency[layer_id].append(merge_time)
+                                self.bank_transfer_latency[layer_id].append(transfer_time)
                                 # print(self.finish_time[layer_id])
                             else:
                                 indata = inputchannel * stride ** 2*inputbit/8
@@ -299,6 +489,19 @@ class Model_latency():
                                 self.begin_time[layer_id].append(begin_time)
                                 self.finish_time[layer_id].append(compute_time)
                                 self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                                self.buffer_latency[layer_id].append(
+                                    temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
+                                self.computing_latency[layer_id].append(0)
+                                self.DAC_latency[layer_id].append(0)
+                                self.xbar_latency[layer_id].append(0)
+                                self.ADC_latency[layer_id].append(0)
+                                self.digital_latency[layer_id].append(temp_pooling_latency.digital_period)
+                                # TODO: update pooling latency analysis
+                                self.intra_bank_latency[layer_id].append(0)
+                                self.inter_bank_latency[layer_id].append(merge_time + transfer_time)
+                                self.bank_merge_latency[layer_id].append(merge_time)
+                                self.bank_transfer_latency[layer_id].append(transfer_time)
                     # print("start time: ",self.begin_time[layer_id])
                     # print("finish time:",self.finish_time[layer_id])
                     # print('==============================')
@@ -307,6 +510,16 @@ class Model_latency():
             for l in range(len(self.compute_interval[layer_id])):
                 temp_runtime += (self.compute_interval[layer_id][l][1]-self.compute_interval[layer_id][l][0])
             self.occupancy.append(temp_runtime/(max(self.finish_time[layer_id])-min(self.begin_time[layer_id])))
+            self.total_buffer_latency.append(sum(self.buffer_latency[layer_id]))
+            self.total_computing_latency.append(sum(self.computing_latency[layer_id]))
+            self.total_DAC_latency.append(sum(self.DAC_latency[layer_id]))
+            self.total_xbar_latency.append(sum(self.xbar_latency[layer_id]))
+            self.total_ADC_latency.append(sum(self.ADC_latency[layer_id]))
+            self.total_digital_latency.append(sum(self.digital_latency[layer_id]))
+            self.total_inter_bank_latency.append(sum(self.inter_bank_latency[layer_id]))
+            self.total_intra_bank_latency.append(sum(self.intra_bank_latency[layer_id]))
+            self.total_bank_merge_latency.append(sum(self.bank_merge_latency[layer_id]))
+            self.total_bank_transfer_latency.append(sum(self.bank_transfer_latency[layer_id]))
 
 
 if __name__ == '__main__':
@@ -321,9 +534,20 @@ if __name__ == '__main__':
     test = Model_latency(structure_file, test_SimConfig_path)
     test.caculate_model_latency_1()
     for i in range(len(test.begin_time)):
+        print("Layer",i," type:", test.NetStruct[i][0][0]['type'])
         print("start time: ", test.begin_time[i])
         print("finish time:",test.finish_time[i])
         print("used time:", test.compute_interval[i])
         print("Occupancy:", test.occupancy[i])
+        print("Buffer latency of layer",i,":", test.total_buffer_latency[i])
+        print("Computing latency of layer", i, ":", test.total_computing_latency[i])
+        print("     DAC latency of layer", i, ":", test.total_DAC_latency[i])
+        print("     ADC latency of layer", i, ":", test.total_ADC_latency[i])
+        print("     xbar latency of layer", i, ":", test.total_xbar_latency[i])
+        print("Digital part latency of layer", i, ":", test.total_digital_latency[i])
+        print("Intra bank communication latency of layer", i, ":", test.total_intra_bank_latency[i])
+        print("Inter bank communication latency of layer", i, ":", test.total_inter_bank_latency[i])
+        print("     One layer merge latency of layer", i, ":", test.total_bank_merge_latency[i])
+        print("     Inter bank transfer latency of layer", i, ":", test.total_bank_transfer_latency[i])
         print('==============================')
     print("Latency simulation finished!")
