@@ -515,6 +515,266 @@ class Model_latency():
             self.total_bank_merge_latency.append(sum(self.bank_merge_latency[layer_id]))
             self.total_bank_transfer_latency.append(sum(self.bank_transfer_latency[layer_id]))
 
+    def caculate_model_latency_0(self):
+        for layer_id in range(len(self.NetStruct)):
+            layer_dict = self.NetStruct[layer_id][0][0]
+            if layer_id == 0:
+                # for the first layer, first layer must be conv layer
+                self.begin_time.append([])
+                self.finish_time.append([])
+                self.compute_interval.append([])
+                output_size = list(map(int, layer_dict['Outputsize']))
+                input_size = list(map(int, layer_dict['Inputsize']))
+                kernelsize = int(layer_dict['Kernelsize'])
+                stride = int(layer_dict['Stride'])
+                inputchannel = int(layer_dict['Inputchannel'])
+                outputchannel = int(layer_dict['Outputchannel'])
+                padding = int(layer_dict['Padding'])
+                inputbit = int(layer_dict['Inputbit'])
+                outputbit = int(layer_dict['outputbit'])
+                # print(self.graph.layer_bankinfo[layer_id]['max_row'])
+                input_channel_PE = self.graph.layer_bankinfo[layer_id]['max_row'] / (kernelsize ** 2)
+                # the input channel number each PE processes
+                temp_bank_latency = bank_latency_analysis(SimConfig_path=self.SimConfig_path,
+                                                          read_row=self.graph.layer_bankinfo[layer_id]['max_row'],
+                                                          read_column=self.graph.layer_bankinfo[layer_id]['max_column'],
+                                                          indata=0, rdata=0, inprecision=inputbit,
+                                                          PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
+                                                          )
+                merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                                                                         self.graph.layer_bankinfo[layer_id][
+                                                                             'max_column'] * outputbit / self.inter_bank_bandwidth)
+                # Todo: update merge time (adder tree) and transfer data volume
+                transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                        outputchannel * outputbit / self.inter_bank_bandwidth)
+                # Todo: update transfer data volume
+                for i in range(output_size[0]):
+                    for j in range(output_size[1]):
+                        if (i == 0) & (j == 0):
+                            # the first output
+                            # indata: the data needed to written into buffer
+                            indata = input_channel_PE * (input_size[1] * max(kernelsize - padding - 1, 0) +
+                                                         max(kernelsize - padding, 0)) * inputbit / 8
+                            # rdata: the data read from the buffer
+                            rdata = self.graph.layer_bankinfo[layer_id]['max_row'] * inputbit / 8
+                            temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
+                            compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time
+                            self.begin_time[0].append(0)
+                            self.finish_time[0].append(compute_time)
+                            self.compute_interval[0].append([0, compute_time])
+                        elif j == 0:
+                            # TODO: check the changes
+                            indata = inputbit / 8 * input_channel_PE * (input_size[1] * (stride - 1) +
+                                                                        max(kernelsize - padding, 0))
+                            rdata = self.graph.layer_bankinfo[layer_id]['max_row'] * inputbit / 8
+                            temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
+                            begin_time = self.finish_time[0][(i - 1) * output_size[1] + output_size[1] - 1]
+                            compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
+                                           begin_time
+                            # TODO: check
+
+                            self.begin_time[0].append(begin_time)
+                            self.finish_time[0].append(compute_time)
+                            self.compute_interval[0].append([begin_time, compute_time])
+                        else:
+                            indata = input_channel_PE * stride * inputbit / 8
+                            rdata = stride * kernelsize * input_channel_PE * inputbit / 8
+                            temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
+                            begin_time = self.finish_time[0][i * output_size[1] + j - 1]
+                            compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
+                                           begin_time
+
+                            self.begin_time[0].append(begin_time)
+                            self.finish_time[0].append(compute_time)
+                            self.compute_interval[0].append([begin_time, compute_time])
+            else:
+                if layer_dict['type'] == 'conv':
+                    self.begin_time.append([])
+                    self.finish_time.append([])
+                    self.compute_interval.append([])
+                    output_size = list(map(int, layer_dict['Outputsize']))
+                    input_size = list(map(int, layer_dict['Inputsize']))
+                    kernelsize = int(layer_dict['Kernelsize'])
+                    stride = int(layer_dict['Stride'])
+                    inputchannel = int(layer_dict['Inputchannel'])
+                    outputchannel = int(layer_dict['Outputchannel'])
+                    padding = int(layer_dict['Padding'])
+                    inputbit = int(layer_dict['Inputbit'])
+                    outputbit = int(layer_dict['outputbit'])
+                    # print(self.graph.layer_bankinfo[layer_id]['max_row'])
+                    input_channel_PE = self.graph.layer_bankinfo[layer_id]['max_row'] / (kernelsize ** 2)
+                    # the input channel number each PE processes
+                    temp_bank_latency = bank_latency_analysis(SimConfig_path=self.SimConfig_path,
+                                                              read_row=self.graph.layer_bankinfo[layer_id]['max_row'],
+                                                              read_column=self.graph.layer_bankinfo[layer_id][
+                                                                  'max_column'],
+                                                              indata=0, rdata=0, inprecision=inputbit,
+                                                              PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
+                                                              )
+                    merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                                                                             self.graph.layer_bankinfo[layer_id][
+                                                                                 'max_column'] *
+                                                                             outputbit / self.inter_bank_bandwidth)
+                    # Todo: update merge time (adder tree) and transfer data volume
+                    transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                            outputchannel * outputbit / self.inter_bank_bandwidth)
+                    # Todo: update transfer data volume
+                    for i in range(output_size[0]):
+                        for j in range(output_size[1]):
+                            last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] +
+                                                 kernelsize + stride * j - padding - 1,
+                                                 len(self.finish_time[layer_id - 1]) - 1)
+
+                            if (i == 0) & (j == 0):
+                                # the first output
+                                # indata: the data needed to written into buffer
+                                indata = input_channel_PE * (input_size[1] * max(kernelsize - padding - 1, 0) +
+                                                             max(kernelsize - padding, 0)) * inputbit / 8
+                                # rdata: the data read from the buffer
+                                rdata = self.graph.layer_bankinfo[layer_id]['max_row'] * inputbit / 8
+                                temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
+                                begin_time = self.finish_time[layer_id - 1][last_layer_pos]
+                                compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + begin_time
+
+                                self.begin_time[layer_id].append(begin_time)
+                                self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                            elif j == 0:
+                                indata = inputbit / 8 * input_channel_PE * (input_size[1] * (stride - 1) +
+                                                                            max(kernelsize - padding, 0))
+                                rdata = self.graph.layer_bankinfo[layer_id]['max_row'] * inputbit / 8
+                                temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
+                                begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
+                                                 self.finish_time[layer_id][
+                                                     (i - 1) * output_size[1] + output_size[1] - 1])
+                                # max(the required input data generation time, previous point computation complete time)
+                                compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + begin_time
+                                # consider the input data generation time
+
+                                self.begin_time[layer_id].append(begin_time)
+                                self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
+                                # print(self.finish_time[layer_id])
+                            else:
+                                indata = input_channel_PE * stride * inputbit / 8
+                                rdata = stride * kernelsize * input_channel_PE * inputbit / 8
+                                temp_bank_latency.update_bank_latency(indata=indata, rdata=rdata)
+                                begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
+                                                 self.finish_time[layer_id][i * output_size[1] + j - 1])
+                                # max (the required input data generation time, previous point computation complete time)
+                                compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + \
+                                               begin_time
+
+                                self.begin_time[layer_id].append(begin_time)
+                                self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                elif layer_dict['type'] == 'fc':
+                    output_size = int(layer_dict['Outfeature'])
+                    input_size = int(layer_dict['Infeature'])
+                    inputbit = int(layer_dict['Inputbit'])
+                    outputbit = int(layer_dict['outputbit'])
+                    self.begin_time.append([])
+                    self.finish_time.append([])
+                    self.compute_interval.append([])
+                    indata = self.graph.layer_bankinfo[layer_id]['max_row'] * inputbit / 8
+                    rdata = indata * inputbit / 8
+                    temp_bank_latency = bank_latency_analysis(SimConfig_path=self.SimConfig_path,
+                                                              read_row=self.graph.layer_bankinfo[layer_id]['max_row'],
+                                                              read_column=self.graph.layer_bankinfo[layer_id][
+                                                                  'max_column'],
+                                                              indata=indata, rdata=rdata, inprecision=inputbit,
+                                                              PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
+                                                              )
+                    merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                                                                             self.graph.layer_bankinfo[layer_id][
+                                                                                 'max_column'] *
+                                                                             outputbit / self.inter_bank_bandwidth)
+                    # Todo: update merge time (adder tree) and transfer data volume
+                    transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                            output_size * outputbit / self.inter_bank_bandwidth)
+                    begin_time = self.finish_time[layer_id - 1][-1]
+                    compute_time = temp_bank_latency.bank_latency + merge_time + transfer_time + begin_time
+
+                    self.begin_time[layer_id] = output_size * [begin_time]
+                    self.finish_time[layer_id] = output_size * [compute_time]
+                    self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                else:
+                    assert layer_dict['type'] == 'pooling', "Layer type can only be conv/fc/pooling"
+                    self.begin_time.append([])
+                    self.finish_time.append([])
+                    self.compute_interval.append([])
+                    output_size = list(map(int, layer_dict['Outputsize']))
+                    input_size = list(map(int, layer_dict['Inputsize']))
+                    kernelsize = int(layer_dict['Kernelsize'])
+                    stride = int(layer_dict['Stride'])
+                    inputchannel = int(layer_dict['Inputchannel'])
+                    outputchannel = int(layer_dict['Outputchannel'])
+                    padding = int(layer_dict['Padding'])
+                    inputbit = int(layer_dict['Inputbit'])
+                    outputbit = int(layer_dict['outputbit'])
+                    temp_pooling_latency = pooling_latency_analysis(SimConfig_path=self.SimConfig_path,
+                                                                    indata=0, rdata=0)
+                    merge_time = 0
+                    # Todo: update merge time of pooling bank
+                    transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                            outputchannel * outputbit / self.inter_bank_bandwidth)
+                    for i in range(output_size[0]):
+                        for j in range(output_size[1]):
+                            last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] +
+                                                 kernelsize + stride * j - padding - 1,
+                                                 len(self.finish_time[layer_id - 1]) - 1)
+                            if (i == 0) & (j == 0):
+                                # the first output
+                                indata = inputchannel * (input_size[1] * max(kernelsize - padding - 1, 0) + max(
+                                    kernelsize - padding, 0)) * inputbit / 8
+                                # fill the line buffer
+                                rdata = inputchannel * kernelsize ** 2 * inputbit / 8
+                                # from the line buffer to the input reg
+                                temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                begin_time = self.finish_time[layer_id - 1][last_layer_pos]
+                                compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
+                                               begin_time
+                                # consider the input data generation time
+                                self.begin_time[layer_id].append(begin_time)
+                                self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
+                                # print(self.finish_time[layer_id])
+                            elif j == 0:
+                                indata = inputbit / 8 * inputchannel * (input_size[1] * (stride - 1) +
+                                                                        max(kernelsize - padding, 0))
+                                rdata = inputchannel * kernelsize ** 2 * inputbit / 8
+                                # from the line buffer to the input reg
+                                temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
+                                                 self.finish_time[layer_id][
+                                                     (i - 1) * output_size[1] + output_size[1] - 1])
+                                compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
+                                               begin_time
+                                self.begin_time[layer_id].append(begin_time)
+                                self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
+                                # print(self.finish_time[layer_id])
+                            else:
+                                indata = inputchannel * stride ** 2 * inputbit / 8
+                                # write new input data to line buffer
+                                rdata = stride * kernelsize * inputchannel * inputbit / 8
+                                temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
+                                                 self.finish_time[layer_id][i * output_size[1] + j - 1])
+                                compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
+                                               begin_time
+                                self.begin_time[layer_id].append(begin_time)
+                                self.finish_time[layer_id].append(compute_time)
+                                self.compute_interval[layer_id].append([begin_time, compute_time])
+            self.compute_interval[layer_id] = merge_interval(self.compute_interval[layer_id])
+            temp_runtime = 0
+            for l in range(len(self.compute_interval[layer_id])):
+                temp_runtime += (self.compute_interval[layer_id][l][1] - self.compute_interval[layer_id][l][0])
+            self.occupancy.append(temp_runtime / (max(self.finish_time[layer_id]) - min(self.begin_time[layer_id])))
+
     def caculate_model_latency_1(self):
         for layer_id in range(len(self.NetStruct)):
             layer_dict = self.NetStruct[layer_id][0][0]
