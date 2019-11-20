@@ -9,3 +9,4 @@ __pycache__/
 /MNSIM/Interface/cifar10/
 /MNSIM/Latency_Model/exp_DAC20.py
 *.pth
+*.xlsx
