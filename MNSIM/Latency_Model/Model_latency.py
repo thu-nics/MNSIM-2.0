@@ -515,7 +515,7 @@ class Model_latency():
             self.total_bank_merge_latency.append(sum(self.bank_merge_latency[layer_id]))
             self.total_bank_transfer_latency.append(sum(self.bank_transfer_latency[layer_id]))
 
-    def caculate_model_latency_0(self):
+    def calculate_model_latency_0(self):
         for layer_id in range(len(self.NetStruct)):
             layer_dict = self.NetStruct[layer_id][0][0]
             if layer_id == 0:
@@ -775,7 +775,7 @@ class Model_latency():
                 temp_runtime += (self.compute_interval[layer_id][l][1] - self.compute_interval[layer_id][l][0])
             self.occupancy.append(temp_runtime / (max(self.finish_time[layer_id]) - min(self.begin_time[layer_id])))
 
-    def caculate_model_latency_1(self):
+    def calculate_model_latency_1(self):
         for layer_id in range(len(self.NetStruct)):
             layer_dict = self.NetStruct[layer_id][0][0]
             if layer_id == 0:
@@ -1241,7 +1241,7 @@ if __name__ == '__main__':
 
     test = Model_latency(structure_file, test_SimConfig_path)
     # test.caculate_model_latency_1()
-    test.calculate_model_latency_nopipe()
+    test.()
     for i in range(len(test.begin_time)):
         print("Layer",i," type:", test.NetStruct[i][0][0]['type'])
         print("start time: ", test.begin_time[i])
