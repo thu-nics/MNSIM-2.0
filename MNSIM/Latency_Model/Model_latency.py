@@ -18,6 +18,18 @@ from MNSIM.Latency_Model.Bank_latency import bank_latency_analysis
 from MNSIM.Latency_Model.Pooling_latency import pooling_latency_analysis
 import collections
 
+def merge_interval(interval):
+    if len(interval) == 0:
+        return []
+    result = []
+    for layer_id in range(len(interval)):
+        if len(interval[layer_id])==0:
+            result.append([])
+        else:
+            layer_interval = interval[layer_id]
+            layer_interval.sort()
+
+
 class Model_latency():
     def __init__(self, NetStruct, SimConfig_path):
         modelL_config = cp.ConfigParser()
@@ -72,7 +84,7 @@ class Model_latency():
                     for j in range(output_size[1]):
                         if (i==0) & (j==0):
                             # the first output
-                            indata = (input_channel_PE*output_size[1]*max(kernelsize-padding-1,0)+max(kernelsize-padding,0))*inputbit/8
+                            indata = input_channel_PE*(input_size[1]*max(kernelsize-padding-1,0)+max(kernelsize-padding,0))*inputbit/8
                                 # fill the line buffer
                             rdata = self.graph.layer_bankinfo[layer_id]['max_row']*inputbit/8
                                 # from the line buffer to the input reg
@@ -159,8 +171,8 @@ class Model_latency():
                                 print("pos error", i,j)
                             if (i == 0) & (j == 0):
                                 # the first output
-                                indata = input_channel_PE * output_size[1] * max(kernelsize - padding - 1, 0) + max(
-                                    kernelsize - padding, 0)*inputbit/8
+                                indata = input_channel_PE * (input_size[1] * max(kernelsize - padding - 1, 0) + max(
+                                    kernelsize - padding, 0))*inputbit/8
                                 # fill the line buffer
                                 rdata = self.graph.layer_bankinfo[layer_id]['max_row']*inputbit/8
                                 # from the line buffer to the input reg
@@ -284,8 +296,8 @@ class Model_latency():
                                                  len(self.finish_time[layer_id - 1]) - 1)
                             if (i == 0) & (j == 0):
                                 # the first output
-                                indata = inputchannel * output_size[1] * max(kernelsize - padding - 1, 0) + max(
-                                    kernelsize - padding, 0)*inputbit/8
+                                indata = inputchannel * (output_size[1] * max(kernelsize - padding - 1, 0) + max(
+                                    kernelsize - padding, 0))*inputbit/8
                                 # fill the line buffer
                                 rdata = inputchannel*kernelsize**2*inputbit/8
                                 # from the line buffer to the input reg
