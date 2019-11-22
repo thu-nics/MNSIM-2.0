@@ -1233,15 +1233,15 @@ class Model_latency():
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "cifar10_vgg8_params.pth")
+                                          "cifar10_vgg16_params.pth")
 
-    __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
+    __TestInterface = TrainTestInterface('vgg16', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
                                          'cpu')
     structure_file = __TestInterface.get_structure()
 
     test = Model_latency(structure_file, test_SimConfig_path)
     # test.caculate_model_latency_1()
-    test.()
+    test.calculate_model_latency_1()
     for i in range(len(test.begin_time)):
         print("Layer",i," type:", test.NetStruct[i][0][0]['type'])
         print("start time: ", test.begin_time[i])
