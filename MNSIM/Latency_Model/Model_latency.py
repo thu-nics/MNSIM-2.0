@@ -118,7 +118,7 @@ class Model_latency():
                 # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
                 #                                                          self.graph.layer_bankinfo[layer_id][
                 #                                                              'max_column'] * outputbit / self.inter_bank_bandwidth)
-                merge_time = (self.graph.layer_bankinfo[layer_id]['bank_num'] - 1) * temp_bank_latency.digital_period + \
+                merge_time = (self.graph.layer_bankinfo[layer_id]['banknum'] - 1) * temp_bank_latency.digital_period + \
                              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id]['max_column'] * \
                              outputbit / self.inter_bank_bandwidth
 
@@ -246,7 +246,7 @@ class Model_latency():
                     #                                                          self.graph.layer_bankinfo[layer_id]['max_column'] *
                     #                                                          outputbit / self.inter_bank_bandwidth)
                     merge_time = (self.graph.layer_bankinfo[layer_id][
-                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                      'banknum'] - 1) * temp_bank_latency.digital_period + \
                                  self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
                                      'max_column'] * outputbit / self.inter_bank_bandwidth
 
@@ -379,7 +379,7 @@ class Model_latency():
                     #                                                          self.graph.layer_bankinfo[layer_id]['max_column'] *
                     #                                                          outputbit / self.inter_bank_bandwidth)
                     merge_time = (self.graph.layer_bankinfo[layer_id][
-                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                      'banknum'] - 1) * temp_bank_latency.digital_period + \
                                  self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
                                      'max_column'] * outputbit / self.inter_bank_bandwidth
 
@@ -581,7 +581,7 @@ class Model_latency():
                 # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
                 #                                                          self.graph.layer_bankinfo[layer_id][
                 #                                                              'max_column'] * outputbit / self.inter_bank_bandwidth)
-                merge_time = (self.graph.layer_bankinfo[layer_id]['bank_num'] - 1) * temp_bank_latency.digital_period + \
+                merge_time = (self.graph.layer_bankinfo[layer_id]['banknum'] - 1) * temp_bank_latency.digital_period + \
                              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
                                  'max_column'] * outputbit / self.inter_bank_bandwidth
                 # Todo: update merge time (adder tree) and transfer data volume
@@ -709,7 +709,7 @@ class Model_latency():
                     #                                                              'max_column'] *
                     #                                                          outputbit / self.inter_bank_bandwidth)
                     merge_time = (self.graph.layer_bankinfo[layer_id][
-                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                      'banknum'] - 1) * temp_bank_latency.digital_period + \
                                  self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
                                      'max_column'] * outputbit / self.inter_bank_bandwidth
                     # Todo: update merge time (adder tree) and transfer data volume
@@ -842,7 +842,7 @@ class Model_latency():
                     #                                                              'max_column'] *
                     #                                                          outputbit / self.inter_bank_bandwidth)
                     merge_time = (self.graph.layer_bankinfo[layer_id][
-                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                      'banknum'] - 1) * temp_bank_latency.digital_period + \
                                  self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
                                      'max_column'] * outputbit / self.inter_bank_bandwidth
                     # Todo: update merge time (adder tree) and transfer data volume
@@ -1043,7 +1043,7 @@ class Model_latency():
                 # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
                 #                                                          self.graph.layer_bankinfo[layer_id][
                 #                                                              'max_column'] * outputbit / self.inter_bank_bandwidth)
-                merge_time = (self.graph.layer_bankinfo[layer_id]['bank_num'] - 1) * temp_bank_latency.digital_period + \
+                merge_time = (self.graph.layer_bankinfo[layer_id]['banknum'] - 1) * temp_bank_latency.digital_period + \
                              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
                                  'max_column'] * outputbit / self.inter_bank_bandwidth
                     # Todo: update merge time (adder tree) and transfer data volume
@@ -1170,7 +1170,7 @@ class Model_latency():
                     #                                                          self.graph.layer_bankinfo[layer_id]['max_column'] *
                     #                                                          outputbit / self.inter_bank_bandwidth)
                     merge_time = (self.graph.layer_bankinfo[layer_id][
-                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                      'banknum'] - 1) * temp_bank_latency.digital_period + \
                                  self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
                                      'max_column'] * outputbit / self.inter_bank_bandwidth
                     # Todo: update merge time (adder tree) and transfer data volume
@@ -1303,7 +1303,7 @@ class Model_latency():
                     #                                                          self.graph.layer_bankinfo[layer_id]['max_column'] *
                     #                                                          outputbit / self.inter_bank_bandwidth)
                     merge_time = (self.graph.layer_bankinfo[layer_id][
-                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                      'banknum'] - 1) * temp_bank_latency.digital_period + \
                                  self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
                                      'max_column'] * outputbit / self.inter_bank_bandwidth
                    # Todo: update merge time (adder tree) and transfer data volume
@@ -1478,8 +1478,6 @@ class Model_latency():
             self.layer_type.append(layer_dict['type'])
             if (self.occupancy[layer_id] == 1) and (layer_dict['type'] == 'conv'):
                 layer_occu.append(layer_id)
-        print(self.layer_type)
-        print(layer_occu)
         ''' check the consecuive of the laier '''
         if layer_occu is None:
             return
@@ -1500,7 +1498,7 @@ class Model_latency():
             print("No need to be stalled")
             return
         else:
-            print(layer_stall)
+            # print(layer_stall)
             for i in range(len(layer_stall)):
                 for layer_id in range(layer_stall[i][1], layer_stall[i][0], -1):
                     layer_dict = self.NetStruct[layer_id][0][0]
@@ -1517,12 +1515,11 @@ class Model_latency():
                     ''' get the point number of this layer and then go back to the previous layer '''
                     # TODO: update the bank usage of this
                     bank_num = self.graph.layer_bankinfo[layer_id]['banknum']
-                    print(bank_num)
                     pre_point = 0
                     cur_point = 0
                     res = 0
                     storage_capacity = Linebuffer_Size / input_channel_PE + OutputBuffer_Size * bank_num / outputchannel
-                    print("Storage is: ", storage_capacity)
+                    # print("Storage is: ", storage_capacity)
                     for cur_point in range(len(self.begin_time[layer_id])):
                         cur_row = cur_point // output_size[1] # begin from 0
                         cur_column = cur_point - cur_row * output_size[1] # begin from 0
@@ -1533,9 +1530,11 @@ class Model_latency():
                         res = storage_capacity - (pre_point + cur_point - used_point)
                         # print(res)
                         if res <= 0:
+                            print("You need to stall the Pipeline on Layer %d" % (layer_id -1))
                             break
                     # update the stall time
                     if res > 0:
+                        print("No need to be stalled")
                         continue
                     else:
                         pre_point = pre_point - 1
@@ -1564,9 +1563,9 @@ class Model_latency():
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "cifar10_vgg16_params.pth")
+                                          "cifar10_vgg8_params.pth")
 
-    __TestInterface = TrainTestInterface('vgg16', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
+    __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
                                          'cpu')
     structure_file = __TestInterface.get_structure()
 
