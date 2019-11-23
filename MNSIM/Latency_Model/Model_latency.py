@@ -115,9 +115,13 @@ class Model_latency():
                                                           indata=0, rdata=0, inprecision=inputbit,
                                                           PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
                                                           )
-                merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
-                                                                         self.graph.layer_bankinfo[layer_id][
-                                                                             'max_column'] * outputbit / self.inter_bank_bandwidth)
+                # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                #                                                          self.graph.layer_bankinfo[layer_id][
+                #                                                              'max_column'] * outputbit / self.inter_bank_bandwidth)
+                merge_time = (self.graph.layer_bankinfo[layer_id]['bank_num'] - 1) * temp_bank_latency.digital_period + \
+                             self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id]['max_column'] * \
+                             outputbit / self.inter_bank_bandwidth
+
                     # Todo: update merge time (adder tree) and transfer data volume
                 transfer_time = self.graph.transLayer_distance[0][layer_id] * (
                             outputchannel * outputbit / self.inter_bank_bandwidth)
@@ -238,9 +242,14 @@ class Model_latency():
                                                               indata=0, rdata=0, inprecision=inputbit,
                                                               PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
                                                               )
-                    merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
-                                                                             self.graph.layer_bankinfo[layer_id]['max_column'] *
-                                                                             outputbit / self.inter_bank_bandwidth)
+                    # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                    #                                                          self.graph.layer_bankinfo[layer_id]['max_column'] *
+                    #                                                          outputbit / self.inter_bank_bandwidth)
+                    merge_time = (self.graph.layer_bankinfo[layer_id][
+                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                 self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
+                                     'max_column'] * outputbit / self.inter_bank_bandwidth
+
                     # Todo: update merge time (adder tree) and transfer data volume
                     transfer_time = self.graph.transLayer_distance[0][layer_id] * (
                             outputchannel * outputbit / self.inter_bank_bandwidth)
@@ -366,9 +375,14 @@ class Model_latency():
                                                               indata=indata, rdata=rdata, inprecision=inputbit,
                                                               PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
                                                               )
-                    merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
-                                                                             self.graph.layer_bankinfo[layer_id]['max_column'] *
-                                                                             outputbit / self.inter_bank_bandwidth)
+                    # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                    #                                                          self.graph.layer_bankinfo[layer_id]['max_column'] *
+                    #                                                          outputbit / self.inter_bank_bandwidth)
+                    merge_time = (self.graph.layer_bankinfo[layer_id][
+                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                 self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
+                                     'max_column'] * outputbit / self.inter_bank_bandwidth
+
                     # Todo: update merge time (adder tree) and transfer data volume
                     transfer_time = self.graph.transLayer_distance[0][layer_id] * (
                             output_size * outputbit / self.inter_bank_bandwidth)
@@ -564,9 +578,12 @@ class Model_latency():
                                                           indata=0, rdata=0, inprecision=inputbit,
                                                           PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
                                                           )
-                merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
-                                                                         self.graph.layer_bankinfo[layer_id][
-                                                                             'max_column'] * outputbit / self.inter_bank_bandwidth)
+                # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                #                                                          self.graph.layer_bankinfo[layer_id][
+                #                                                              'max_column'] * outputbit / self.inter_bank_bandwidth)
+                merge_time = (self.graph.layer_bankinfo[layer_id]['bank_num'] - 1) * temp_bank_latency.digital_period + \
+                             self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
+                                 'max_column'] * outputbit / self.inter_bank_bandwidth
                 # Todo: update merge time (adder tree) and transfer data volume
                 transfer_time = self.graph.transLayer_distance[0][layer_id] * (
                         outputchannel * outputbit / self.inter_bank_bandwidth)
@@ -687,10 +704,14 @@ class Model_latency():
                                                               indata=0, rdata=0, inprecision=inputbit,
                                                               PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
                                                               )
-                    merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
-                                                                             self.graph.layer_bankinfo[layer_id][
-                                                                                 'max_column'] *
-                                                                             outputbit / self.inter_bank_bandwidth)
+                    # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                    #                                                          self.graph.layer_bankinfo[layer_id][
+                    #                                                              'max_column'] *
+                    #                                                          outputbit / self.inter_bank_bandwidth)
+                    merge_time = (self.graph.layer_bankinfo[layer_id][
+                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                 self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
+                                     'max_column'] * outputbit / self.inter_bank_bandwidth
                     # Todo: update merge time (adder tree) and transfer data volume
                     transfer_time = self.graph.transLayer_distance[0][layer_id] * (
                             outputchannel * outputbit / self.inter_bank_bandwidth)
@@ -816,10 +837,14 @@ class Model_latency():
                                                               indata=indata, rdata=rdata, inprecision=inputbit,
                                                               PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
                                                               )
-                    merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
-                                                                             self.graph.layer_bankinfo[layer_id][
-                                                                                 'max_column'] *
-                                                                             outputbit / self.inter_bank_bandwidth)
+                    # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                    #                                                          self.graph.layer_bankinfo[layer_id][
+                    #                                                              'max_column'] *
+                    #                                                          outputbit / self.inter_bank_bandwidth)
+                    merge_time = (self.graph.layer_bankinfo[layer_id][
+                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                 self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
+                                     'max_column'] * outputbit / self.inter_bank_bandwidth
                     # Todo: update merge time (adder tree) and transfer data volume
                     transfer_time = self.graph.transLayer_distance[0][layer_id] * (
                             output_size * outputbit / self.inter_bank_bandwidth)
@@ -1015,9 +1040,12 @@ class Model_latency():
                                                           indata=0, rdata=0, inprecision=inputbit,
                                                           PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
                                                           )
-                merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
-                                                                         self.graph.layer_bankinfo[layer_id][
-                                                                             'max_column'] * outputbit / self.inter_bank_bandwidth)
+                # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                #                                                          self.graph.layer_bankinfo[layer_id][
+                #                                                              'max_column'] * outputbit / self.inter_bank_bandwidth)
+                merge_time = (self.graph.layer_bankinfo[layer_id]['bank_num'] - 1) * temp_bank_latency.digital_period + \
+                             self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
+                                 'max_column'] * outputbit / self.inter_bank_bandwidth
                     # Todo: update merge time (adder tree) and transfer data volume
                 transfer_time = self.graph.transLayer_distance[0][layer_id] * (
                             outputchannel * outputbit / self.inter_bank_bandwidth)
@@ -1138,9 +1166,13 @@ class Model_latency():
                                                               indata=0, rdata=0, inprecision=inputbit,
                                                               PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
                                                               )
-                    merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
-                                                                             self.graph.layer_bankinfo[layer_id]['max_column'] *
-                                                                             outputbit / self.inter_bank_bandwidth)
+                    # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                    #                                                          self.graph.layer_bankinfo[layer_id]['max_column'] *
+                    #                                                          outputbit / self.inter_bank_bandwidth)
+                    merge_time = (self.graph.layer_bankinfo[layer_id][
+                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                 self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
+                                     'max_column'] * outputbit / self.inter_bank_bandwidth
                     # Todo: update merge time (adder tree) and transfer data volume
                     transfer_time = self.graph.transLayer_distance[0][layer_id] * (
                             outputchannel * outputbit / self.inter_bank_bandwidth)
@@ -1267,10 +1299,14 @@ class Model_latency():
                                                               indata=indata, rdata=rdata, inprecision=inputbit,
                                                               PE_num=self.graph.layer_bankinfo[layer_id]['max_PE']
                                                               )
-                    merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
-                                                                             self.graph.layer_bankinfo[layer_id]['max_column'] *
-                                                                             outputbit / self.inter_bank_bandwidth)
-                    # Todo: update merge time (adder tree) and transfer data volume
+                    # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_bank_latency.digital_period +
+                    #                                                          self.graph.layer_bankinfo[layer_id]['max_column'] *
+                    #                                                          outputbit / self.inter_bank_bandwidth)
+                    merge_time = (self.graph.layer_bankinfo[layer_id][
+                                      'bank_num'] - 1) * temp_bank_latency.digital_period + \
+                                 self.graph.inLayer_distance[0][layer_id] * self.graph.layer_bankinfo[layer_id][
+                                     'max_column'] * outputbit / self.inter_bank_bandwidth
+                   # Todo: update merge time (adder tree) and transfer data volume
                     transfer_time = self.graph.transLayer_distance[0][layer_id] * (
                             output_size * outputbit / self.inter_bank_bandwidth)
                     begin_time = self.finish_time[layer_id-1][-1]
