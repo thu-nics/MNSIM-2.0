@@ -28,6 +28,15 @@ def merge_interval(interval):
     result.append([lower_bound, upper_bound])
     return result
 
+def Search(value, data):
+    pos = 0
+    if value > data[-1]:
+        return len(data)
+    while(value > data[pos]):
+        pos += 1
+    return pos
+
+
 
 class Model_latency():
     def __init__(self, NetStruct, SimConfig_path):
@@ -66,6 +75,8 @@ class Model_latency():
         self.total_inter_bank_latency = []
         self.total_bank_merge_latency = []
         self.total_bank_transfer_latency = []
+
+        self.layer_type = []
 
     def calculate_model_latency_nopipe(self):
         for layer_id in range(len(self.NetStruct)):
@@ -1421,18 +1432,110 @@ class Model_latency():
             self.total_bank_merge_latency.append(sum(self.bank_merge_latency[layer_id]))
             self.total_bank_transfer_latency.append(sum(self.bank_transfer_latency[layer_id]))
 
+    def Latency_stall_calculate(self):
+        ''' should be used after the calculate_model '''
+        Linebuffer_Size = 2048 # Bytes
+        OutputBuffer_Size = 32768 # Bytes
+        layer_occu = []
+        for layer_id in range(len(self.NetStruct)):
+            layer_dict = self.NetStruct[layer_id][0][0]
+            self.layer_type.append(layer_dict['type'])
+            if (self.occupancy[layer_id] == 1) and (layer_dict['type'] == 'conv'):
+                layer_occu.append(layer_id)
+        print(self.layer_type)
+        print(layer_occu)
+        ''' check the consecuive of the laier '''
+        if layer_occu is None:
+            return
+        layer_stall = []
+        start = layer_occu[0]
+        end = start
+        for i in range(len(layer_occu)-1):
+            if layer_occu[i+1] == layer_occu[i]+1:
+                end = layer_occu[i+1]
+            else:
+                if start < end:
+                    layer_stall.append([start, end])
+                start = layer_occu[i+1]
+                end = start
+        if end > start:
+            layer_stall.append([start, end])
+        if layer_stall is None:
+            print("No need to be stalled")
+            return
+        else:
+            print(layer_stall)
+            for i in range(len(layer_stall)):
+                for layer_id in range(layer_stall[i][1], layer_stall[i][0], -1):
+                    layer_dict = self.NetStruct[layer_id][0][0]
+                    output_size = list(map(int, layer_dict['Outputsize']))
+                    input_size = list(map(int, layer_dict['Inputsize']))
+                    kernelsize = int(layer_dict['Kernelsize'])
+                    stride = int(layer_dict['Stride'])
+                    inputchannel = int(layer_dict['Inputchannel'])
+                    outputchannel = int(layer_dict['Outputchannel'])
+                    padding = int(layer_dict['Padding'])
+                    inputbit = int(layer_dict['Inputbit'])
+                    outputbit = int(layer_dict['outputbit'])
+                    input_channel_PE = self.graph.layer_bankinfo[layer_id]['max_row'] / (kernelsize ** 2)
+                    ''' get the point number of this layer and then go back to the previous layer '''
+                    # TODO: update the bank usage of this
+                    bank_num = self.graph.layer_bankinfo[layer_id]['banknum']
+                    print(bank_num)
+                    pre_point = 0
+                    cur_point = 0
+                    res = 0
+                    storage_capacity = Linebuffer_Size / input_channel_PE + OutputBuffer_Size * bank_num / outputchannel
+                    print("Storage is: ", storage_capacity)
+                    for cur_point in range(len(self.begin_time[layer_id])):
+                        cur_row = cur_point // output_size[1] # begin from 0
+                        cur_column = cur_point - cur_row * output_size[1] # begin from 0
+                        used_point = (stride * cur_row - padding) * input_size[1] + \
+                                     (cur_column * stride - padding) * stride
+                        pre_point = Search(self.begin_time[layer_id][cur_point], self.begin_time[layer_id - 1])
+                        # begin from 1
+                        res = storage_capacity - (pre_point + cur_point - used_point)
+                        # print(res)
+                        if res <= 0:
+                            break
+                    # update the stall time
+                    if res > 0:
+                        continue
+                    else:
+                        pre_point = pre_point - 1
+                        # print(pre_point)
+                        while (pre_point < input_size[0] * input_size[1]):
+                            delta = self.begin_time[layer_id][cur_point] - self.begin_time[layer_id - 1][pre_point]
+                            assert delta > 0, "delta is not 0, something error"
+                            # self.begin_time[layer_id - 1][pre_point] = self.begin_time[layer_id][cur_point]
+                            consumption = stride ** 2
+                            for num in range(consumption):
+                                self.begin_time[layer_id - 1][pre_point + num] += delta
+                                self.finish_time[layer_id - 1][pre_point + num] += delta
+                                pre_point += consumption
+                            cur_point += 1
+                        interval = []
+                        for i in range(len(self.begin_time[layer_id - 1])):
+                            interval.append([self.begin_time[layer_id - 1][i], self.finish_time[layer_id - 1][i]])
+                        stall_interval = merge_interval(interval)
+                        print("++++++++++++++++++++++++++++++++")
+                        print("updated: ", self.begin_time[layer_id - 1])
+                        print("         ", self.finish_time[layer_id - 1])
+                        print("         ", stall_interval)
+        return
+
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "cifar10_vgg8_params.pth")
+                                          "cifar10_vgg16_params.pth")
 
-    __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
+    __TestInterface = TrainTestInterface('vgg16', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
                                          'cpu')
     structure_file = __TestInterface.get_structure()
 
     test = Model_latency(structure_file, test_SimConfig_path)
-    test.calculate_model_latency_0()
+    test.calculate_model_latency_1()
     for i in range(len(test.begin_time)):
         print("Layer",i," type:", test.NetStruct[i][0][0]['type'])
         print("start time: ", test.begin_time[i])
@@ -1455,3 +1558,4 @@ if __name__ == '__main__':
         print('==============================')
     print("Latency simulation finished!")
     print("Entire latency:", max(max(test.finish_time)))
+    test.Latency_stall_calculate()
