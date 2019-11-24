@@ -193,7 +193,7 @@ def generate_zigzag_matrix(row, column):
     return matrix
 
 class BCG():
-    def __init__(self, NetStruct, SimConfig_path):
+    def __init__(self, NetStruct, SimConfig_path, multiple):
         BCG_config = cp.ConfigParser()
         BCG_config.read(SimConfig_path, encoding='UTF-8')
         self.bank = bank(SimConfig_path)
@@ -262,7 +262,7 @@ class BCG():
                                                    max(int(next_layer_dict['Kernelsize'])-int(next_layer_dict['Padding'])-1, 0)
                 elif next_layer_dict['type'] == 'fc':
                     self.trans_time[0][layer_id] = 1
-            tmp_bankinfo['PEnum'] = tmp_bankinfo['mx'] * tmp_bankinfo['my']
+            tmp_bankinfo['PEnum'] = tmp_bankinfo['mx'] * tmp_bankinfo['my'] * multiple[layer_id]
             tmp_bankinfo['banknum'] = math.ceil(tmp_bankinfo['PEnum'] / self.bank.bank_PE_total_num)
             tmp_bankinfo['max_PE'] = min(tmp_bankinfo['PEnum'], self.bank.bank_PE_total_num)
             start_bankid += tmp_bankinfo['banknum']
