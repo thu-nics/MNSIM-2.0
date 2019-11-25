@@ -10,7 +10,7 @@ import os
 
 class TrainTestInterface(object):
     def __init__(self, network_module, dataset_module, SimConfig_path, weights_file, device = None):
-        # netwotk_module = 'lenet'
+        # network_module = 'lenet'
         # dataset_module = 'cifar10'
         # weights_file = './zoo/cifar10_lenet_train_params.pth'
         # load net, dataset, and weights

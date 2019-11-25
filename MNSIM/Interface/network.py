@@ -7,6 +7,7 @@ import numpy as np
 import collections
 import copy
 import re
+import sys
 
 class NetworkGraph(nn.Module):
     def __init__(self, hardware_config, layer_config_list, quantize_config_list, input_index_list, input_params):
@@ -143,7 +144,7 @@ def get_net(hardware_config = None, cate = 'lenet'):
         layer_config_list.append({'type': 'fc', 'in_features': 120, 'out_features': 84})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'fc', 'in_features': 84, 'out_features': 10})
-    elif cate == 'vgg16':
+    elif cate.startswith('vgg16'):
         layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 32, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'conv', 'in_channels': 32, 'out_channels': 32, 'kernel_size': 3, 'padding': 1})
@@ -226,12 +227,25 @@ def get_net(hardware_config = None, cate = 'lenet'):
         quantize_config_list.append({'weight_bit': 9, 'activation_bit': 9, 'point_shift': -2})
         input_index_list.append([-1])
     input_params = {'activation_scale': 1. / 255., 'activation_bit': 9, 'input_shape': (1, 3, 32, 32)}
+    # change for network structure optimization
+    if cate.startswith('vgg16'):
+        str_res = re.findall(r'vgg16_(\d+)_(\d+)', cate)
+        assert len(str_res) == 1
+        channels = int(str_res[0][0])
+        input_bit = int(str_res[0][1])
+        assert channels in [32, 24, 16, 8]
+        assert input_bit in [9, 7, 5]
+        # change the conv1_2 structure
+        layer_config_list[0]['out_channels'] = channels
+        layer_config_list[2]['in_channels'] = channels
+        quantize_config_list[2]['activation_bit'] = input_bit
     # generate net
     net = NetworkGraph(hardware_config, layer_config_list, quantize_config_list, input_index_list, input_params)
     return net
 
 if __name__ == '__main__':
-    net = get_net()
+    assert len(sys.argv) == 2
+    net = get_net(cate = sys.argv[1])
     print(net)
     for param in net.parameters():
         print(type(param.data), param.size())
