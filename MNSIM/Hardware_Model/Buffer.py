@@ -17,15 +17,20 @@ class buffer(object):
 		self.buf_wpower = float(buf_config.get('Architecture level', 'Buffer_WritePower'))
 		self.buf_bitwidth = float(buf_config.get('Architecture level', 'Buffer_Bitwidth'))
 			# unit: Byte
-		if self.buf_bitwidth == 0:
-			self.buf_bitwidth = 8
+		buf_width_dict = {0:8, 1:64*8, 2:32*8, 3:16*8}
+		if self.buf_bitwidth in buf_width_dict:
+			self.buf_bitwidth = buf_width_dict[0]
+
+		buf_wfrequency_dict = {0:1372, 1:998.9, 2:1589, 3:1660}
 		self.buf_rfrequency = float(buf_config.get(('Architecture level'), 'Buffer_ReadFrequency'))
 			# unit: MHz
-		if self.buf_rfrequency == 0:
+		if self.buf_rfrequency in buf_wfrequency_dict:
 			self.buf_rfrequency = 1372
+
+		buf_rfrequency_dict = {0: 1306, 1: 998.9, 2: 1589, 3: 1660}
 		self.buf_wfrequency = float(buf_config.get(('Architecture level'), 'Buffer_WriteFrequency'))
 		# unit: MHz
-		if self.buf_wfrequency == 0:
+		if self.buf_wfrequency in buf_rfrequency_dict:
 			self.buf_wfrequency = 1306
 		self.buf_renergy = 0
 		self.buf_rlatency = 0
