@@ -193,9 +193,11 @@ def generate_zigzag_matrix(row, column):
     return matrix
 
 class BCG():
-    def __init__(self, NetStruct, SimConfig_path, multiple):
+    def __init__(self, NetStruct, SimConfig_path, multiple=None):
         BCG_config = cp.ConfigParser()
         BCG_config.read(SimConfig_path, encoding='UTF-8')
+        if multiple is None:
+            multiple = [1] * len(NetStruct)
         self.bank = bank(SimConfig_path)
         self.net = NetStruct
         self.layer_num = len(self.net)

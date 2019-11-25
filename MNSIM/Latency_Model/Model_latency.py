@@ -51,17 +51,20 @@ def Split_map(padding, outputsize, multiple): # 对下一层进行划分
 
 
 class Model_latency():
-    def __init__(self, NetStruct, SimConfig_path, multiple):
+    def __init__(self, NetStruct, SimConfig_path, multiple=None):
         modelL_config = cp.ConfigParser()
         modelL_config.read(SimConfig_path, encoding='UTF-8')
         self.inter_bank_bandwidth = float(modelL_config.get('Bank level', 'Inter_Bank_Bandwidth'))
+        self.NetStruct = NetStruct
+        if multiple is None:
+            multiple = [1] * len(self.NetStruct)
         self.graph = BCG(NetStruct, SimConfig_path, multiple)
         self.graph.mapping_net()
         self.graph.calculate_transfer_distance()
         self.begin_time = []
         self.finish_time = []
         self.layer_bank_latency = []
-        self.NetStruct = NetStruct
+
         self.SimConfig_path = SimConfig_path
         self.compute_interval = []
         self.occupancy = []
@@ -2162,7 +2165,7 @@ if __name__ == '__main__':
     structure_file = __TestInterface.get_structure()
     # vgg8 multiple [2,2,1,1,1,1,1,1,1,1,1,1] (12 layers)
     # vgg16 multiple [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] (20 layers)
-    test = Model_latency(structure_file, test_SimConfig_path, multiple=[3,3,1,1,1,1,1,1,1,1,1,1])
+    test = Model_latency(structure_file, test_SimConfig_path)
     bank = 0
 
     test.calculate_model_latency_2()
@@ -2192,7 +2195,7 @@ if __name__ == '__main__':
         print('==============================')
     print("Latency simulation finished!")
     print("Entire latency:", max(max(test.finish_time)))
-    test1 = Model_latency(structure_file, test_SimConfig_path, multiple=[1,1,1,1,1,1,1,1,1,1,1,1])
+    test1 = Model_latency(structure_file, test_SimConfig_path)
     test1.calculate_model_latency_1()
     bank = 0
     for i in range(len(test1.begin_time)):
