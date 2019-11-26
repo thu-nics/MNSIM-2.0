@@ -2084,10 +2084,12 @@ class Model_latency():
             layer_dict = self.NetStruct[layer_id][0][0]
             self.layer_type.append(layer_dict['type'])
             if (self.occupancy[layer_id] == 1) and (layer_dict['type'] == 'conv'):
+            # if ((self.occupancy[layer_id] == 1) and (layer_dict['type'] == 'conv')) or (layer_dict['type'] == 'pooling'):
                 layer_occu.append(layer_id)
-        ''' check the consecuive of the laier '''
-        if layer_occu is None:
+        ''' check the consecuive of the layer '''
+        if len(layer_occu) is 0:
             return
+        print(layer_occu)
         layer_stall = []
         start = layer_occu[0]
         end = start
@@ -2125,7 +2127,10 @@ class Model_latency():
                     pre_point = 0
                     cur_point = 0
                     res = 0
-                    storage_capacity = Linebuffer_Size / input_channel_PE + OutputBuffer_Size * bank_num / outputchannel
+                    if layer_dict['type'] == 'conv':
+                        storage_capacity = Linebuffer_Size / input_channel_PE + OutputBuffer_Size * bank_num / outputchannel
+                    else:
+                        storage_capacity = Linebuffer_Size / inputchannel + OutputBuffer_Size * bank_num / outputchannel
                     # print("Storage is: ", storage_capacity)
                     for cur_point in range(len(self.begin_time[layer_id])):
                         cur_row = cur_point // output_size[1] # begin from 0
@@ -2172,9 +2177,9 @@ class Model_latency():
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "cifar10_alexnet_params.pth")
+                                          "cifar10_vgg8_params.pth")
 
-    __TestInterface = TrainTestInterface('alexnet', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
+    __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
                                          'cpu')
     structure_file = __TestInterface.get_structure()
     # vgg8 multiple [2,2,1,1,1,1,1,1,1,1,1,1] (12 layers)
@@ -2191,35 +2196,37 @@ if __name__ == '__main__':
         bank += test.graph.layer_bankinfo[i]['banknum']
     print(bank)
     # test.calculate_model_latency_1()
-    for i in range(len(test.begin_time)):
-        print("Layer",i," type:", test.NetStruct[i][0][0]['type'])
-        print("start time: ", test.begin_time[i])
-        print("finish time:",test.finish_time[i])
-        print("used time:", test.compute_interval[i])
-        print("Occupancy:", test.occupancy[i])
-    #     # print(test.xbar_latency[i])
-        total_latency = test.total_buffer_latency[i]+test.total_computing_latency[i]+\
-                        test.total_digital_latency[i]+test.total_intra_bank_latency[i]+test.total_inter_bank_latency[i]
-        print("Buffer latency of layer",i,":", test.total_buffer_latency[i],'(', "%.2f" %(100*test.total_buffer_latency[i]/total_latency),'%)')
-        print("Computing latency of layer", i, ":", test.total_computing_latency[i],'(', "%.2f" %(100*test.total_computing_latency[i]/total_latency),'%)')
-        print("     DAC latency of layer", i, ":", test.total_DAC_latency[i],'(', "%.2f" %(100*test.total_DAC_latency[i]/total_latency),'%)')
-        print("     ADC latency of layer", i, ":", test.total_ADC_latency[i],'(', "%.2f" %(100*test.total_ADC_latency[i]/total_latency),'%)')
-        print("     xbar latency of layer", i, ":", test.total_xbar_latency[i],'(', "%.2f" %(100*test.total_xbar_latency[i]/total_latency),'%)')
-        print("Digital part latency of layer", i, ":", test.total_digital_latency[i],'(', "%.2f" %(100*test.total_digital_latency[i]/total_latency),'%)')
-        print("Intra bank communication latency of layer", i, ":", test.total_intra_bank_latency[i],'(', "%.2f" %(100*test.total_intra_bank_latency[i]/total_latency),'%)')
-        print("Inter bank communication latency of layer", i, ":", test.total_inter_bank_latency[i],'(', "%.2f" %(100*test.total_inter_bank_latency[i]/total_latency),'%)')
-        print("     One layer merge latency of layer", i, ":", test.total_bank_merge_latency[i],'(', "%.2f" %(100*test.total_bank_merge_latency[i]/total_latency),'%)')
-        print("     Inter bank transfer latency of layer", i, ":", test.total_bank_transfer_latency[i],'(', "%.2f" %(100*test.total_bank_transfer_latency[i]/total_latency),'%)')
-        print('==============================')
-    print("Latency simulation finished!")
-    print("Entire latency:", max(max(test.finish_time)))
+    # test.Latency_stall_calculate()
+    # for i in range(len(test.begin_time)):
+    #     print("Layer",i," type:", test.NetStruct[i][0][0]['type'])
+    #     print("start time: ", test.begin_time[i])
+    #     print("finish time:",test.finish_time[i])
+    #     print("used time:", test.compute_interval[i])
+    #     print("Occupancy:", test.occupancy[i])
+    # #     # print(test.xbar_latency[i])
+    #     total_latency = test.total_buffer_latency[i]+test.total_computing_latency[i]+\
+    #                     test.total_digital_latency[i]+test.total_intra_bank_latency[i]+test.total_inter_bank_latency[i]
+    #     print("Buffer latency of layer",i,":", test.total_buffer_latency[i],'(', "%.2f" %(100*test.total_buffer_latency[i]/total_latency),'%)')
+    #     print("Computing latency of layer", i, ":", test.total_computing_latency[i],'(', "%.2f" %(100*test.total_computing_latency[i]/total_latency),'%)')
+    #     print("     DAC latency of layer", i, ":", test.total_DAC_latency[i],'(', "%.2f" %(100*test.total_DAC_latency[i]/total_latency),'%)')
+    #     print("     ADC latency of layer", i, ":", test.total_ADC_latency[i],'(', "%.2f" %(100*test.total_ADC_latency[i]/total_latency),'%)')
+    #     print("     xbar latency of layer", i, ":", test.total_xbar_latency[i],'(', "%.2f" %(100*test.total_xbar_latency[i]/total_latency),'%)')
+    #     print("Digital part latency of layer", i, ":", test.total_digital_latency[i],'(', "%.2f" %(100*test.total_digital_latency[i]/total_latency),'%)')
+    #     print("Intra bank communication latency of layer", i, ":", test.total_intra_bank_latency[i],'(', "%.2f" %(100*test.total_intra_bank_latency[i]/total_latency),'%)')
+    #     print("Inter bank communication latency of layer", i, ":", test.total_inter_bank_latency[i],'(', "%.2f" %(100*test.total_inter_bank_latency[i]/total_latency),'%)')
+    #     print("     One layer merge latency of layer", i, ":", test.total_bank_merge_latency[i],'(', "%.2f" %(100*test.total_bank_merge_latency[i]/total_latency),'%)')
+    #     print("     Inter bank transfer latency of layer", i, ":", test.total_bank_transfer_latency[i],'(', "%.2f" %(100*test.total_bank_transfer_latency[i]/total_latency),'%)')
+    #     print('==============================')
+    # print("Latency simulation finished!")
+    # print("Entire latency:", max(max(test.finish_time)))
+
     # test1 = Model_latency(structure_file, test_SimConfig_path)
     # test1.calculate_model_latency_1()
     # bank = 0
     # for i in range(len(test1.begin_time)):
     #     bank += test1.graph.layer_bankinfo[i]['banknum']
     # print(bank)
-    # test.Latency_stall_calculate()
+
     # for i in range(len(test1.begin_time)):
     #     print("Layer",i," type:", test1.NetStruct[i][0][0]['type'])
     #     print("start time: ", test1.begin_time[i])
