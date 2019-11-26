@@ -229,16 +229,19 @@ def get_net(hardware_config = None, cate = 'lenet'):
     input_params = {'activation_scale': 1. / 255., 'activation_bit': 9, 'input_shape': (1, 3, 32, 32)}
     # change for network structure optimization
     if cate.startswith('vgg16'):
-        str_res = re.findall(r'vgg16_(\d+)_(\d+)', cate)
-        assert len(str_res) == 1
-        channels = int(str_res[0][0])
-        input_bit = int(str_res[0][1])
-        assert channels in [32, 24, 16, 8]
-        assert input_bit in [9, 7, 5]
-        # change the conv1_2 structure
-        layer_config_list[0]['out_channels'] = channels
-        layer_config_list[2]['in_channels'] = channels
-        quantize_config_list[2]['activation_bit'] = input_bit
+        if cate == 'vgg16':
+            pass
+        else:
+            str_res = re.findall(r'vgg16_(\d+)_(\d+)', cate)
+            assert len(str_res) == 1
+            channels = int(str_res[0][0])
+            input_bit = int(str_res[0][1])
+            assert channels in [32, 24, 16, 8]
+            assert input_bit in [9, 7, 5]
+            # change the conv1_2 structure
+            layer_config_list[0]['out_channels'] = channels
+            layer_config_list[2]['in_channels'] = channels
+            quantize_config_list[2]['activation_bit'] = input_bit
     # generate net
     net = NetworkGraph(hardware_config, layer_config_list, quantize_config_list, input_index_list, input_params)
     return net

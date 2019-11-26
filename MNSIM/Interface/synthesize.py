@@ -15,8 +15,13 @@ assert args.gpu
 assert args.dataset
 assert args.net
 assert args.train
-assert args.prefix
 assert args.mode
+if args.mode == 'train':
+    assert args.prefix
+elif args.mode == 'test':
+    assert args.weight
+else:
+    assert 0
 
 # dataloader
 dataset_module = import_module(args.dataset)
