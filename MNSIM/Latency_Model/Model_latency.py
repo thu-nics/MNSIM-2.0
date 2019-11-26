@@ -297,8 +297,11 @@ class Model_latency():
                     last_layer_finish_time = self.finish_time[layer_id-1][-1]
                     for i in range(output_size[0]):
                         for j in range(output_size[1]):
-                            last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] + \
-                                             kernelsize + stride * j - padding - 1, len(self.finish_time[layer_id-1])-1)
+                            last_layer_pos = (min(kernelsize + stride * i - padding, input_size[0]) - 1) * input_size[
+                                1] + \
+                                             min(kernelsize + stride * j - padding, input_size[1]) - 1
+                            # last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] + \
+                            #                  kernelsize + stride * j - padding - 1, len(self.finish_time[layer_id-1])-1)
                             if last_layer_pos > len(self.finish_time[layer_id-1])-1:
                                 print("pos error", i,j)
                             if (i == 0) & (j == 0):
@@ -758,10 +761,12 @@ class Model_latency():
                     # Todo: update transfer data volume
                     for i in range(output_size[0]):
                         for j in range(output_size[1]):
-                            last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] +
-                                                 kernelsize + stride * j - padding - 1,
-                                                 len(self.finish_time[layer_id - 1]) - 1)
-
+                            # last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] +
+                            #                      kernelsize + stride * j - padding - 1,
+                            #                      len(self.finish_time[layer_id - 1]) - 1)
+                            last_layer_pos = (min(kernelsize + stride * i - padding, input_size[0]) - 1) * input_size[
+                                1] + \
+                                             min(kernelsize + stride * j - padding, input_size[1]) - 1
                             if (i == 0) & (j == 0):
                                 # the first output
                                 # indata: the data needed to written into buffer
@@ -942,9 +947,12 @@ class Model_latency():
                             outputchannel * outputbit / self.inter_bank_bandwidth)
                     for i in range(output_size[0]):
                         for j in range(output_size[1]):
-                            last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] +
-                                                 kernelsize + stride * j - padding - 1,
-                                                 len(self.finish_time[layer_id - 1]) - 1)
+                            last_layer_pos = (min(kernelsize + stride * i - padding, input_size[0]) - 1) * input_size[
+                                1] + \
+                                             min(kernelsize + stride * j - padding, input_size[1]) - 1
+                            # last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] +
+                            #                      kernelsize + stride * j - padding - 1,
+                            #                      len(self.finish_time[layer_id - 1]) - 1)
                             if (i == 0) & (j == 0):
                                 # the first output
                                 indata = inputchannel * (input_size[1] * max(kernelsize - padding - 1, 0) + max(
@@ -1219,8 +1227,10 @@ class Model_latency():
                     # Todo: update transfer data volume
                     for i in range(output_size[0]):
                         for j in range(output_size[1]):
-                            last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] + \
-                                             kernelsize + stride * j - padding - 1, len(self.finish_time[layer_id-1])-1)
+                            last_layer_pos = (min(kernelsize+stride*i-padding, input_size[0])-1)*input_size[1] + \
+                                             min(kernelsize + stride * j - padding, input_size[1]) - 1
+                            # last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] + \
+                            #                  kernelsize + stride * j - padding - 1, len(self.finish_time[layer_id-1])-1)
                             if last_layer_pos > len(self.finish_time[layer_id-1])-1:
                                 print("pos error", i,j)
                             if (i == 0) & (j == 0):
@@ -1405,9 +1415,11 @@ class Model_latency():
                     # Todo: update transfer data volume
                     for i in range(output_size[0]):
                         for j in range(output_size[1]):
-                            last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] + \
-                                                 kernelsize + stride * j - padding - 1,
-                                                 len(self.finish_time[layer_id - 1]) - 1)
+                            last_layer_pos = (min(kernelsize + stride * i - padding, input_size[0]) - 1) * input_size[1] + \
+                                             min(kernelsize + stride * j - padding, input_size[1]) - 1
+                            # last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] + \
+                            #                      kernelsize + stride * j - padding - 1,
+                            #                      len(self.finish_time[layer_id - 1]) - 1)
                             if (i == 0) & (j == 0):
                                 # the first output
                                 indata = inputchannel * (input_size[1] * max(kernelsize - padding - 1, 0) + max(
@@ -1712,10 +1724,9 @@ class Model_latency():
                         for m in range(cur_multiple):
                             for j in range(split_size[m]):
                                 # TODO: Change
-                                last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] + \
-                                                     kernelsize + stride * (j + cur_column) - padding - 1,
-                                                     len(self.finish_time[layer_id - 1]) - 1)
-
+                                last_layer_pos = (min(kernelsize + stride * i - padding, input_size[0]) - 1) * \
+                                                 input_size[1] + \
+                                                 min(kernelsize + stride * j - padding, input_size[1]) - 1
                                 if (i == 0) & (j == 0):
                                     # the first output
                                     if m == 0:
@@ -1938,9 +1949,12 @@ class Model_latency():
                             for m in range(cur_multiple):
                                 for j in range(split_size[m]):
                                     # print(layer_id, i, j)
-                                    last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] + \
-                                                         kernelsize + stride * (j + cur_column) - padding - 1,
-                                                         len(self.finish_time[layer_id - 1]) - 1)
+                                    last_layer_pos = (min(kernelsize + stride * i - padding, input_size[0]) - 1) * \
+                                                     input_size[1] + \
+                                                     min(kernelsize + stride * j - padding, input_size[1]) - 1
+                                    # last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] + \
+                                    #                      kernelsize + stride * (j + cur_column) - padding - 1,
+                                    #                      len(self.finish_time[layer_id - 1]) - 1)
                                     if (i == 0) & (j == 0):
                                         # the first output
                                         if m == 0:
@@ -2172,6 +2186,7 @@ if __name__ == '__main__':
 
     bank = 0
     test.calculate_model_latency_2()
+    test.Latency_stall_calculate()
     for i in range(len(test.begin_time)):
         bank += test.graph.layer_bankinfo[i]['banknum']
     print(bank)
