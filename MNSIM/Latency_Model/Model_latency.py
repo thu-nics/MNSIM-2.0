@@ -2177,9 +2177,9 @@ class Model_latency():
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "vgg16_channels_bit/vgg16_32_9_params.pth")
+                                          "vgg16_64_9_params.pth")
 
-    __TestInterface = TrainTestInterface('vgg16_32_9', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
+    __TestInterface = TrainTestInterface('vgg16_64_9', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
                                          'cpu')
     structure_file = __TestInterface.get_structure()
     # lenet_multiple = [5,1,1,1,1,1,1]
