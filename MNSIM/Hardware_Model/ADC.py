@@ -70,7 +70,7 @@ class ADC(object):
 	def calculate_ADC_sample_rate(self):
 		#unit: GSamples/s
 		ADC_sample_rate_dict = {1: 1.5, #reference: A 10b 1.5GS/s Pipelined-SAR ADC with Background Second-Stage Common-Mode Regulation and Offset Calibration in 14nm CMOS FinFET
-								2: 1, #reference: ISAAC: A Convolutional Neural Network Accelerator with In-Situ Analog Arithmetic in Crossbars
+								2: 1.2, #reference: ISAAC: A Convolutional Neural Network Accelerator with In-Situ Analog Arithmetic in Crossbars
 								3: 1.1, #reference: A >3GHz ERBW 1.1GS/s 8b Two-Step SAR ADC with Recursive-Weight DAC
 								4: 1, #reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
 								5: 1.1, #ASPDAC1
