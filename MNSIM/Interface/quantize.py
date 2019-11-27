@@ -10,10 +10,10 @@ import collections
 
 # last_activation_scale, last_weight_scale for activation and weight scale in last calculation
 # last_activation_bit, last_weight_bit for activation and weight bit last time
-global last_activation_scale
-global last_weight_scale
-global last_activation_bit
-global last_weight_bit
+last_activation_scale = None
+last_weight_scale = None
+last_activation_bit = None
+last_weight_bit = None
 # quantize Function
 class QuantizeFunction(Function):
     @staticmethod
@@ -332,8 +332,13 @@ class StraightLayer(nn.Module):
             self.layer = nn.ReLU()
         elif self.layer_config['type'] == 'view':
             self.layer = ViewLayer()
+        elif self.layer_config['type'] == 'bn':
+            self.layer = nn.BatchNorm2d(self.layer_config['features'])
+        elif self.layer_config['type'] == 'dropout':
+            self.layer = nn.Dropout()
         else:
             assert 0, f'not support {self.layer_config["type"]}'
+        self.last_value = nn.Parameter(torch.zeros(1))
         self.layer_info = None
     def structure_forward(self, input):
         # generate input shape and output shape
@@ -355,6 +360,11 @@ class StraightLayer(nn.Module):
             self.layer_info['type'] = 'relu'
         elif self.layer_config['type'] == 'view':
             self.layer_info['type'] = 'view'
+        elif self.layer_config['type'] == 'bn':
+            self.layer_info['type'] = 'bn'
+            self.layer_info['features'] = self.layer_config['features']
+        elif self.layer_config['type'] == 'dropout':
+            self.layer_info['type'] = 'dropout'
         else:
             assert 0, f'not support {self.layer_config["type"]}'
         self.layer_info['Inputbit'] = self.quantize_config['activation_bit']
@@ -362,10 +372,21 @@ class StraightLayer(nn.Module):
         self.layer_info['outputbit'] = self.quantize_config['activation_bit']
         return output
     def forward(self, input, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
-        # DOES NOT use method and adc_action, for unifing with QuantizeLayer
-        return self.layer(input)
+        # DOES NOT use method and adc_action, for unifying with QuantizeLayer
+        METHOD = method
+        # float method
+        if METHOD == 'TRADITION':
+            output = self.layer(input)
+            return output
+        # fix training and single fix test
+        if METHOD == 'FIX_TRAIN' or METHOD == 'SINGLE_FIX_TEST':
+            output = self.layer(input)
+            if self.layer_config['type'] == 'bn':
+                output = Quantize(output, self.quantize_config['activation_bit'], 'activation', self.last_value, self.training)
+            return output
+        assert 0, f'not support {METHOD}'
     def get_bit_weights(self):
         return None
     def extra_repr(self):
         return str(self.hardware_config) + ' ' + str(self.layer_config) + ' ' + str(self.quantize_config)
-StraightLayerStr = ['pooling', 'relu', 'view']
+StraightLayerStr = ['pooling', 'relu', 'view', 'bn', 'dropout']

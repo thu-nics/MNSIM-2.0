@@ -145,19 +145,12 @@ def get_net(hardware_config = None, cate = 'lenet'):
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'fc', 'in_features': 84, 'out_features': 10})
     elif cate.startswith('vgg16'):
-        layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 32, 'kernel_size': 3, 'padding': 1})
-        layer_config_list.append({'type': 'relu'})
-        layer_config_list.append({'type': 'conv', 'in_channels': 32, 'out_channels': 32, 'kernel_size': 3, 'padding': 1})
-        layer_config_list.append({'type': 'relu'})
-        layer_config_list.append({'type': 'pooling', 'mode': 'MAX', 'kernel_size': 2, 'stride': 2})
-        layer_config_list.append({'type': 'conv', 'in_channels': 32, 'out_channels': 64, 'kernel_size': 3, 'padding': 1})
+        layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 64, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'conv', 'in_channels': 64, 'out_channels': 64, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'pooling', 'mode': 'MAX', 'kernel_size': 2, 'stride': 2})
         layer_config_list.append({'type': 'conv', 'in_channels': 64, 'out_channels': 128, 'kernel_size': 3, 'padding': 1})
-        layer_config_list.append({'type': 'relu'})
-        layer_config_list.append({'type': 'conv', 'in_channels': 128, 'out_channels': 128, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'conv', 'in_channels': 128, 'out_channels': 128, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
@@ -176,10 +169,21 @@ def get_net(hardware_config = None, cate = 'lenet'):
         layer_config_list.append({'type': 'conv', 'in_channels': 512, 'out_channels': 512, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'pooling', 'mode': 'MAX', 'kernel_size': 2, 'stride': 2})
-        layer_config_list.append({'type': 'view'})
-        layer_config_list.append({'type': 'fc', 'in_features': 512, 'out_features': 128})
+        layer_config_list.append({'type': 'conv', 'in_channels': 512, 'out_channels': 512, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
-        layer_config_list.append({'type': 'fc', 'in_features': 128, 'out_features': 10})
+        layer_config_list.append({'type': 'conv', 'in_channels': 512, 'out_channels': 512, 'kernel_size': 3, 'padding': 1})
+        layer_config_list.append({'type': 'relu'})
+        layer_config_list.append({'type': 'conv', 'in_channels': 512, 'out_channels': 512, 'kernel_size': 3, 'padding': 1})
+        layer_config_list.append({'type': 'relu'})
+        layer_config_list.append({'type': 'pooling', 'mode': 'MAX', 'kernel_size': 2, 'stride': 2})
+        layer_config_list.append({'type': 'view'})
+        layer_config_list.append({'type': 'fc', 'in_features': 512, 'out_features': 4096})
+        layer_config_list.append({'type': 'dropout'})
+        layer_config_list.append({'type': 'relu'})
+        layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': 4096})
+        layer_config_list.append({'type': 'dropout'})
+        layer_config_list.append({'type': 'relu'})
+        layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': 10})
     elif cate.startswith('vgg8'):
         layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 128, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
@@ -250,7 +254,7 @@ def get_net(hardware_config = None, cate = 'lenet'):
             assert len(str_res) == 1
             channels = int(str_res[0][0])
             input_bit = int(str_res[0][1])
-            assert channels in [32, 24, 16, 8]
+            assert channels in [64, 48, 32, 16]
             assert input_bit in [9, 7, 5]
             # change the conv1_2 structure
             layer_config_list[0]['out_channels'] = channels
@@ -284,6 +288,13 @@ def get_net(hardware_config = None, cate = 'lenet'):
             layer_config_list[0]['out_channels'] = channels
             layer_config_list[3]['in_channels'] = channels
             quantize_config_list[3]['activation_bit'] = input_bit
+    # add bn for every conv
+    L = len(layer_config_list)
+    for i in range(L-1, -1, -1):
+        if layer_config_list[i]['type'] == 'conv':
+            layer_config_list.insert(i+1, {'type': 'bn', 'features': layer_config_list[i]['out_channels']})
+            quantize_config_list.insert(i+1, {'weight_bit': 9, 'activation_bit': 9, 'point_shift': -2})
+            input_index_list.insert(i+1, [-1])
     # generate net
     net = NetworkGraph(hardware_config, layer_config_list, quantize_config_list, input_index_list, input_params)
     return net
