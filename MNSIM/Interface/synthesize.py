@@ -1,7 +1,9 @@
 #-*-coding:utf-8-*-
-import torch
-from importlib import import_module
 import argparse
+from importlib import import_module
+
+import torch
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-g', '--gpu', help = 'select gpu')
 parser.add_argument('-d', '--dataset', help = 'select dataset')

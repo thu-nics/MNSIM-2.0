@@ -1,13 +1,16 @@
 #-*-coding:utf-8-*-
-from MNSIM.Interface import quantize
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
 import collections
 import copy
 import re
 import sys
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from MNSIM.Interface import quantize
+
 
 class NetworkGraph(nn.Module):
     def __init__(self, hardware_config, layer_config_list, quantize_config_list, input_index_list, input_params):

@@ -1,11 +1,13 @@
 #-*-coding:utf-8-*-
+import os
+import time
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-import time
-import os
 from tensorboardX import SummaryWriter
+
 tensorboard_writer = None
 
 MOMENTUM = 0.9

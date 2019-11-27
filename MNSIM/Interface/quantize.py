@@ -1,12 +1,13 @@
 #-*-coding:utf-8-*-
+import collections
+import copy
+import math
+
+import numpy as np
 import torch
 import torch.nn as nn
-from torch.autograd import Function
 import torch.nn.functional as F
-import numpy as np
-import math
-import copy
-import collections
+from torch.autograd import Function
 
 # last_activation_scale, last_weight_scale for activation and weight scale in last calculation
 # last_activation_bit, last_weight_bit for activation and weight bit last time

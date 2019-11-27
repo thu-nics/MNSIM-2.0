@@ -1,12 +1,14 @@
 #-*-coding:utf-8-*-
-import math
-import numpy as np
-import torch
 import collections
 import configparser
-from importlib import import_module
 import copy
+import math
 import os
+from importlib import import_module
+
+import numpy as np
+import torch
+
 
 class TrainTestInterface(object):
     def __init__(self, network_module, dataset_module, SimConfig_path, weights_file, device = None):

@@ -1,13 +1,16 @@
 #-*-coding:utf-8-*-
-import torchvision
-import torchvision.transforms as Transforms
-import torch.utils.data as Data
+# import multiprocessing
+# multiprocessing.set_start_method('spawn', True)
 import os
 
+import torch.utils.data as Data
+import torchvision
+import torchvision.transforms as Transforms
+
 TRAIN_BATCH_SIZE = 128
-TRAIN_NUM_WORKERS = 4
+TRAIN_NUM_WORKERS = 0
 TEST_BATCH_SIZE = 100
-TEST_NUM_WORKERS = 4
+TEST_NUM_WORKERS = 0
 
 def get_dataloader():
     train_dataset = torchvision.datasets.CIFAR10(root = os.path.join(os.path.dirname(__file__), "cifar10"),
