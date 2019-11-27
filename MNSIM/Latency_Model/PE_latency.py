@@ -82,7 +82,7 @@ class PE_latency_analysis():
         self.ireg_latency = multiple_time*self.digital_period
         self.shiftadd_latency = multiple_time*self.digital_period
         self.computing_latency = self.ireg_latency+self.DAC_latency+self.xbar_latency+self.ADC_latency+self.shiftadd_latency
-        print(self.computing_latency/3*2)
+        # print(self.computing_latency/3*2)
         self.inPE_add_latency = math.ceil(math.log2(self.PE.group_num))*self.digital_period
         self.oreg_latency = self.digital_period
         self.PE_latency = self.buf_wlatency + self.buf_rlatency + self.computing_latency + self.inPE_add_latency +\

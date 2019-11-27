@@ -2177,23 +2177,23 @@ class Model_latency():
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "vgg16_64_9_params.pth")
+                                          "alexnet_channels_bit/alexnet_32_5_params.pth")
 
-    __TestInterface = TrainTestInterface('vgg16_64_9', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
+    __TestInterface = TrainTestInterface('alexnet_32_5', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
                                          'cpu')
     structure_file = __TestInterface.get_structure()
     # lenet_multiple = [5,1,1,1,1,1,1]
-    # vgg8 multiple [2,2,1,1,1,1,1,1,1,1,1,1] (12 layers)
+    # vgg8_multiple =[1,4,1,2,2,1,1,1,1,1,1,1] #(ccpccpccpcpf)
     # vgg16_multiple = [1,4,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]# (20 layers)
     # print(structure_file[0][0])
     # structure_file[0][0][0]['Inputbit'] = 5
     # structure_file[1][0][0]['Outputchannel'] = 8
-    # alexnet_multiple = [1,1,3,1,1,1,1,1,1,1,1] #C-P-C-P-C-C-C-P-F-f-f
-    test = Model_latency(structure_file, test_SimConfig_path)
+    alexnet_multiple = [1,1,4,1,1,1,1,1,1,1,1] #C-P-C-P-C-C-C-P-F-f-f
+    test = Model_latency(structure_file, test_SimConfig_path,alexnet_multiple)
 
     bank = 0
     test.calculate_model_latency_2()
-    test.Latency_stall_calculate()
+    # test.Latency_stall_calculate()
     # for i in range(len(test.begin_time)):
     #     bank += test.graph.layer_bankinfo[i]['banknum']
     # print(bank)
