@@ -82,6 +82,8 @@ class TrainTestInterface(object):
         test_total = 0
         with torch.no_grad():
             for i, (images, labels) in enumerate(self.test_loader):
+                if i > 10:
+                    break
                 images = images.to(self.device)
                 test_total += labels.size(0)
                 outputs = self.net(images, method, adc_action)
@@ -100,6 +102,8 @@ class TrainTestInterface(object):
         test_total = 0
         with torch.no_grad():
             for i, (images, labels) in enumerate(self.test_loader):
+                if i > 10:
+                    break
                 images = images.to(self.device)
                 test_total += labels.size(0)
                 outputs = self.net.set_weights_forward(images, net_bit_weights, adc_action)
@@ -161,10 +165,8 @@ def mysplit(array, length):
     return np.split(array, tmp_index, axis = 0)
 
 if __name__ == '__main__':
-    pass
-    # test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
-    # test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "cifar10_lenet_train_params.pth")
-    # __TestInterface = TrainTestInterface('lenet', 'cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
-    # print(__TestInterface.get_net_bits())
-    # print(__TestInterface.origin_evaluate())
-    # print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
+    test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "SimConfig.ini")
+    test_weights_file_path = os.path.join(os.path.dirname(__file__), "zoo/vgg16_64_9_params.pth")
+    __TestInterface = TrainTestInterface('vgg16_64_9', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
+    print(__TestInterface.origin_evaluate(method='FIX_TRAIN'))
+    print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))

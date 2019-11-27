@@ -51,6 +51,8 @@ class NetworkGraph(nn.Module):
         # input fix information
         quantize.last_activation_scale = self.input_params['activation_scale']
         quantize.last_activation_bit = self.input_params['activation_bit']
+        # filter None
+        net_bit_weights = list(filter(lambda x:x!=None, net_bit_weights))
         # forward
         tensor_list = [x]
         count = 0
@@ -60,9 +62,10 @@ class NetworkGraph(nn.Module):
             assert len(input_index) == 1
             if isinstance(layer, quantize.QuantizeLayer):
                 tensor_list.append(layer.set_weights_forward(tensor_list[input_index[0] + i + 1], net_bit_weights[count], adc_action))
+                # tensor_list.append(layer.forward(tensor_list[input_index[0] + i + 1], 'SINGLE_FIX_TEST', adc_action))
                 count = count + 1
             else:
-                tensor_list.append(layer.forward(tensor_list[input_index[0] + i + 1], None, None))
+                tensor_list.append(layer.forward(tensor_list[input_index[0] + i + 1], 'FIX_TRAIN', None))
         return tensor_list[-1]
     def get_structure(self):
         # forward structure
