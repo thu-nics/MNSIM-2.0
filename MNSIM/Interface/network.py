@@ -131,7 +131,7 @@ def get_net(hardware_config = None, cate = 'lenet'):
     quantize_config_list = []
     input_index_list = []
     # layer by layer
-    if cate == 'lenet':
+    if cate.startswith('lenet'):
         layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 6, 'kernel_size': 5})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'pooling', 'mode': 'MAX', 'kernel_size': 2, 'stride': 2})
@@ -180,7 +180,7 @@ def get_net(hardware_config = None, cate = 'lenet'):
         layer_config_list.append({'type': 'fc', 'in_features': 512, 'out_features': 128})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'fc', 'in_features': 128, 'out_features': 10})
-    elif cate == 'vgg8':
+    elif cate.startswith('vgg8'):
         layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 128, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'conv', 'in_channels': 128, 'out_channels': 128, 'kernel_size': 3, 'padding': 1})
@@ -201,7 +201,7 @@ def get_net(hardware_config = None, cate = 'lenet'):
         layer_config_list.append({'type': 'pooling', 'mode': 'MAX', 'kernel_size': 2, 'stride': 2})
         layer_config_list.append({'type': 'view'})
         layer_config_list.append({'type': 'fc', 'in_features': 1024, 'out_features': 10})
-    elif cate == 'alexnet':
+    elif cate.startswith('alexnet'):
         layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 64, 'kernel_size': 3, 'padding': 1, 'stride': 2})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'pooling', 'mode': 'MAX', 'kernel_size': 2, 'stride': 2})
@@ -228,6 +228,20 @@ def get_net(hardware_config = None, cate = 'lenet'):
         input_index_list.append([-1])
     input_params = {'activation_scale': 1. / 255., 'activation_bit': 9, 'input_shape': (1, 3, 32, 32)}
     # change for network structure optimization
+    if cate.startswith('lenet'):
+        if cate == 'lenet':
+            pass
+        else:
+            str_res = re.findall(r'lenet_(\d+)_(\d+)', cate)
+            assert len(str_res) == 1
+            channels = int(str_res[0][0])
+            input_bit = int(str_res[0][1])
+            assert channels in [6, 5, 4, 3]
+            assert input_bit in [9, 7, 5]
+            # change the conv1_2 structure
+            layer_config_list[0]['out_channels'] = channels
+            layer_config_list[3]['in_channels'] = channels
+            quantize_config_list[3]['activation_bit'] = input_bit
     if cate.startswith('vgg16'):
         if cate == 'vgg16':
             pass
@@ -242,6 +256,34 @@ def get_net(hardware_config = None, cate = 'lenet'):
             layer_config_list[0]['out_channels'] = channels
             layer_config_list[2]['in_channels'] = channels
             quantize_config_list[2]['activation_bit'] = input_bit
+    if cate.startswith('vgg8'):
+        if cate == 'vgg8':
+            pass
+        else:
+            str_res = re.findall(r'vgg8_(\d+)_(\d+)', cate)
+            assert len(str_res) == 1
+            channels = int(str_res[0][0])
+            input_bit = int(str_res[0][1])
+            assert channels in [128, 96, 64, 32]
+            assert input_bit in [9, 7, 5]
+            # change the conv1_2 structure
+            layer_config_list[0]['out_channels'] = channels
+            layer_config_list[2]['in_channels'] = channels
+            quantize_config_list[2]['activation_bit'] = input_bit
+    if cate.startswith('alexnet'):
+        if cate == 'alexnet':
+            pass
+        else:
+            str_res = re.findall(r'alexnet_(\d+)_(\d+)', cate)
+            assert len(str_res) == 1
+            channels = int(str_res[0][0])
+            input_bit = int(str_res[0][1])
+            assert channels in [64, 48, 32, 16]
+            assert input_bit in [9, 7, 5]
+            # change the conv1_2 structure
+            layer_config_list[0]['out_channels'] = channels
+            layer_config_list[3]['in_channels'] = channels
+            quantize_config_list[3]['activation_bit'] = input_bit
     # generate net
     net = NetworkGraph(hardware_config, layer_config_list, quantize_config_list, input_index_list, input_params)
     return net
