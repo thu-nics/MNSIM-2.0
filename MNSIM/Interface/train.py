@@ -13,9 +13,9 @@ tensorboard_writer = None
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
 GAMMA = 0.1
-lr = 0.01
-MILESTONES = [30, 60]
-EPOCHS = 90
+lr = 0.1
+MILESTONES = [20, 40]
+EPOCHS = 60
 
 TRAIN_PARAMETER = '''\
 # TRAIN_PARAMETER

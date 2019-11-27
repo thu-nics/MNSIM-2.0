@@ -19,7 +19,8 @@ assert args.net
 assert args.train
 assert args.mode
 if args.mode == 'train':
-    assert args.prefix
+    if args.prefix == None:
+        args.prefix = args.net
 elif args.mode == 'test':
     assert args.weight
 else:
