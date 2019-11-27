@@ -74,7 +74,7 @@ class PE_latency_analysis():
         size = Row * Column / 1024 / 8 #KB
         self.RC_delay = 0.001 * (0.0002 * size**2 + 5 * 10**-6 * size + 4 * 10**-14) # ns
 
-        self.xbar_latency = multiple_time * self.PE.xbar_read_latency + self.RC_delay
+        self.xbar_latency = multiple_time * (self.PE.xbar_read_latency + self.RC_delay)
         self.PE.calculate_DAC_latency()
         self.DAC_latency = multiple_time * self.PE.DAC_latency
         self.PE.calculate_ADC_latency()
@@ -82,6 +82,7 @@ class PE_latency_analysis():
         self.ireg_latency = multiple_time*self.digital_period
         self.shiftadd_latency = multiple_time*self.digital_period
         self.computing_latency = self.ireg_latency+self.DAC_latency+self.xbar_latency+self.ADC_latency+self.shiftadd_latency
+        print(self.computing_latency/3*2)
         self.inPE_add_latency = math.ceil(math.log2(self.PE.group_num))*self.digital_period
         self.oreg_latency = self.digital_period
         self.PE_latency = self.buf_wlatency + self.buf_rlatency + self.computing_latency + self.inPE_add_latency +\
