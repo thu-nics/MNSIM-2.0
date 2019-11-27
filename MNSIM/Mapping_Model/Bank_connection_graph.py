@@ -265,6 +265,10 @@ class BCG():
                 elif next_layer_dict['type'] == 'fc':
                     self.trans_time[0][layer_id] = 1
             tmp_bankinfo['PEnum'] = tmp_bankinfo['mx'] * tmp_bankinfo['my'] * multiple[layer_id]
+            # print(layer_id, tmp_bankinfo['mx'])
+            # print(layer_id, tmp_bankinfo['my'])
+            # print(layer_id, tmp_bankinfo['PEnum'])
+            # print("-----------")
             tmp_bankinfo['banknum'] = math.ceil(tmp_bankinfo['PEnum'] / self.bank.bank_PE_total_num)
             tmp_bankinfo['max_PE'] = min(tmp_bankinfo['PEnum'], self.bank.bank_PE_total_num)
             start_bankid += tmp_bankinfo['banknum']
