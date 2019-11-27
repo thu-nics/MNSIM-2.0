@@ -69,7 +69,12 @@ class PE_latency_analysis():
         else:
             raise RuntimeError("No this kind of technology")
 
-        self.xbar_latency = multiple_time * self.PE.xbar_read_latency
+        # TODO: Consider the bit number of the cell
+        # 32KB 0.154ps; 64KB 0.616ps; 128KB 2.463ps; 256KB 9.851ps
+        size = Row * Column / 1024 / 8 #KB
+        self.RC_delay = 0.001 * (0.0002 * size**2 + 5 * 10**-6 * size + 4 * 10**-14) # ns
+
+        self.xbar_latency = multiple_time * self.PE.xbar_read_latency + self.RC_delay
         self.PE.calculate_DAC_latency()
         self.DAC_latency = multiple_time * self.PE.DAC_latency
         self.PE.calculate_ADC_latency()
