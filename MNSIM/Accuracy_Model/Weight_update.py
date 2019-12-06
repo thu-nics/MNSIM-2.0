@@ -25,22 +25,23 @@ def weight_update(SimConfig_path, weight, is_SAF=1, is_Variation=1):
         interval += 1 / device_resistance[i + 1] - 1 / device_resistance[i]
     interval /= len(device_resistance) - 1
     for i in range(len(weight)):
-        for label, value in weight[i].items():
-            # print(value.shape)
-            if (is_Variation):  # Consider the effect of variation
-                for j in range(len(device_resistance)):
-                    temp_var = np.random.normal(loc=device_resistance[j],
-                                                scale=device_resistance[j] * variation / 100,
-                                                size=value.shape)
-                    temp_var = (1 / temp_var - 1 / device_resistance[j]) / interval
-                    value = np.where(value == j, value + temp_var, value)
-                    # print(temp_var)
-            if (is_SAF):
-                SAF = np.random.random_sample(value.shape)
-                value = np.where(SAF < float(SAF_dist[0] / 100), 0, value)
-                value = np.where(SAF > 1 - float(SAF_dist[-1] / 100), max_value, value)
-                # print(value)
-            weight[i].update({label: value.astype(float)})
+        if weight[i] is not None:
+            for label, value in weight[i].items():
+                # print(value.shape)
+                if (is_Variation):  # Consider the effect of variation
+                    for j in range(len(device_resistance)):
+                        temp_var = np.random.normal(loc=device_resistance[j],
+                                                    scale=device_resistance[j] * variation / 100,
+                                                    size=value.shape)
+                        temp_var = (1 / temp_var - 1 / device_resistance[j]) / interval
+                        value = np.where(value == j, value + temp_var, value)
+                        # print(temp_var)
+                if (is_SAF):
+                    SAF = np.random.random_sample(value.shape)
+                    value = np.where(SAF < float(SAF_dist[0] / 100), 0, value)
+                    value = np.where(SAF > 1 - float(SAF_dist[-1] / 100), max_value, value)
+                    # print(value)
+                weight[i].update({label: value.astype(float)})
     return weight
 
 # class weight_update():
