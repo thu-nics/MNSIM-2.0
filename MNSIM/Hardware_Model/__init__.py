@@ -7,4 +7,4 @@
 # from .DAC import DAC
 # from .Crossbar import crossbar
 # from .PE import ProcessElement
-# from .Bank import bank
+# from .Bank import tile

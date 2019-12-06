@@ -9,7 +9,7 @@ work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 from MNSIM.Hardware_Model import *
 from MNSIM.Hardware_Model.Crossbar import crossbar
-from MNSIM.Hardware_Model.Bank import bank
+from MNSIM.Hardware_Model.Tile import tile
 from MNSIM.Interface.interface import *
 import collections
 
@@ -192,70 +192,70 @@ def generate_zigzag_matrix(row, column):
         start += 1
     return matrix
 
-class BCG():
+class TCG():
     def __init__(self, NetStruct, SimConfig_path, multiple=None):
-        BCG_config = cp.ConfigParser()
-        BCG_config.read(SimConfig_path, encoding='UTF-8')
+        TCG_config = cp.ConfigParser()
+        TCG_config.read(SimConfig_path, encoding='UTF-8')
         if multiple is None:
             multiple = [1] * len(NetStruct)
-        self.bank = bank(SimConfig_path)
+        self.tile = tile(SimConfig_path)
         self.net = NetStruct
         self.layer_num = len(self.net)
-        self.layer_bankinfo = []
-        self.xbar_polarity = int(BCG_config.get('Process element level', 'Xbar_Polarity'))
-        self.bank_connection = int(BCG_config.get('Architecture level', 'Bank_Connection'))
-        self.bank_num = list(map(int, BCG_config.get('Architecture level', 'Bank_Num').split(',')))
-        if self.bank_num[0] == 0:
-            self.bank_num[0] = 8
-            self.bank_num[1] = 8
-        assert self.bank_num[0] > 0, "Bank number < 0"
-        assert self.bank_num[1] > 0, "Bank number < 0"
-        self.bank_total_num = self.bank_num[0] * self.bank_num[1]
-        self.mapping_order = -1*np.ones(self.bank_num)
-        self.mapping_result = -1*np.ones(self.bank_num)
-        start_bankid = 0
+        self.layer_tileinfo = []
+        self.xbar_polarity = int(TCG_config.get('Process element level', 'Xbar_Polarity'))
+        self.tile_connection = int(TCG_config.get('Architecture level', 'Tile_Connection'))
+        self.tile_num = list(map(int, TCG_config.get('Architecture level', 'Tile_Num').split(',')))
+        if self.tile_num[0] == 0:
+            self.tile_num[0] = 8
+            self.tile_num[1] = 8
+        assert self.tile_num[0] > 0, "Tile number < 0"
+        assert self.tile_num[1] > 0, "Tile number < 0"
+        self.tile_total_num = self.tile_num[0] * self.tile_num[1]
+        self.mapping_order = -1*np.ones(self.tile_num)
+        self.mapping_result = -1*np.ones(self.tile_num)
+        start_tileid = 0
             # the start PEid
         self.trans_time = np.ones([1, self.layer_num])
         for layer_id in range(self.layer_num):
             layer_dict = self.net[layer_id][0][0]
-            tmp_bankinfo = collections.OrderedDict()
+            tmp_tileinfo = collections.OrderedDict()
             layer_type = layer_dict['type']
             if self.xbar_polarity == 1:
                 weight_precision = int(layer_dict['Weightbit'])
             else:
                 assert self.xbar_polarity == 2, "Crossbar polarity must be 1 or 2"
                 weight_precision = int(layer_dict['Weightbit']) - 1
-            tmp_bankinfo['startid'] = start_bankid
+            tmp_tileinfo['startid'] = start_tileid
             if layer_type == 'conv':
-                tmp_bankinfo['type'] = 'conv'
-                tmp_bankinfo['mx'] = math.ceil(weight_precision/self.bank.group_num) * \
-                                   math.ceil(int(layer_dict['Outputchannel'])/self.bank.xbar_column)
+                tmp_tileinfo['type'] = 'conv'
+                tmp_tileinfo['mx'] = math.ceil(weight_precision / self.tile.group_num) * \
+                                     math.ceil(int(layer_dict['Outputchannel']) / self.tile.xbar_column)
                     # mx: PE number in x-axis
-                tmp_bankinfo['my'] = math.ceil(int(layer_dict['Inputchannel'])/
-                                             (self.bank.xbar_row // (int(layer_dict['Kernelsize'])**2)))
+                tmp_tileinfo['my'] = math.ceil(int(layer_dict['Inputchannel']) /
+                                               (self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)))
                     # my: PE number in y-axis
-                tmp_bankinfo['max_row'] = min((self.bank.xbar_row // (int(layer_dict['Kernelsize'])**2)),
+                tmp_tileinfo['max_row'] = min((self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)),
                                               int(layer_dict['Inputchannel'])) * (int(layer_dict['Kernelsize'])**2)
                     # max_row: maximum used row in one crossbar of this layer
-                tmp_bankinfo['max_column'] = min(int(layer_dict['Outputchannel']), self.bank.xbar_column)
+                tmp_tileinfo['max_column'] = min(int(layer_dict['Outputchannel']), self.tile.xbar_column)
                     # max_row: maximum used column in one crossbar of this layer
             elif layer_type == 'fc':
-                tmp_bankinfo['type'] = 'fc'
-                tmp_bankinfo['mx'] = math.ceil(weight_precision/self.bank.group_num) * \
-                                   math.ceil(int(layer_dict['Outfeature'])/self.bank.xbar_column)
+                tmp_tileinfo['type'] = 'fc'
+                tmp_tileinfo['mx'] = math.ceil(weight_precision / self.tile.group_num) * \
+                                     math.ceil(int(layer_dict['Outfeature']) / self.tile.xbar_column)
                     # mx: PE number in x-axis
-                tmp_bankinfo['my'] = math.ceil(int(layer_dict['Infeature'])/self.bank.xbar_row)
+                tmp_tileinfo['my'] = math.ceil(int(layer_dict['Infeature']) / self.tile.xbar_row)
                     # my: PE number in y-axis
-                tmp_bankinfo['max_row'] = min(int(layer_dict['Infeature']), self.bank.xbar_row)
+                tmp_tileinfo['max_row'] = min(int(layer_dict['Infeature']), self.tile.xbar_row)
                 # max_row: maximum used row in one crossbar of this layer
-                tmp_bankinfo['max_column'] = min(int(layer_dict['Outfeature']), self.bank.xbar_column)
+                tmp_tileinfo['max_column'] = min(int(layer_dict['Outfeature']), self.tile.xbar_column)
                 # max_row: maximum used column in one crossbar of this layer
             else:
-                tmp_bankinfo['type'] = 'pooling'
-                tmp_bankinfo['mx'] = 1
-                tmp_bankinfo['my'] = 1
-                tmp_bankinfo['max_row'] = 0
-                tmp_bankinfo['max_column'] = 0
+                tmp_tileinfo['type'] = 'pooling'
+                tmp_tileinfo['mx'] = 1
+                tmp_tileinfo['my'] = 1
+                tmp_tileinfo['max_row'] = 0
+                tmp_tileinfo['max_column'] = 0
             if layer_id < self.layer_num-1:
                 next_layer_dict = self.net[layer_id+1][0][0]
                 if next_layer_dict['type'] == 'conv' or next_layer_dict['type'] == 'pooling':
@@ -264,42 +264,42 @@ class BCG():
                                                    max(int(next_layer_dict['Kernelsize'])-int(next_layer_dict['Padding'])-1, 0)
                 elif next_layer_dict['type'] == 'fc':
                     self.trans_time[0][layer_id] = 1
-            tmp_bankinfo['PEnum'] = tmp_bankinfo['mx'] * tmp_bankinfo['my'] * multiple[layer_id]
-            # print(layer_id, tmp_bankinfo['mx'])
-            # print(layer_id, tmp_bankinfo['my'])
-            # print(layer_id, tmp_bankinfo['PEnum'])
+            tmp_tileinfo['PEnum'] = tmp_tileinfo['mx'] * tmp_tileinfo['my'] * multiple[layer_id]
+            # print(layer_id, tmp_tileinfo['mx'])
+            # print(layer_id, tmp_tileinfo['my'])
+            # print(layer_id, tmp_tileinfo['PEnum'])
             # print("-----------")
-            tmp_bankinfo['banknum'] = math.ceil(tmp_bankinfo['PEnum'] / self.bank.bank_PE_total_num)
-            tmp_bankinfo['max_PE'] = min(tmp_bankinfo['PEnum'], self.bank.bank_PE_total_num)
-            start_bankid += tmp_bankinfo['banknum']
-            self.layer_bankinfo.append(tmp_bankinfo)
-        self.bank_num = start_bankid
-        assert self.bank_num <= self.bank_total_num, "Bank number is not enough"
+            tmp_tileinfo['tilenum'] = math.ceil(tmp_tileinfo['PEnum'] / self.tile.tile_PE_total_num)
+            tmp_tileinfo['max_PE'] = min(tmp_tileinfo['PEnum'], self.tile.tile_PE_total_num)
+            start_tileid += tmp_tileinfo['tilenum']
+            self.layer_tileinfo.append(tmp_tileinfo)
+        self.tile_num = start_tileid
+        assert self.tile_num <= self.tile_total_num, "Tile number is not enough"
         self.inLayer_distance = np.ones([1, self.layer_num])
         self.transLayer_distance = np.ones([1, self.layer_num])
         self.aggregate_arg = np.zeros([self.layer_num,2])
 
     def mapping_matrix_gen(self):
-        if self.bank_connection == 0:
+        if self.tile_connection == 0:
             self.mapping_order = generate_normal_matrix(self.mapping_order.shape[0], self.mapping_order.shape[1])
-        elif self.bank_connection == 1:
+        elif self.tile_connection == 1:
             self.mapping_order = generate_snake_matrix(self.mapping_order.shape[0], self.mapping_order.shape[1])
-        elif self.bank_connection == 2:
+        elif self.tile_connection == 2:
             self.mapping_order = generate_hui_matrix(self.mapping_order.shape[0], self.mapping_order.shape[1])
-        elif self.bank_connection == 3:
+        elif self.tile_connection == 3:
             self.mapping_order = generate_zigzag_matrix(self.mapping_order.shape[0], self.mapping_order.shape[1])
 
     def mapping_net(self):
         self.mapping_matrix_gen()
         for i in range(self.mapping_order.shape[0]):
             for j in range(self.mapping_order.shape[1]):
-                if self.mapping_order[i][j] < self.bank_num:
+                if self.mapping_order[i][j] < self.tile_num:
                     for layer_id in range(self.layer_num-1):
-                        if ((self.mapping_order[i][j] >= self.layer_bankinfo[layer_id]['startid']) &
-                            (self.mapping_order[i][j] < self.layer_bankinfo[layer_id+1]['startid'])):
+                        if ((self.mapping_order[i][j] >= self.layer_tileinfo[layer_id]['startid']) &
+                            (self.mapping_order[i][j] < self.layer_tileinfo[layer_id + 1]['startid'])):
                             self.mapping_result[i][j] = layer_id
                             break
-                        elif self.mapping_order[i][j] >= self.layer_bankinfo[self.layer_num-1]['startid']:
+                        elif self.mapping_order[i][j] >= self.layer_tileinfo[self.layer_num - 1]['startid']:
                             self.mapping_result[i][j] = self.layer_num-1
 
     def calculate_transfer_distance(self):
@@ -361,7 +361,7 @@ if __name__ == '__main__':
     __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
     structure_file = __TestInterface.get_structure()
 
-    test = BCG(structure_file, test_SimConfig_path)
+    test = TCG(structure_file, test_SimConfig_path)
     test.mapping_net()
     test.calculate_transfer_distance()
     print(test.total_distance)

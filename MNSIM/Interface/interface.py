@@ -63,9 +63,9 @@ class TrainTestInterface(object):
         self.hardware_config['quantize_bit'] = self.quantize_bit
         # group num
         self.pe_group_num = int(xbar_config.get('Process element level', 'Group_Num'))
-        self.bank_size = list(map(int, xbar_config.get('Bank level', 'PE_Num').split(',')))
-        self.bank_row = self.bank_size[0]
-        self.bank_column = self.bank_size[1]
+        self.tile_size = list(map(int, xbar_config.get('Tile level', 'PE_Num').split(',')))
+        self.tile_row = self.tile_size[0]
+        self.tile_column = self.tile_size[1]
         # net and weights
         if device != None:
             self.device = torch.device(f'cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -143,15 +143,15 @@ class TrainTestInterface(object):
                         pe_array.append([layer_bit_weights[f'split{i}_weight{s}_positive'][j].astype(np.uint8), layer_bit_weights[f'split{i}_weight{s}_negative'][j].astype(np.uint8)])
                     xbar_array.append(pe_array)
             # store in xbar_array
-            L = math.ceil(len(xbar_array) / (self.bank_row * self.bank_column))
+            L = math.ceil(len(xbar_array) / (self.tile_row * self.tile_column))
             for i in range(L):
-                bank_array = []
-                for h in range(self.bank_row):
-                    for w in range(self.bank_column):
-                        serial_number = i * self.bank_row * self.bank_column + h * self.bank_column + w
+                tile_array = []
+                for h in range(self.tile_row):
+                    for w in range(self.tile_column):
+                        serial_number = i * self.tile_row * self.tile_column + h * self.tile_column + w
                         if serial_number < len(xbar_array):
-                            bank_array.append(xbar_array[serial_number])
-                total_array.append((layer_structure_info, bank_array))
+                            tile_array.append(xbar_array[serial_number])
+                total_array.append((layer_structure_info, tile_array))
             net_array.append(total_array)
         return net_array
 

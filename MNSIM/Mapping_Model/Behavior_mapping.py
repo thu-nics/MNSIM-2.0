@@ -9,14 +9,14 @@ work_path = os.path.dirname(os.getcwd())
 print("ok", work_path)
 sys.path.append(work_path)
 from MNSIM.Hardware_Model import *
-from MNSIM.Hardware_Model.Bank import bank
+from MNSIM.Hardware_Model.Tile import tile
 from MNSIM.Interface.interface import *
 
 
-class behavior_mapping(bank):
+class behavior_mapping(tile):
     def __init__(self, NetStruct, SimConfig_path):
         self.SimConfig_path = SimConfig_path
-        bank.__init__(self, SimConfig_path)
+        tile.__init__(self, SimConfig_path)
         # print("CNN structure file is loaded")
         # print("Hardware config file is loaded:", SimConfig_path)
         bm_config = cp.ConfigParser()
@@ -25,7 +25,7 @@ class behavior_mapping(bank):
         self.net_structure = NetStruct
         self.arch_config = SimConfig_path
         self.total_layer_num = len(self.net_structure)
-        self.bank_list = []
+        self.tile_list = []
         self.kernel_length = self.total_layer_num*[0]
         self.sliding_times = self.total_layer_num*[0]
         self.output_channel = self.total_layer_num*[0]
@@ -33,9 +33,9 @@ class behavior_mapping(bank):
         self.activation_precision = self.total_layer_num*[8]
         self.operations = self.total_layer_num*[0]
         self.PE_num = self.total_layer_num*[0]
-        self.bank_num = self.total_layer_num*[0]
+        self.tile_num = self.total_layer_num * [0]
         for i in range(self.total_layer_num):
-            self.bank_list.append([])
+            self.tile_list.append([])
 
         self.arch_area = self.total_layer_num*[0]
         self.arch_xbar_area = self.total_layer_num*[0]
@@ -169,12 +169,12 @@ class behavior_mapping(bank):
                                     math.ceil(self.output_channel[layer_id]/outputchannel_xbar) * \
                                     math.ceil(self.weight_precision[layer_id]/PE_bitwidth)
                 # The PE number used for this layer
-            self.bank_num[layer_id] = math.ceil(self.PE_num[layer_id]/(self.bank_PE_total_num))
-                # The bank number used for this layer
+            self.tile_num[layer_id] = math.ceil(self.PE_num[layer_id] / (self.tile_PE_total_num))
+                # The tile number used for this layer
             xbar_used_length = inputchannel_xbar * (kernelsize**2)
                 # The number of used row (length of the used cells in one column)
             # Mapping procedure start:
-            bank_index = 0
+            tile_index = 0
             current_PE_num = 0
             read_column = []
             read_row = []
@@ -205,187 +205,39 @@ class behavior_mapping(bank):
                         temp_occupied_group = math.ceil(temp_bitwidth/math.floor(math.log2(self.device_level)))
                         read_row.append(temp_occupied_group*[temp_length])
                         read_column.append(temp_occupied_group*[temp_width])
-                        if current_PE_num == self.bank_PE_total_num or \
+                        if current_PE_num == self.tile_PE_total_num or \
                                 ((kernel_length_2bsplit==0)&(channel_width_2bsplit==0)&(weight_precision_2bsplit==0)):
                             # print("yes")
-                            __temp_bank = bank(self.SimConfig_path)
-                            self.bank_list[layer_id].append(__temp_bank)
-                            self.bank_list[layer_id][bank_index].bank_read_config(
+                            __temp_tile = tile(self.SimConfig_path)
+                            self.tile_list[layer_id].append(__temp_tile)
+                            self.tile_list[layer_id][tile_index].tile_read_config(
                                 layer_num=layer_id,
                                 activation_precision=self.activation_precision[layer_id],
                                 sliding_times=self.sliding_times[layer_id],
                                 read_row=read_row,
                                 read_column=read_column
                             )
-                            bank_index += 1
+                            tile_index += 1
                             current_PE_num = 0
                             read_column = []
                             read_row = []
-            # print(layer_id,':',self.PE_num[layer_id],self.bank_num[layer_id],bank_index)
-
-
-
-
-    # def config_behavior_mapping_expired_version(self):
-    #     i = 0
-    #     for layer in self.net_structure.items():
-    #         # print("----------layer", i, "-----------")
-    #         inputsize = int(layer[1]['Inputsize'])
-    #         outputsize = int(layer[1]['Outputsize'])
-    #         kernelsize = int(layer[1]['Kernelsize'])
-    #         stride = int(layer[1]['Stride'])
-    #         inputchannel = int(layer[1]['Inputchannel'])
-    #         self.output_channel[i] = int(layer[1]['Outputchannel'])
-    #         if self.xbar_polarity == 1:
-    #             self.weight_precision[i] = int(layer[1]['Weightbit'])
-    #         else:
-    #             assert self.xbar_polarity == 2, "Crossbar polarity must be 1 or 2"
-    #             self.weight_precision[i] = int(layer[1]['Weightbit']) - 1
-    #         self.activation_precision[i] = int(layer[1]['Inputbit'])
-    #         self.kernel_length[i] = kernelsize**2 * inputchannel
-    #         self.sliding_times[i] = outputsize**2
-    #         self.PE_num[i] = math.ceil(self.output_channel[i]/self.xbar_column) * \
-    #                          math.ceil(self.weight_precision[i]/self.group_num) * \
-    #                          math.ceil(self.kernel_length[i]/self.xbar_row)
-    #
-    #         # print(self.PE_num[i])
-    #         self.bank_num[i] = math.ceil(self.PE_num[i]/self.bank_PE_total_num)
-    #         # print("bank_num", self.bank_num[i])
-    #         temp_weightprecision = self.weight_precision[i]
-    #         temp_outputchannel = self.output_channel[i]
-    #         temp_kernellength = self.kernel_length[i]
-    #         self.operations[i] = self.sliding_times[i] * self.kernel_length[i] * self.output_channel[i] * 2
-    #         bank_index = 0
-    #         read_column = []
-    #         read_row = []
-    #         while temp_weightprecision > 0:
-    #             if temp_weightprecision <= self.group_num:
-    #                 num_occupied_group = temp_weightprecision
-    #             else:
-    #                 num_occupied_group = self.group_num
-    #             temp_weightprecision -= num_occupied_group
-    #             temp_outputchannel = self.output_channel[i]
-    #             while temp_outputchannel > 0:
-    #                 if temp_outputchannel <= self.xbar_column * self.bank_PE_num[1]:
-    #                     temp_read_column = temp_outputchannel
-    #                 else:
-    #                     temp_read_column = self.xbar_column * self.bank_PE_num[1]
-    #                 temp_outputchannel -= temp_read_column
-    #                 temp_kernellength = self.kernel_length[i]
-    #                 while temp_kernellength > 0:
-    #                     if temp_kernellength <= self.xbar_row * self.bank_PE_num[0]:
-    #                         temp_read_row = temp_kernellength
-    #                     else:
-    #                         temp_read_row = self.xbar_row * self.bank_PE_num[0]
-    #                     temp_kernellength -= temp_read_row
-    #                     temp_temp_read_column = temp_read_column
-    #                     while temp_temp_read_column > 0:
-    #                         temp_temp_read_row = temp_read_row
-    #                         if temp_temp_read_column <= self.xbar_column:
-    #                             while temp_temp_read_row > 0:
-    #                                 if temp_temp_read_row <= self.xbar_row:
-    #                                     if len(read_column) == self.bank_PE_total_num:
-    #                                         __temp_bank = bank(self.SimConfig_path)
-    #                                         self.bank_list[i].append(__temp_bank)
-    #                                         self.bank_list[i][bank_index].bank_read_config(layer_num=i,
-    #                                                                                    activation_precision=
-    #                                                                                    self.activation_precision[i],
-    #                                                                                    sliding_times=self.sliding_times[i],
-    #                                                                                    read_row=read_row,
-    #                                                                                    read_column=read_column)
-    #                                         # print("read_row", read_row)
-    #                                         # print("read_column", read_column)
-    #                                         bank_index += 1
-    #                                         read_column = []
-    #                                         read_row = []
-    #                                     read_row.append(num_occupied_group * [temp_temp_read_row])
-    #                                 else:
-    #                                     if len(read_column) == self.bank_PE_total_num:
-    #                                         __temp_bank = bank(self.SimConfig_path)
-    #                                         self.bank_list[i].append(__temp_bank)
-    #                                         self.bank_list[i][bank_index].bank_read_config(layer_num=i,
-    #                                                                                    activation_precision=
-    #                                                                                    self.activation_precision[i],
-    #                                                                                    sliding_times=self.sliding_times[i],
-    #                                                                                    read_row=read_row,
-    #                                                                                    read_column=read_column)
-    #                                         # print("read_row", read_row)
-    #                                         # print("read_column", read_column)
-    #                                         bank_index += 1
-    #                                         read_column = []
-    #                                         read_row = []
-    #                                     read_row.append(num_occupied_group * [self.xbar_row])
-    #                                 read_column.append(num_occupied_group * [temp_temp_read_column])
-    #                                 temp_temp_read_row -= self.xbar_row
-    #                         else:
-    #                             while temp_temp_read_row > 0:
-    #                                 if temp_temp_read_row <= self.xbar_row:
-    #                                     if len(read_column) == self.bank_PE_total_num:
-    #                                         __temp_bank = bank(self.SimConfig_path)
-    #                                         self.bank_list[i].append(__temp_bank)
-    #                                         self.bank_list[i][bank_index].bank_read_config(layer_num=i,
-    #                                                                                        activation_precision=
-    #                                                                                        self.activation_precision[i],
-    #                                                                                        sliding_times=
-    #                                                                                        self.sliding_times[i],
-    #                                                                                        read_row=read_row,
-    #                                                                                        read_column=read_column)
-    #                                         # print("read_row", read_row)
-    #                                         # print("read_column", read_column)
-    #                                         bank_index += 1
-    #                                         read_column = []
-    #                                         read_row = []
-    #                                     read_row.append(num_occupied_group * [temp_temp_read_row])
-    #                                 else:
-    #                                     if len(read_column) == self.bank_PE_total_num:
-    #                                         __temp_bank = bank(self.SimConfig_path)
-    #                                         self.bank_list[i].append(__temp_bank)
-    #                                         self.bank_list[i][bank_index].bank_read_config(layer_num=i,
-    #                                                                                        activation_precision=
-    #                                                                                        self.activation_precision[i],
-    #                                                                                        sliding_times=self.sliding_times[i],
-    #                                                                                        read_row=read_row,
-    #                                                                                        read_column=read_column)
-    #                                         # print("read_row", read_row)
-    #                                         # print("read_column", read_column)
-    #                                         bank_index += 1
-    #                                         read_column = []
-    #                                         read_row = []
-    #                                     read_row.append(num_occupied_group * [self.xbar_row])
-    #                                 read_column.append(num_occupied_group * [self.xbar_column])
-    #                                 temp_temp_read_row -= self.xbar_row
-    #                         temp_temp_read_column -= self.xbar_column
-    #
-    #                     if (temp_weightprecision <= 0) & (temp_outputchannel <= 0) & (temp_kernellength <= 0):
-    #                         __temp_bank = bank(self.SimConfig_path)
-    #                         self.bank_list[i].append(__temp_bank)
-    #                         self.bank_list[i][bank_index].bank_read_config(layer_num=i,
-    #                                                                        activation_precision=
-    #                                                                        self.activation_precision[i],
-    #                                                                        sliding_times=self.sliding_times[i],
-    #                                                                        read_row=read_row,
-    #                                                                        read_column=read_column)
-    #                         # print("read_row", read_row)
-    #                         # print("read_column", read_column)
-    #                         bank_index += 1
-    #         # print("bank_index", bank_index)
-    #         i += 1
+            # print(layer_id,':',self.PE_num[layer_id],self.tile_num[layer_id],tile_index)
 
     def behavior_mapping_area(self):
         # Notice: before calculating area, config_behavior_mapping must be executed
         # unit: um^2
-        self.calculate_bank_area()
+        self.calculate_tile_area()
         for i in range(self.total_layer_num):
-            self.arch_area[i] = self.bank_area * self.bank_num[i]
-            self.arch_xbar_area[i] = self.bank_xbar_area * self.bank_num[i]
-            self.arch_ADC_area[i] = self.bank_ADC_area * self.bank_num[i]
-            self.arch_DAC_area[i] = self.bank_DAC_area * self.bank_num[i]
-            self.arch_digital_area[i] = self.bank_digital_area * self.bank_num[i]
-            self.arch_adder_area[i] = self.bank_adder_area * self.bank_num[i]
-            self.arch_shiftreg_area[i] = self.bank_shiftreg_area * self.bank_num[i]
-            self.arch_input_demux_area[i] = self.bank_input_demux_area * self.bank_num[i]
-            self.arch_output_mux_area[i] = self.bank_output_mux_area * self.bank_num[i]
-            # print(self.bank_num[i], self.arch_area[i])
+            self.arch_area[i] = self.tile_area * self.tile_num[i]
+            self.arch_xbar_area[i] = self.tile_xbar_area * self.tile_num[i]
+            self.arch_ADC_area[i] = self.tile_ADC_area * self.tile_num[i]
+            self.arch_DAC_area[i] = self.tile_DAC_area * self.tile_num[i]
+            self.arch_digital_area[i] = self.tile_digital_area * self.tile_num[i]
+            self.arch_adder_area[i] = self.tile_adder_area * self.tile_num[i]
+            self.arch_shiftreg_area[i] = self.tile_shiftreg_area * self.tile_num[i]
+            self.arch_input_demux_area[i] = self.tile_input_demux_area * self.tile_num[i]
+            self.arch_output_mux_area[i] = self.tile_output_mux_area * self.tile_num[i]
+            # print(self.tile_num[i], self.arch_area[i])
         self.arch_total_area = sum(self.arch_area)
         self.arch_total_xbar_area = sum(self.arch_xbar_area)
         self.arch_total_ADC_area = sum(self.arch_ADC_area)
@@ -400,12 +252,12 @@ class behavior_mapping(bank):
     def behavior_mapping_utilization(self):
         # Notice: before calculating utilization, config_behavior_mapping must be executed
         for i in range(self.total_layer_num):
-            for j in range(self.bank_num[i]):
-                self.arch_utilization[i] += self.bank_list[i][j].bank_utilization
-                self.arch_total_utilization += self.bank_list[i][j].bank_utilization
-            self.arch_utilization[i] /= self.bank_num[i]
+            for j in range(self.tile_num[i]):
+                self.arch_utilization[i] += self.tile_list[i][j].tile_utilization
+                self.arch_total_utilization += self.tile_list[i][j].tile_utilization
+            self.arch_utilization[i] /= self.tile_num[i]
             # print(self.arch_utilization[i])
-        self.arch_total_utilization /= sum(self.bank_num)
+        self.arch_total_utilization /= sum(self.tile_num)
         # print(self.arch_total_utilization)
 
     def behavior_mapping_latency(self):
@@ -415,20 +267,20 @@ class behavior_mapping(bank):
         for i in range(self.total_layer_num):
             temp_latency = 0
             latency_index = 0
-            for j in range(self.bank_num[i]):
-                self.bank_list[i][j].calculate_bank_read_latency()
-                if self.bank_list[i][j].bank_read_latency > temp_latency:
+            for j in range(self.tile_num[i]):
+                self.tile_list[i][j].calculate_tile_read_latency()
+                if self.tile_list[i][j].tile_read_latency > temp_latency:
                     latency_index = j
-            self.arch_latency[i] = self.bank_list[i][latency_index].bank_read_latency
-            self.arch_xbar_latency[i] = self.bank_list[i][latency_index].bank_xbar_read_latency
-            self.arch_ADC_latency[i] = self.bank_list[i][latency_index].bank_ADC_read_latency
-            self.arch_DAC_latency[i] = self.bank_list[i][latency_index].bank_DAC_read_latency
-            self.arch_digital_latency[i] = self.bank_list[i][latency_index].bank_digital_read_latency
-            self.arch_adder_latency[i] = self.bank_list[i][latency_index].bank_adder_read_latency
-            self.arch_shiftreg_latency[i] = self.bank_list[i][latency_index].bank_shiftreg_read_latency
-            self.arch_input_demux_latency[i] = self.bank_list[i][latency_index].bank_input_demux_read_latency
-            self.arch_output_mux_latency[i] = self.bank_list[i][latency_index].bank_output_mux_read_latency
-            # print(self.bank_num[i], self.arch_latency[i])
+            self.arch_latency[i] = self.tile_list[i][latency_index].tile_read_latency
+            self.arch_xbar_latency[i] = self.tile_list[i][latency_index].tile_xbar_read_latency
+            self.arch_ADC_latency[i] = self.tile_list[i][latency_index].tile_ADC_read_latency
+            self.arch_DAC_latency[i] = self.tile_list[i][latency_index].tile_DAC_read_latency
+            self.arch_digital_latency[i] = self.tile_list[i][latency_index].tile_digital_read_latency
+            self.arch_adder_latency[i] = self.tile_list[i][latency_index].tile_adder_read_latency
+            self.arch_shiftreg_latency[i] = self.tile_list[i][latency_index].tile_shiftreg_read_latency
+            self.arch_input_demux_latency[i] = self.tile_list[i][latency_index].tile_input_demux_read_latency
+            self.arch_output_mux_latency[i] = self.tile_list[i][latency_index].tile_output_mux_read_latency
+            # print(self.tile_num[i], self.arch_latency[i])
         self.arch_total_latency = sum(self.arch_latency)
         self.arch_total_xbar_latency = sum(self.arch_xbar_latency)
         self.arch_total_ADC_latency = sum(self.arch_ADC_latency)
@@ -445,18 +297,18 @@ class behavior_mapping(bank):
         # unit: W
         # TODO: add arch level adder tree estimation
         for i in range(self.total_layer_num):
-            for j in range(self.bank_num[i]):
-                self.bank_list[i][j].calculate_bank_read_power()
-                self.arch_power[i] += self.bank_list[i][j].bank_read_power
-                self.arch_xbar_power[i] += self.bank_list[i][j].bank_xbar_read_power
-                self.arch_ADC_power[i] += self.bank_list[i][j].bank_ADC_read_power
-                self.arch_DAC_power[i] += self.bank_list[i][j].bank_DAC_read_power
-                self.arch_digital_power[i] += self.bank_list[i][j].bank_digital_read_power
-                self.arch_adder_power[i] += self.bank_list[i][j].bank_adder_read_power
-                self.arch_shiftreg_power[i] += self.bank_list[i][j].bank_shiftreg_read_power
-                self.arch_input_demux_power[i] += self.bank_list[i][j].bank_input_demux_read_power
-                self.arch_output_mux_power[i] += self.bank_list[i][j].bank_output_mux_read_power
-            # print(self.bank_num[i], self.arch_power[i])
+            for j in range(self.tile_num[i]):
+                self.tile_list[i][j].calculate_tile_read_power()
+                self.arch_power[i] += self.tile_list[i][j].tile_read_power
+                self.arch_xbar_power[i] += self.tile_list[i][j].tile_xbar_read_power
+                self.arch_ADC_power[i] += self.tile_list[i][j].tile_ADC_read_power
+                self.arch_DAC_power[i] += self.tile_list[i][j].tile_DAC_read_power
+                self.arch_digital_power[i] += self.tile_list[i][j].tile_digital_read_power
+                self.arch_adder_power[i] += self.tile_list[i][j].tile_adder_read_power
+                self.arch_shiftreg_power[i] += self.tile_list[i][j].tile_shiftreg_read_power
+                self.arch_input_demux_power[i] += self.tile_list[i][j].tile_input_demux_read_power
+                self.arch_output_mux_power[i] += self.tile_list[i][j].tile_output_mux_read_power
+            # print(self.tile_num[i], self.arch_power[i])
         self.arch_total_power = sum(self.arch_power)
         self.arch_total_xbar_power = sum(self.arch_xbar_power)
         self.arch_total_ADC_power = sum(self.arch_ADC_power)
@@ -475,18 +327,18 @@ class behavior_mapping(bank):
         # unit: nJ
         # TODO: add arch level adder tree estimation
         for i in range(self.total_layer_num):
-            for j in range(self.bank_num[i]):
-                self.bank_list[i][j].calculate_bank_read_energy()
-                self.arch_energy[i] += self.bank_list[i][j].bank_read_energy
-                self.arch_xbar_energy[i] += self.bank_list[i][j].bank_xbar_read_energy
-                self.arch_ADC_energy[i] += self.bank_list[i][j].bank_ADC_read_energy
-                self.arch_DAC_energy[i] += self.bank_list[i][j].bank_DAC_read_energy
-                self.arch_digital_energy[i] += self.bank_list[i][j].bank_digital_read_energy
-                self.arch_adder_energy[i] += self.bank_list[i][j].bank_adder_read_energy
-                self.arch_shiftreg_energy[i] += self.bank_list[i][j].bank_shiftreg_read_energy
-                self.arch_input_demux_energy[i] += self.bank_list[i][j].bank_input_demux_read_energy
-                self.arch_output_mux_energy[i] += self.bank_list[i][j].bank_output_mux_read_energy
-            # print(self.bank_num[i], self.arch_energy[i])
+            for j in range(self.tile_num[i]):
+                self.tile_list[i][j].calculate_tile_read_energy()
+                self.arch_energy[i] += self.tile_list[i][j].tile_read_energy
+                self.arch_xbar_energy[i] += self.tile_list[i][j].tile_xbar_read_energy
+                self.arch_ADC_energy[i] += self.tile_list[i][j].tile_ADC_read_energy
+                self.arch_DAC_energy[i] += self.tile_list[i][j].tile_DAC_read_energy
+                self.arch_digital_energy[i] += self.tile_list[i][j].tile_digital_read_energy
+                self.arch_adder_energy[i] += self.tile_list[i][j].tile_adder_read_energy
+                self.arch_shiftreg_energy[i] += self.tile_list[i][j].tile_shiftreg_read_energy
+                self.arch_input_demux_energy[i] += self.tile_list[i][j].tile_input_demux_read_energy
+                self.arch_output_mux_energy[i] += self.tile_list[i][j].tile_output_mux_read_energy
+            # print(self.tile_num[i], self.arch_energy[i])
         self.arch_total_energy = sum(self.arch_energy)
         self.arch_total_xbar_energy = sum(self.arch_xbar_energy)
         self.arch_total_ADC_energy = sum(self.arch_ADC_energy)
@@ -519,14 +371,14 @@ class behavior_mapping(bank):
                 print("     |----Output Size:", layer['Outputsize'])
                 print("     |----Output Channel:", layer['Outputchannel'])
                 # print("     |----Operations:", self.operations[i])
-            else:
+            elif layer['type'] == 'fc':
                 print("     |----Input Size:", layer['Infeature'])
                 print("     |----Input Precision:", layer['Inputbit'])
                 print("     |----Weight Precision:", layer['Weightbit'])
                 print("     |----Output Size:", layer['Outfeature'])
                 # print("     |----Operations:", self.operations[i])
         print("---------Hardware Performance---------")
-        print("Bank number:", sum(self.bank_num))
+        print("Tile number:", sum(self.tile_num))
         print("Resource utilization:", self.arch_total_utilization)
         print("Hardware area:", self.arch_total_area, "um^2")
         if module_information:
@@ -572,8 +424,8 @@ class behavior_mapping(bank):
             for i in range(self.total_layer_num):
                 print("Layer", i, ":")
                 print("     Operations:", self.operations[i])
-                print("     Bank number:", self.bank_num[i])
-                print("     Bank utilization:", self.arch_utilization[i])
+                print("     Tile number:", self.tile_num[i])
+                print("     Tile utilization:", self.arch_utilization[i])
                 print("     Hardware area:", self.arch_area[i])
                 print("     Hardware power:", self.arch_power[i])
                 print("     Hardware latency:", self.arch_latency[i])
@@ -585,19 +437,11 @@ class behavior_mapping(bank):
 
 
 if __name__ == '__main__':
-    # print("ok")
-    # net_structure_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "vgg_a4_w4_structure.pt")
-    # net_structure_path = "/Users/zzh/Desktop/lab/MNSIM_python_v1.2/mnist_net.pt"
-    # SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
-    # SimConfig_path = "/Users/zzh/Desktop/lab/MNSIM_python_v1.2/SimConfig.ini"
-    # _bank = bank(SimConfig_path)
-    # print(net_structure_path)
-    # print(SimConfig_path)
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "cifar10_lenet_train_params.pth")
+                                          "alexnet_channels_bit/alexnet_16_5_params.pth")
 
-    __TestInterface = TrainTestInterface('MNSIM.Interface.lenet', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
+    __TestInterface = TrainTestInterface('alexnet_16_5', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
     structure_file = __TestInterface.get_structure()
 
     _bm = behavior_mapping(structure_file, test_SimConfig_path)
