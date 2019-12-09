@@ -18,7 +18,10 @@ from MNSIM.Latency_Model.Model_latency import Model_latency
 
 def main():
     # home_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    home_path = os.path.dirname(os.path.dirname(os.getcwd()))
+    if __name__=='__main__':
+        home_path = os.path.dirname(os.path.dirname(os.getcwd()))
+    else:
+        home_path = os.getcwd()
     SimConfig_path = os.path.join(home_path, "SimConfig.ini")
     weights_file_path = os.path.join(home_path, "vgg8_channels_bit/vgg8_128_9_params.pth")
     # print(SimConfig_path)
