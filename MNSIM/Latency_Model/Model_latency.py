@@ -2175,9 +2175,9 @@ class Model_latency():
     def model_latency_output(self):
         for i in range(len(self.begin_time)):
             print("Layer", i, " type:", self.NetStruct[i][0][0]['type'])
-            print("start time: ", self.begin_time[i])
-            print("finish time:", self.finish_time[i])
-            print("used time:", self.compute_interval[i])
+            # print("start time: ", self.begin_time[i])
+            # print("finish time:", self.finish_time[i])
+            print("Time interval of working:", self.compute_interval[i])
             print("Occupancy:", self.occupancy[i])
             #     # print(self.xbar_latency[i])
             total_latency = self.total_buffer_latency[i] + self.total_computing_latency[i] + \
