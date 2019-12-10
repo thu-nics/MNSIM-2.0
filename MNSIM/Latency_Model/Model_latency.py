@@ -2172,7 +2172,7 @@ class Model_latency():
                         print("         ",  self.compute_interval[layer_id-1])
                         print(len(stall_interval))
         return
-    def model_latency_output(self):
+    def model_latency_output(self, module_information=1, layer_information = 1):
         for i in range(len(self.begin_time)):
             print("Layer", i, " type:", self.NetStruct[i][0][0]['type'])
             # print("start time: ", self.begin_time[i])

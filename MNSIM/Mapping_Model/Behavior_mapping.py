@@ -353,7 +353,7 @@ class behavior_mapping(tile):
         # print("xbar", self.arch_total_xbar_energy)
         # print("ADC", self.arch_total_ADC_energy)
 
-    def behavior_mapping_output(self, module_information = 0, layer_information = 0):
+    def behavior_mapping_output(self, module_information = 1, layer_information = 1):
         # module_information: 1: print module information
         # layer_information: 1: print hardware performance of each layer
         print("--------------CNN model--------------")
