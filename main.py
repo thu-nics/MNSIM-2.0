@@ -24,14 +24,14 @@ def main():
     #     print(1)
     # else:
     home_path = os.getcwd()
-    print(home_path)
+    # print(home_path)
     SimConfig_path = os.path.join(home_path, "SimConfig.ini")
     weights_file_path = os.path.join(home_path, "vgg8_channels_bit/vgg8_128_9_params.pth")
     # print(SimConfig_path)
     parser = argparse.ArgumentParser(description='MNSIM example')
     parser.add_argument("-HWdes", "--hardware_description", default=SimConfig_path,
                         help="Hardware description file location & name, default:/MNSIM_Python/SimConfig.ini")
-    parser.add_argument("-Weights", "--weight", default=weights_file_path,
+    parser.add_argument("-Weights", "--weights", default=weights_file_path,
                         help="NN model weights file location & name, default:/MNSIM_Python/vgg8_channels_bit/vgg8_128_9_params.pth")
     parser.add_argument("-NN", "--NN", default='vgg8_128_9',
                         help="NN model description (name), default: vgg8_128_9")
@@ -53,7 +53,7 @@ def main():
                         help="Disable layer-wise simulation results output, default: false")
     args = parser.parse_args()
     print("Hardware description file location:", args.hardware_description)
-    print("Software model file location:", args.weight)
+    print("Software model file location:", args.weights)
     print("Whether perform hardware simulation:", not(args.disable_hardware_modeling))
     print("Whether perform accuracy simulation:", not(args.disable_accuracy_simulation))
     print("Whether consider SAFs:", args.enable_SAF)
@@ -63,7 +63,7 @@ def main():
     else:
         print("Quantization range: dynamic range (depends on the data distribution)")
     __TestInterface = TrainTestInterface(args.NN, 'MNSIM.Interface.cifar10', args.hardware_description,
-                                         args.weight, args.device)
+                                         args.weights, args.device)
     structure_file = __TestInterface.get_structure()
     weight = __TestInterface.get_net_bits()
     # print(structure_file)
