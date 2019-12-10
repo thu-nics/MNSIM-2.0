@@ -2173,38 +2173,41 @@ class Model_latency():
                         print(len(stall_interval))
         return
     def model_latency_output(self, module_information=1, layer_information = 1):
-        for i in range(len(self.begin_time)):
-            print("Layer", i, " type:", self.NetStruct[i][0][0]['type'])
-            # print("start time: ", self.begin_time[i])
-            # print("finish time:", self.finish_time[i])
-            print("Time interval of working:", self.compute_interval[i])
-            print("Occupancy:", self.occupancy[i])
-            #     # print(self.xbar_latency[i])
-            total_latency = self.total_buffer_latency[i] + self.total_computing_latency[i] + \
-                            self.total_digital_latency[i] + self.total_intra_tile_latency[i] + \
-                            self.total_inter_tile_latency[i]
-            print("Buffer latency of layer", i, ":", self.total_buffer_latency[i], '(',
-                  "%.2f" % (100 * self.total_buffer_latency[i] / total_latency), '%)')
-            print("Computing latency of layer", i, ":", self.total_computing_latency[i], '(',
-                  "%.2f" % (100 * self.total_computing_latency[i] / total_latency), '%)')
-            print("     DAC latency of layer", i, ":", self.total_DAC_latency[i], '(',
-                  "%.2f" % (100 * self.total_DAC_latency[i] / total_latency), '%)')
-            print("     ADC latency of layer", i, ":", self.total_ADC_latency[i], '(',
-                  "%.2f" % (100 * self.total_ADC_latency[i] / total_latency), '%)')
-            print("     xbar latency of layer", i, ":", self.total_xbar_latency[i], '(',
-                  "%.2f" % (100 * self.total_xbar_latency[i] / total_latency), '%)')
-            print("Digital part latency of layer", i, ":", self.total_digital_latency[i], '(',
-                  "%.2f" % (100 * self.total_digital_latency[i] / total_latency), '%)')
-            print("Intra tile communication latency of layer", i, ":", self.total_intra_tile_latency[i], '(',
-                  "%.2f" % (100 * self.total_intra_tile_latency[i] / total_latency), '%)')
-            print("Inter tile communication latency of layer", i, ":", self.total_inter_tile_latency[i], '(',
-                  "%.2f" % (100 * self.total_inter_tile_latency[i] / total_latency), '%)')
-            print("     One layer merge latency of layer", i, ":", self.total_tile_merge_latency[i], '(',
-                  "%.2f" % (100 * self.total_tile_merge_latency[i] / total_latency), '%)')
-            print("     Inter tile transfer latency of layer", i, ":", self.total_tile_transfer_latency[i], '(',
-                  "%.2f" % (100 * self.total_tile_transfer_latency[i] / total_latency), '%)')
-            print('==============================')
-        print("Latency simulation finished!")
+        print(' ')
+        if(layer_information):
+            for i in range(len(self.begin_time)):
+                print("Layer", i, " type:", self.NetStruct[i][0][0]['type'])
+                # print("start time: ", self.begin_time[i])
+                # print("finish time:", self.finish_time[i])
+                # print("Time interval of working:", self.compute_interval[i])
+                print("Occupancy:", self.occupancy[i])
+                #     # print(self.xbar_latency[i])
+                total_latency = self.total_buffer_latency[i] + self.total_computing_latency[i] + \
+                                self.total_digital_latency[i] + self.total_intra_tile_latency[i] + \
+                                self.total_inter_tile_latency[i]
+                if(module_information):
+                    print("Buffer latency of layer", i, ":", self.total_buffer_latency[i], '(',
+                          "%.2f" % (100 * self.total_buffer_latency[i] / total_latency), '%)')
+                    print("Computing latency of layer", i, ":", self.total_computing_latency[i], '(',
+                          "%.2f" % (100 * self.total_computing_latency[i] / total_latency), '%)')
+                    print("     DAC latency of layer", i, ":", self.total_DAC_latency[i], '(',
+                          "%.2f" % (100 * self.total_DAC_latency[i] / total_latency), '%)')
+                    print("     ADC latency of layer", i, ":", self.total_ADC_latency[i], '(',
+                          "%.2f" % (100 * self.total_ADC_latency[i] / total_latency), '%)')
+                    print("     xbar latency of layer", i, ":", self.total_xbar_latency[i], '(',
+                          "%.2f" % (100 * self.total_xbar_latency[i] / total_latency), '%)')
+                    print("Digital part latency of layer", i, ":", self.total_digital_latency[i], '(',
+                          "%.2f" % (100 * self.total_digital_latency[i] / total_latency), '%)')
+                    print("Intra tile communication latency of layer", i, ":", self.total_intra_tile_latency[i], '(',
+                          "%.2f" % (100 * self.total_intra_tile_latency[i] / total_latency), '%)')
+                    print("Inter tile communication latency of layer", i, ":", self.total_inter_tile_latency[i], '(',
+                          "%.2f" % (100 * self.total_inter_tile_latency[i] / total_latency), '%)')
+                    print("     One layer merge latency of layer", i, ":", self.total_tile_merge_latency[i], '(',
+                          "%.2f" % (100 * self.total_tile_merge_latency[i] / total_latency), '%)')
+                    print("     Inter tile transfer latency of layer", i, ":", self.total_tile_transfer_latency[i], '(',
+                          "%.2f" % (100 * self.total_tile_transfer_latency[i] / total_latency), '%)')
+                print('----------------------------------------------')
+        # print("Latency simulation finished!")
         print("Entire latency:", max(max(self.finish_time)), "ns")
 
 

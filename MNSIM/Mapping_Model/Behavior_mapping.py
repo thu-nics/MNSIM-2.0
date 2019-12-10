@@ -356,7 +356,8 @@ class behavior_mapping(tile):
     def behavior_mapping_output(self, module_information = 1, layer_information = 1):
         # module_information: 1: print module information
         # layer_information: 1: print hardware performance of each layer
-        print("--------------CNN model--------------")
+        print("=====================================")
+        print("CNN model information:")
         print("Layer number:", self.total_layer_num)
         for i in range(len(self.net_structure)):
             layer = self.net_structure[i][0][0]
@@ -377,7 +378,18 @@ class behavior_mapping(tile):
                 print("     |----Weight Precision:", layer['Weightbit'])
                 print("     |----Output Size:", layer['Outfeature'])
                 # print("     |----Operations:", self.operations[i])
-        print("---------Hardware Performance---------")
+            elif layer['type'] == 'pooling':
+                print("     |----Input Size:", layer['Inputsize'])
+                print("     |----Input Precision:", layer['Inputbit'])
+                print("     |----Kernel Size:", layer['Kernelsize'])
+                print("     |----Weight Precision:", layer['Weightbit'])
+                print("     |----Input Channel:", layer['Inputchannel'])
+                print("     |----Stride:", layer['Stride'])
+                print("     |----Output Size:", layer['Outputsize'])
+                print("     |----Output Channel:", layer['Outputchannel'])
+                # print("     |----Operations:", self.operations[i])
+        print("======================================")
+        print("Hardware performance finished!")
         print("Tile number:", sum(self.tile_num))
         print("Resource utilization:", self.arch_total_utilization)
         print("Hardware area:", self.arch_total_area, "um^2")

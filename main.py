@@ -81,10 +81,10 @@ def main():
         __bm.behavior_mapping_output(not(args.disable_module_output), not(args.disable_layer_output))
         __latency = Model_latency(structure_file, args.hardware_description)
         __latency.calculate_model_latency_2()
-        __latency.model_latency_output()
+        __latency.model_latency_output(not(args.disable_module_output),not(args.disable_layer_output))
 
     if not(args.disable_accuracy_simulation):
-        print("===================================================")
+        print("======================================")
         print("Accuracy simulation will take a few minutes on GPU")
         weight = __TestInterface.get_net_bits()
         weight_2 = weight_update(args.hardware_description, weight,
