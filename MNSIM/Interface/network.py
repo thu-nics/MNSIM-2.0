@@ -39,6 +39,8 @@ class NetworkGraph(nn.Module):
         quantize.last_activation_bit = self.input_params['activation_bit']
         # forward
         tensor_list = [x]
+        self.to(x.device)
+        self.eval()
         for i, layer in enumerate(self.layer_list):
             # find the input tensor
             input_index = self.input_index_list[i]
@@ -59,6 +61,8 @@ class NetworkGraph(nn.Module):
         # forward
         tensor_list = [x]
         count = 0
+        self.to(x.device)
+        self.eval()
         for i, layer in enumerate(self.layer_list):
             # find the input tensor
             input_index = self.input_index_list[i]
@@ -73,11 +77,14 @@ class NetworkGraph(nn.Module):
     def get_structure(self):
         # forward structure
         x = torch.zeros(self.input_params['input_shape'])
+        self.to(x.device)
+        self.eval()
         tensor_list = [x]
         for i, layer in enumerate(self.layer_list):
             # find the input tensor
             input_index = self.input_index_list[i]
             assert len(input_index) == 1
+            # print(tensor_list[input_index[0]+i+1].shape)
             tensor_list.append(layer.structure_forward(tensor_list[input_index[0] + i + 1]))
         # structure information, stored as list
         net_info = []
