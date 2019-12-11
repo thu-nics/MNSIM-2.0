@@ -1286,18 +1286,10 @@ if __name__ == '__main__':
     __TestInterface = TrainTestInterface('alexnet', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
                                          'cpu')
     structure_file = __TestInterface.get_structure()
-    # lenet_multiple = [5,1,1,1,1,1,1]
-    # vgg8_multiple =[1,4,1,2,2,1,1,1,1,1,1,1] #(ccpccpccpcpf)
-    # vgg16_multiple = [1,4,1,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]# (20 layers)
-    # print(structure_file[0][0])
-    # structure_file[0][0][0]['Inputbit'] = 5
-    # structure_file[1][0][0]['Outputchannel'] = 8
-    # alexnet_multiple = [1,1,1,1,1,1,1,1,1,1,1] #C-P-C-P-C-C-C-P-F-f-f
-    test = Model_latency(structure_file, test_SimConfig_path, [2,1,1,1,1,1,1,1,1,1,1])
+    test = Model_latency(structure_file, test_SimConfig_path)
 
     tile = 0
-    # test.calculate_model_latency(mode=2)
-    test.calculate_model_latency_2()
+    test.calculate_model_latency(mode=2)
     test.model_latency_output()
 
 

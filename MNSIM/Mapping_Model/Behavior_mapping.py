@@ -17,8 +17,6 @@ class behavior_mapping(tile):
     def __init__(self, NetStruct, SimConfig_path):
         self.SimConfig_path = SimConfig_path
         tile.__init__(self, SimConfig_path)
-        # print("CNN structure file is loaded")
-        # print("Hardware config file is loaded:", SimConfig_path)
         bm_config = cp.ConfigParser()
         bm_config.read(SimConfig_path, encoding='UTF-8')
         self.xbar_polarity = int(bm_config.get('Process element level', 'Xbar_Polarity'))
@@ -237,7 +235,6 @@ class behavior_mapping(tile):
             self.arch_shiftreg_area[i] = self.tile_shiftreg_area * self.tile_num[i]
             self.arch_input_demux_area[i] = self.tile_input_demux_area * self.tile_num[i]
             self.arch_output_mux_area[i] = self.tile_output_mux_area * self.tile_num[i]
-            # print(self.tile_num[i], self.arch_area[i])
         self.arch_total_area = sum(self.arch_area)
         self.arch_total_xbar_area = sum(self.arch_xbar_area)
         self.arch_total_ADC_area = sum(self.arch_ADC_area)
@@ -247,7 +244,6 @@ class behavior_mapping(tile):
         self.arch_total_shiftreg_area = sum(self.arch_shiftreg_area)
         self.arch_total_input_demux_area = sum(self.arch_input_demux_area)
         self.arch_total_output_mux_area = sum(self.arch_output_mux_area)
-        # print(self.arch_total_area)
 
     def behavior_mapping_utilization(self):
         # Notice: before calculating utilization, config_behavior_mapping must be executed
@@ -256,9 +252,7 @@ class behavior_mapping(tile):
                 self.arch_utilization[i] += self.tile_list[i][j].tile_utilization
                 self.arch_total_utilization += self.tile_list[i][j].tile_utilization
             self.arch_utilization[i] /= self.tile_num[i]
-            # print(self.arch_utilization[i])
         self.arch_total_utilization /= sum(self.tile_num)
-        # print(self.arch_total_utilization)
 
     def behavior_mapping_latency(self):
         # Notice: before calculating latency, config_behavior_mapping must be executed
@@ -280,7 +274,6 @@ class behavior_mapping(tile):
             self.arch_shiftreg_latency[i] = self.tile_list[i][latency_index].tile_shiftreg_read_latency
             self.arch_input_demux_latency[i] = self.tile_list[i][latency_index].tile_input_demux_read_latency
             self.arch_output_mux_latency[i] = self.tile_list[i][latency_index].tile_output_mux_read_latency
-            # print(self.tile_num[i], self.arch_latency[i])
         self.arch_total_latency = sum(self.arch_latency)
         self.arch_total_xbar_latency = sum(self.arch_xbar_latency)
         self.arch_total_ADC_latency = sum(self.arch_ADC_latency)
@@ -290,7 +283,6 @@ class behavior_mapping(tile):
         self.arch_total_shiftreg_latency = sum(self.arch_shiftreg_latency)
         self.arch_total_input_demux_latency = sum(self.arch_input_demux_latency)
         self.arch_total_output_mux_latency = sum(self.arch_output_mux_latency)
-        # print(self.arch_total_latency)
 
     def behavior_mapping_power(self):
         # Notice: before calculating power, config_behavior_mapping must be executed
@@ -308,7 +300,6 @@ class behavior_mapping(tile):
                 self.arch_shiftreg_power[i] += self.tile_list[i][j].tile_shiftreg_read_power
                 self.arch_input_demux_power[i] += self.tile_list[i][j].tile_input_demux_read_power
                 self.arch_output_mux_power[i] += self.tile_list[i][j].tile_output_mux_read_power
-            # print(self.tile_num[i], self.arch_power[i])
         self.arch_total_power = sum(self.arch_power)
         self.arch_total_xbar_power = sum(self.arch_xbar_power)
         self.arch_total_ADC_power = sum(self.arch_ADC_power)
@@ -318,9 +309,6 @@ class behavior_mapping(tile):
         self.arch_total_shiftreg_power = sum(self.arch_shiftreg_power)
         self.arch_total_input_demux_power = sum(self.arch_input_demux_power)
         self.arch_total_output_mux_power = sum(self.arch_output_mux_power)
-        # print(self.arch_total_power)
-        # print("xbar", self.arch_total_xbar_power)
-        # print("ADC", self.arch_total_ADC_power)
 
     def behavior_mapping_energy(self):
         # Notice: before calculating energy, config_behavior_mapping must be executed
@@ -338,7 +326,6 @@ class behavior_mapping(tile):
                 self.arch_shiftreg_energy[i] += self.tile_list[i][j].tile_shiftreg_read_energy
                 self.arch_input_demux_energy[i] += self.tile_list[i][j].tile_input_demux_read_energy
                 self.arch_output_mux_energy[i] += self.tile_list[i][j].tile_output_mux_read_energy
-            # print(self.tile_num[i], self.arch_energy[i])
         self.arch_total_energy = sum(self.arch_energy)
         self.arch_total_xbar_energy = sum(self.arch_xbar_energy)
         self.arch_total_ADC_energy = sum(self.arch_ADC_energy)
@@ -349,9 +336,6 @@ class behavior_mapping(tile):
         self.arch_total_input_demux_energy = sum(self.arch_input_demux_energy)
         self.arch_total_output_mux_energy = sum(self.arch_output_mux_energy)
         self.arch_energy_efficiency = sum(self.operations)/self.arch_total_energy #unit: GOPs/W
-        # print(self.arch_total_energy)
-        # print("xbar", self.arch_total_xbar_energy)
-        # print("ADC", self.arch_total_ADC_energy)
 
     def behavior_mapping_output(self, module_information = 1, layer_information = 1):
         # module_information: 1: print module information

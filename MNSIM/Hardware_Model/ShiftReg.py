@@ -29,9 +29,6 @@ class shiftreg(object):
 		self.calculate_shiftreg_power()
 		self.shiftreg_energy = 0
 		# print("shiftreg configuration is loaded")
-		# self.calculate_shiftreg_area()
-		# self.calculate_shiftreg_power()
-		# self.calculate_shiftreg_energy()
 
 	def calculate_shiftreg_area(self):
 		# unit: um^2

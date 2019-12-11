@@ -15,7 +15,7 @@ import collections
 
 class PE_node():
     def __init__(self, PE_id = 0, ltype='conv', lnum = 0):
-        # PE_id: the id of P                                E node, ltype: layer type of this PE, lnum: layer number of this PE
+        # PE_id: the id of PE node, ltype: layer type of this PE, lnum: layer number of this PE
         self.id = PE_id
         self.type = ltype
         self.lnum = lnum

@@ -52,13 +52,7 @@ class crossbar(device):
 
 		self.xbar_utilization = 0
 		# print("Crossbar configuration is loaded")
-		# self.calculate_xbar_area()
-		# self.calculate_xbar_read_latency()
-		# self.calculate_xbar_write_latency()
-		# self.calculate_xbar_read_power()
-		# self.calculate_xbar_write_power()
-		# self.calculate_xbar_read_energy()
-		# self.calculate_xbar_write_energy()
+
 
 	def xbar_write_config(self, write_row = None, write_column = None, write_matrix = None, write_vector = None):
 		# write_row and write_column are the sizes of occupied parts in crossbars
@@ -254,18 +248,12 @@ class crossbar(device):
 def xbar_test():
 	print("load file:",test_SimConfig_path)
 	_xbar = crossbar(test_SimConfig_path)
-	# _xbar.xbar_output()
 	print('------------')
-	# _xbar.xbar_read_config(read_matrix=[[1,0],[1,1]],read_vector=[[0],[1]])
-	# _xbar.xbar_read_config(read_row=100,read_column=100)
 	_xbar.xbar_read_config()
 	_xbar.calculate_xbar_area()
 	_xbar.calculate_xbar_read_latency()
-	# self.calculate_xbar_write_latency()
 	_xbar.calculate_xbar_read_power()
-	# _xbar.calculate_xbar_write_power()
 	_xbar.calculate_xbar_read_energy()
-	# _xbar.calculate_xbar_write_energy()
 	_xbar.xbar_output()
 
 

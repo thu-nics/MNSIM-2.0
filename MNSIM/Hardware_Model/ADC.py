@@ -160,7 +160,6 @@ def ADC_test():
 	_ADC.calculate_ADC_energy()
 	_ADC.config_ADC_interval(test_SimConfig_path,256)
 	result = _ADC.calculate_sensing_results(100)
-	# print("-------::::",result)
 	_ADC.ADC_output()
 
 
