@@ -144,19 +144,6 @@ class ProcessElement(crossbar, DAC, ADC):
 
 		self.calculate_inter_PE_connection()
 
-		# print("Process element configuration is loaded")
-		# self.calculate_demux_area()
-		# self.calculate_mux_area()
-		# self.calculate_PE_area()
-		# self.calculate_PE_read_latency()
-		# self.calculate_PE_write_latency()
-		# self.calculate_demux_power()
-		# self.calculate_mux_power()
-		# self.calculate_PE_read_power()
-		# self.calculate_PE_write_power()
-		# self.calculate_PE_read_energy()
-		# self.calculate_PE_write_energy()
-
 	def calculate_ADC_num(self):
 		self.calculate_xbar_area()
 		self.calculate_ADC_area()
@@ -168,7 +155,6 @@ class ProcessElement(crossbar, DAC, ADC):
 										self.xbar_column)
 		else:
 			assert self.PE_group_ADC_num > 0, "ADC number in one group < 0"
-		# print("ADC_num", self.PE_group_ADC_num)
 		self.PE_ADC_num = self.group_num * self.PE_group_ADC_num
 		# self.output_mux = math.ceil(self.xbar_column*self.PE_multiplex_xbar_num[1]/self.PE_group_ADC_num)
 		self.output_mux = math.ceil(self.xbar_column/self.PE_group_ADC_num * (self.sub_position+1))

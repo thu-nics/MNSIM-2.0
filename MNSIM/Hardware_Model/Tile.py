@@ -399,39 +399,6 @@ class tile(ProcessElement):
 										   + self.tile_input_demux_read_power + self.tile_output_mux_read_power
 			self.tile_read_power = self.tile_xbar_read_power + self.tile_ADC_read_power + self.tile_DAC_read_power \
 								   + self.tile_digital_read_power
-	# def calculate_tile_read_power(self, cal_mode = 0, read_column = None, read_row = None, num_cell = None):
-	# 	# unit: W
-	# 	# read_column / read_row are 2D lists with the size of (tile_PE_total_num, num_group)
-	# 	# num_cell is a 3D list with the size of (tile_PE_total_num, num_group, num_resistance_level)
-	# 	self.tile_read_power = 0
-	# 	self.tile_xbar_read_power = 0
-	# 	self.tile_ADC_read_power = 0
-	# 	self.tile_DAC_read_power = 0
-	# 	self.tile_digital_read_power = 0
-	#
-	# 	if read_row is None:
-	# 		read_row = self.tile_PE_total_num * [self.tile_PE[0].num_group *
-	# 											 [self.tile_PE[0].xbar_row * self.tile_PE[0].PE_multiplex_xbar_num[0]]]
-	# 	assert min(min(read_row)) >= 0
-	# 	if read_column is None:
-	# 		read_column = self.tile_PE_total_num * [self.tile_PE[0].num_group *
-	# 												[self.tile_PE[0].xbar_column * self.tile_PE[0].PE_multiplex_xbar_num[1]]]
-	# 	assert min(min(read_column)) >= 0
-	# 	for index in range(self.tile_PE_total_num):
-	# 		if num_cell is None:
-	# 			self.tile_PE[index].calculate_PE_read_power(cal_mode, read_column[index], read_row[index], None)
-	# 		else:
-	# 			self.tile_PE[index].calculate_PE_read_power(cal_mode, read_column[index], read_row[index], num_cell[index])
-	# 		self.tile_xbar_read_power += self.tile_PE[index].PE_xbar_read_power
-	# 		self.tile_ADC_read_power += self.tile_PE[index].PE_ADC_read_power
-	# 		self.tile_DAC_read_power += self.tile_PE[index].PE_DAC_read_power
-	# 		self.tile_digital_read_power += self.tile_PE[index].PE_digital_read_power
-	# 	self.tile_adder_read_power = self.tile_adder_num * self.tile_adder.adder_power
-	# 	self.tile_shiftreg_read_power = self.tile_shiftreg_num * self.tile_shiftreg.shiftreg_power
-	# 	self.tile_digital_read_power += self.tile_adder_read_power + self.tile_shiftreg_read_power
-	#
-	# 	self.tile_read_power = self.tile_xbar_read_power + self.tile_ADC_read_power \
-	# 						   + self.tile_DAC_read_power + self.tile_digital_read_power
 
 	def calculate_tile_write_power(self):
 		# unit: W
@@ -459,35 +426,6 @@ class tile(ProcessElement):
 						self.tile_input_demux_write_power += self.tile_PE_list[i][j].input_demux_write_power
 						self.tile_output_mux_write_power += self.tile_PE_list[i][j].output_mux_write_power
 			self.tile_write_power = self.tile_xbar_write_power + self.tile_ADC_write_power + self.tile_DAC_write_power + self.tile_digital_write_power
-	# def calculate_tile_write_power(self, cal_mode = 0, write_column = None, write_row = None, num_cell = None):
-	# 	# unit: W
-	# 	# write_column / write_row are 2D lists with the size of (tile_PE_total_num, num_group)
-	# 	# num_cell is a 3D list with the size of (tile_PE_total_num, num_group, num_resistance_level)
-	# 	self.tile_write_power = 0
-	# 	self.tile_xbar_write_power = 0
-	# 	self.tile_ADC_write_power = 0
-	# 	self.tile_DAC_write_power = 0
-	# 	self.tile_digital_write_power = 0
-	# 	if write_row is None:
-	# 		write_row = self.tile_PE_total_num * [self.tile_PE[0].num_group *
-	# 											 [self.tile_PE[0].xbar_row * self.tile_PE[0].PE_multiplex_xbar_num[0]]]
-	# 	assert min(min(write_row)) >= 0
-	# 	if write_column is None:
-	# 		write_column = self.tile_PE_total_num * [self.tile_PE[0].num_group *
-	# 												[self.tile_PE[0].xbar_column *
-	# 												 self.tile_PE[0].PE_multiplex_xbar_num[1]]]
-	# 	assert min(min(write_column)) >= 0
-	# 	for index in range(self.tile_PE_total_num):
-	# 		if num_cell is None:
-	# 			self.tile_PE[index].calculate_PE_write_power(cal_mode, write_column[index], write_row[index], None)
-	# 		else:
-	# 			self.tile_PE[index].calculate_PE_write_power(cal_mode, write_column[index], write_row[index], num_cell[index])
-	# 		self.tile_xbar_write_power += self.tile_PE[index].PE_xbar_write_power
-	# 		self.tile_ADC_write_power += self.tile_PE[index].PE_ADC_write_power
-	# 		self.tile_DAC_write_power += self.tile_PE[index].PE_DAC_write_power
-	# 		self.tile_digital_write_power += self.tile_PE[index].PE_digital_write_power
-	# 	self.tile_write_power = self.tile_xbar_write_power + self.tile_ADC_write_power \
-	# 						   + self.tile_DAC_write_power + self.tile_digital_write_power
 
 	def calculate_tile_read_energy(self):
 		# unit: nJ
@@ -623,17 +561,6 @@ def tile_test():
 	_tile = tile(test_SimConfig_path)
 	print(_tile.xbar_column)
 	_tile0 = _tile
-	# _tile0.tile_read_config(read_matrix=[
-	# 	[[[[0, 1], [1, 1]], [[1, 1], [0, 0]]],
-	# 	 [[[0, 1, 1], [1, 1, 0], [0, 0, 0]], [[1, 1, 1], [0, 0, 1], [1, 0, 1]]]],
-	# 	[[[[0, 1], [1, 1]], [[1, 1], [0, 0]]],
-	# 	 [[[0, 1, 1], [1, 1, 0], [0, 0, 0]], [[1, 1, 1], [0, 0, 1], [1, 0, 1]]]]
-	# ], read_vector=[
-	# 	[[[0], [1]],
-	# 	 [[1], [0], [1]]],
-	# 	[[[0], [1]],
-	# 	 [[1], [0], [1]]]
-	# ])
 	_tile0.tile_read_config()
 	_tile0.tile_write_config()
 	_tile0.calculate_tile_area()

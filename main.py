@@ -26,14 +26,14 @@ def main():
     home_path = os.getcwd()
     # print(home_path)
     SimConfig_path = os.path.join(home_path, "SimConfig.ini")
-    weights_file_path = os.path.join(home_path, "vgg8_channels_bit/vgg8_128_9_params.pth")
+    weights_file_path = os.path.join(home_path, "vgg8_params.pth")
     # print(SimConfig_path)
     parser = argparse.ArgumentParser(description='MNSIM example')
     parser.add_argument("-HWdes", "--hardware_description", default=SimConfig_path,
                         help="Hardware description file location & name, default:/MNSIM_Python/SimConfig.ini")
     parser.add_argument("-Weights", "--weights", default=weights_file_path,
-                        help="NN model weights file location & name, default:/MNSIM_Python/vgg8_channels_bit/vgg8_128_9_params.pth")
-    parser.add_argument("-NN", "--NN", default='vgg8_128_9',
+                        help="NN model weights file location & name, default:/MNSIM_Python/vgg8_params.pth")
+    parser.add_argument("-NN", "--NN", default='vgg8',
                         help="NN model description (name), default: vgg8_128_9")
     parser.add_argument("-DisHW", "--disable_hardware_modeling", action='store_true', default=False,
                         help="Disable hardware modeling, default: false")
