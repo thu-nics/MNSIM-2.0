@@ -39,8 +39,6 @@ class NetworkGraph(nn.Module):
         quantize.last_activation_bit = self.input_params['activation_bit']
         # forward
         tensor_list = [x]
-        self.to(x.device)
-        self.eval()
         for i, layer in enumerate(self.layer_list):
             # find the input tensor
             input_index = self.input_index_list[i]
@@ -61,8 +59,6 @@ class NetworkGraph(nn.Module):
         # forward
         tensor_list = [x]
         count = 0
-        self.to(x.device)
-        self.eval()
         for i, layer in enumerate(self.layer_list):
             # find the input tensor
             input_index = self.input_index_list[i]
