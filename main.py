@@ -83,7 +83,7 @@ def main():
         __bm.behavior_mapping_output(not(args.disable_module_output), not(args.disable_layer_output))
         __latency = Model_latency(structure_file, args.hardware_description)
         if not(args.disable_inner_pipeline):
-            __latency.calculate_model_latency_2()
+            __latency.calculate_model_latency(mode=2)
         else:
             __latency.calculate_model_latency_nopipe()
         __latency.model_latency_output(not(args.disable_module_output),not(args.disable_layer_output))

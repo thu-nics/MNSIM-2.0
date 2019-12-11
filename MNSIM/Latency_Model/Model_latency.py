@@ -1520,7 +1520,6 @@ class Model_latency():
             self.total_tile_merge_latency.append(sum(self.tile_merge_latency[layer_id]))
             self.total_tile_transfer_latency.append(sum(self.tile_transfer_latency[layer_id]))
 
-
     def calculate_model_latency_2(self):
         for layer_id in range(len(self.NetStruct)):
             layer_dict = self.NetStruct[layer_id][0][0]
@@ -2172,6 +2171,7 @@ class Model_latency():
                         print("         ",  self.compute_interval[layer_id-1])
                         print(len(stall_interval))
         return
+
     def model_latency_output(self, module_information=1, layer_information = 1):
         print(' ')
         if(layer_information):
@@ -2210,13 +2210,571 @@ class Model_latency():
         # print("Latency simulation finished!")
         print("Entire latency:", max(max(self.finish_time)), "ns")
 
+    def calculate_model_latency(self, mode=0):
+        ''' merge the latency_0 and latency_1 '''
+        for layer_id in range(len(self.NetStruct)):
+            layer_dict = self.NetStruct[layer_id][0][0]
+            if layer_id == 0:
+                # for the first layer, first layer must be conv layer
+                self.begin_time.append([])
+                self.finish_time.append([])
+                self.compute_interval.append([])
+
+                self.buffer_latency.append([])
+                self.computing_latency.append([])
+                self.DAC_latency.append([])
+                self.xbar_latency.append([])
+                self.ADC_latency.append([])
+                self.digital_latency.append([])
+                self.intra_tile_latency.append([])
+                self.inter_tile_latency.append([])
+                self.tile_merge_latency.append([])
+                self.tile_transfer_latency.append([])
+                output_size = list(map(int, layer_dict['Outputsize']))
+                input_size = list(map(int, layer_dict['Inputsize']))
+                kernelsize = int(layer_dict['Kernelsize'])
+                stride = int(layer_dict['Stride'])
+                inputchannel = int(layer_dict['Inputchannel'])
+                outputchannel = int(layer_dict['Outputchannel'])
+                padding = int(layer_dict['Padding'])
+                inputbit = int(layer_dict['Inputbit'])
+                outputbit = int(layer_dict['outputbit'])
+                # print(self.graph.layer_tileinfo[layer_id]['max_row'])
+                input_channel_PE = self.graph.layer_tileinfo[layer_id]['max_row'] / (kernelsize ** 2)
+                # the input channel number each PE processes
+                temp_tile_latency = tile_latency_analysis(SimConfig_path=self.SimConfig_path,
+                                                          read_row=self.graph.layer_tileinfo[layer_id]['max_row'],
+                                                          read_column=self.graph.layer_tileinfo[layer_id]['max_column'],
+                                                          indata=0, rdata=0, inprecision=inputbit,
+                                                          PE_num=self.graph.layer_tileinfo[layer_id]['max_PE']
+                                                          )
+                # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
+                #                                                          self.graph.layer_tileinfo[layer_id][
+                #                                                              'max_column'] * outputbit / self.inter_tile_bandwidth)
+                merge_time = (self.graph.layer_tileinfo[layer_id]['tilenum'] - 1) * temp_tile_latency.digital_period + \
+                             self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
+                                 'max_column'] * outputbit / self.inter_tile_bandwidth
+                # Todo: update merge time (adder tree) and transfer data volume
+                transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                        outputchannel * outputbit / self.inter_tile_bandwidth)
+
+                cur_multiple = self.multiple[layer_id]
+                split_size = Split_map(padding=padding, outputsize=output_size[1], multiple=cur_multiple)
+                self.layer_split.append(split_size)
+                max_time = 0
+                # Todo: update transfer data volume
+                for i in range(output_size[0]):
+                    self.pre_max_time = max_time
+                    max_time = 0
+                    for m in range(cur_multiple):
+                        for j in range(split_size[m]):
+                            if (i == 0) & (j == 0):
+                                # the first output
+                                if m == 0:
+                                    indata = input_channel_PE * (split_size[m] * max(kernelsize - padding - 1, 0) +
+                                                                 max(kernelsize - padding, 0)) * inputbit / 8
+                                else:
+                                    indata = input_channel_PE * (split_size[m] * max(kernelsize - padding - 1, 0) +
+                                                                 kernelsize) * inputbit / 8
+                                # indata = input_channel_PE * (
+                                #             input_size[1] * max(kernelsize - padding - 1, 0) + max(kernelsize - padding,
+                                #                                                                    0)) * inputbit / 8
+                                # fill the line buffer
+                                rdata = self.graph.layer_tileinfo[layer_id]['max_row'] * inputbit / 8
+                                temp_tile_latency.update_tile_latency(indata=indata, rdata=rdata)
+                                compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time
+
+                                self.begin_time[0].append(0)
+                                self.finish_time[0].append(compute_time)
+                                self.compute_interval[0].append([0, compute_time])
+
+                                self.buffer_latency[layer_id].append(
+                                    temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
+                                self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
+                                self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
+                                self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
+                                self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
+                                self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
+                                                                      temp_tile_latency.ireg_latency + temp_tile_latency.shiftadd_latency +
+                                                                      temp_tile_latency.oreg_latency + temp_tile_latency.merge_latency)
+                                self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
+                                self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
+                                self.tile_merge_latency[layer_id].append(merge_time)
+                                self.tile_transfer_latency[layer_id].append(transfer_time)
+                            elif j == 0:
+                                if mode is 0:
+                                    indata = inputbit / 8 * input_channel_PE * (
+                                                input_size[1] * (stride - 1) + max(kernelsize - padding, 0))
+                                elif mode is 1:
+                                    indata = inputbit / 8 * input_channel_PE * stride * max(kernelsize - padding, 0)
+                                else:
+                                    assert mode == 2, "the mode can only be 0/1/2"
+                                    if m == 0:
+                                        indata = input_channel_PE * stride * max(kernelsize - padding, 0) * inputbit / 8
+                                    else:
+                                        indata = input_channel_PE * stride * kernelsize * inputbit / 8
+                                rdata = self.graph.layer_tileinfo[layer_id]['max_row'] * inputbit / 8
+                                temp_tile_latency.update_tile_latency(indata=indata, rdata=rdata)
+                                # TODO: Check
+                                # if mode == 2:
+                                #     begin_time = self.pre_max_time
+                                # else:
+                                #     begin_time = self.finish_time[0][(i - 1) * output_size[1] + output_size[1] - 1]
+                                begin_time = self.pre_max_time
+                                compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
+                                self.begin_time[0].append(begin_time)
+                                self.finish_time[0].append(compute_time)
+                                self.compute_interval[0].append([begin_time, compute_time])
+
+                                self.buffer_latency[layer_id].append(
+                                    temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
+                                self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
+                                self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
+                                self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
+                                self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
+                                self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
+                                                                      temp_tile_latency.ireg_latency + temp_tile_latency.shiftadd_latency +
+                                                                      temp_tile_latency.oreg_latency + temp_tile_latency.merge_latency)
+                                self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
+                                self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
+                                self.tile_merge_latency[layer_id].append(merge_time)
+                                self.tile_transfer_latency[layer_id].append(transfer_time)
+                            else:
+                                rdata = stride * kernelsize * input_channel_PE * inputbit / 8
+                                if mode is 0:
+                                    indata = input_channel_PE * stride * inputbit / 8
+                                    # temp_tile_latency.update_tile_latency(indata=indata, rdata=rdata)
+                                    # begin_time = self.finish_time[0][i * output_size[1] + j - 1]
+                                else:
+                                    indata = input_channel_PE * stride ** 2 * inputbit / 8
+                                temp_tile_latency.update_tile_latency(indata=indata, rdata=rdata)
+                                if mode == 2:
+                                    begin_time = self.finish_time[0][-1]
+                                else:
+                                    begin_time = self.finish_time[0][i * output_size[1] + j - 1]
+                                compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
+                                self.begin_time[0].append(begin_time)
+                                self.finish_time[0].append(compute_time)
+                                self.compute_interval[0].append([begin_time, compute_time])
+
+                                self.buffer_latency[layer_id].append(
+                                    temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
+                                self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
+                                self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
+                                self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
+                                self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
+                                self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
+                                                                      temp_tile_latency.ireg_latency + temp_tile_latency.shiftadd_latency +
+                                                                      temp_tile_latency.oreg_latency + temp_tile_latency.merge_latency)
+                                self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
+                                self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
+                                self.tile_merge_latency[layer_id].append(merge_time)
+                                self.tile_transfer_latency[layer_id].append(transfer_time)
+
+                                if j == split_size[m] - 1:
+                                    if max_time < self.finish_time[0][-1]:
+                                        max_time = self.finish_time[0][-1]
+            else:
+                if layer_dict['type'] is 'conv':
+                    self.begin_time.append([])
+                    self.finish_time.append([])
+                    self.compute_interval.append([])
+
+                    self.buffer_latency.append([])
+                    self.computing_latency.append([])
+                    self.DAC_latency.append([])
+                    self.xbar_latency.append([])
+                    self.ADC_latency.append([])
+                    self.digital_latency.append([])
+                    self.intra_tile_latency.append([])
+                    self.inter_tile_latency.append([])
+                    self.tile_merge_latency.append([])
+                    self.tile_transfer_latency.append([])
+                    output_size = list(map(int, layer_dict['Outputsize']))
+                    input_size = list(map(int, layer_dict['Inputsize']))
+                    kernelsize = int(layer_dict['Kernelsize'])
+                    stride = int(layer_dict['Stride'])
+                    inputchannel = int(layer_dict['Inputchannel'])
+                    outputchannel = int(layer_dict['Outputchannel'])
+                    padding = int(layer_dict['Padding'])
+                    inputbit = int(layer_dict['Inputbit'])
+                    outputbit = int(layer_dict['outputbit'])
+                    input_channel_PE = self.graph.layer_tileinfo[layer_id]['max_row'] / (kernelsize ** 2)
+                    # the input channel number each PE processes
+                    temp_tile_latency = tile_latency_analysis(SimConfig_path=self.SimConfig_path,
+                                                              read_row=self.graph.layer_tileinfo[layer_id]['max_row'],
+                                                              read_column=self.graph.layer_tileinfo[layer_id][
+                                                                  'max_column'],
+                                                              indata=0, rdata=0, inprecision=inputbit,
+                                                              PE_num=self.graph.layer_tileinfo[layer_id]['max_PE']
+                                                              )
+                    merge_time = (self.graph.layer_tileinfo[layer_id][
+                                      'tilenum'] - 1) * temp_tile_latency.digital_period + \
+                                 self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
+                                     'max_column'] * outputbit / self.inter_tile_bandwidth
+                    # Todo: update merge time (adder tree) and transfer data volume
+                    transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                            outputchannel * outputbit / self.inter_tile_bandwidth)
+                    # Todo: update transfer data volume
+                    ''' get the multiple for the conv layer '''
+                    cur_multiple = self.multiple[layer_id]
+                    split_size = Split_map(padding=padding, outputsize=output_size[1], multiple=cur_multiple)
+                    self.layer_split.append(split_size)
+                    max_time = 0
+                    for i in range(output_size[0]):
+                        self.pre_max_time = max_time
+                        max_time = 0
+                        cur_column = 0
+                        for m in range(cur_multiple):
+                            for j in range(split_size[m]):
+                                last_layer_pos = (min(kernelsize + stride * i - padding, input_size[0]) - 1) * input_size[
+                                    1] + min(kernelsize + stride * j - padding, input_size[1]) - 1
+                                if last_layer_pos > len(self.finish_time[layer_id - 1]) - 1:
+                                    print("pos error", i, j)
+                                if (i == 0) & (j == 0):
+                                    ''' the first output '''
+                                    if m == 0:
+                                        indata = input_channel_PE * (split_size[m] * max(kernelsize - padding - 1, 0) +
+                                                                     max(kernelsize - padding, 0)) * inputbit / 8
+                                    else:
+                                        indata = input_channel_PE * (split_size[m] * max(kernelsize - padding - 1, 0) +
+                                                                     kernelsize) * inputbit / 8
+                                    rdata = self.graph.layer_tileinfo[layer_id]['max_row'] * inputbit / 8
+                                    temp_tile_latency.update_tile_latency(indata=indata, rdata=rdata)
+                                    begin_time = self.finish_time[layer_id - 1][last_layer_pos]
+                                    compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
+                                    self.begin_time[layer_id].append(begin_time)
+                                    self.finish_time[layer_id].append(compute_time)
+                                    self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                                    self.buffer_latency[layer_id].append(
+                                        temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
+                                    self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
+                                    self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
+                                    self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
+                                    self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
+                                    self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
+                                                                          temp_tile_latency.ireg_latency + temp_tile_latency.shiftadd_latency +
+                                                                          temp_tile_latency.oreg_latency + temp_tile_latency.merge_latency)
+                                    self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
+                                    self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
+                                    self.tile_merge_latency[layer_id].append(merge_time)
+                                    self.tile_transfer_latency[layer_id].append(transfer_time)
+
+                                elif j == 0:
+                                    rdata = self.graph.layer_tileinfo[layer_id]['max_row'] * inputbit / 8
+                                    if mode == 0:
+                                        indata = inputbit / 8 * input_channel_PE * (input_size[1] * (stride - 1) +
+                                                                                    max(kernelsize - padding, 0))
+                                    elif mode == 1:
+                                        indata = input_channel_PE * stride * max(kernelsize - padding, 0) * inputbit / 8
+                                    else:
+                                        if m== 0:
+                                            indata = input_channel_PE * stride * max(kernelsize - padding,
+                                                                                     0) * inputbit / 8
+                                        else:
+                                            indata = input_channel_PE * stride * kernelsize * inputbit / 8
+
+                                    temp_tile_latency.update_tile_latency(indata=indata, rdata=rdata)
+                                    longest_time_pos = self.Judge(last_layer_pos, layer_id)
+                                    if m == 0:
+                                        begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
+                                                         self.pre_max_time)
+                                    else:
+                                        begin_time = max(self.finish_time[layer_id - 1][longest_time_pos],
+                                                         self.pre_max_time)
+                                    compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
+                                    self.begin_time[layer_id].append(begin_time)
+                                    self.finish_time[layer_id].append(compute_time)
+                                    self.compute_interval[layer_id].append([begin_time, compute_time])
+                                    self.buffer_latency[layer_id].append(
+                                        temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
+                                    self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
+                                    self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
+                                    self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
+                                    self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
+                                    self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
+                                                                          temp_tile_latency.ireg_latency + temp_tile_latency.shiftadd_latency +
+                                                                          temp_tile_latency.oreg_latency + temp_tile_latency.merge_latency)
+                                    self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
+                                    self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
+                                    self.tile_merge_latency[layer_id].append(merge_time)
+                                    self.tile_transfer_latency[layer_id].append(transfer_time)
+                                else:
+                                    rdata = stride * kernelsize * input_channel_PE * inputbit / 8
+                                    if mode == 0:
+                                        indata = input_channel_PE * stride * inputbit / 8
+                                    else:
+                                        indata = input_channel_PE * stride ** 2 * inputbit / 8
+
+                                    temp_tile_latency.update_tile_latency(indata=indata, rdata=rdata)
+                                    longest_time_pos = self.Judge(last_layer_pos, layer_id)
+                                    # begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
+                                    #                  self.finish_time[layer_id][i * output_size[1] + j - 1])
+                                    begin_time = max(self.finish_time[layer_id][-1],
+                                                     self.finish_time[layer_id - 1][longest_time_pos])
+                                    compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
+                                    self.begin_time[layer_id].append(begin_time)
+                                    self.finish_time[layer_id].append(compute_time)
+                                    self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                                    self.buffer_latency[layer_id].append(
+                                        temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
+                                    self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
+                                    self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
+                                    self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
+                                    self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
+                                    self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
+                                                                          temp_tile_latency.ireg_latency + temp_tile_latency.shiftadd_latency +
+                                                                          temp_tile_latency.oreg_latency + temp_tile_latency.merge_latency)
+                                    self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
+                                    self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
+                                    self.tile_merge_latency[layer_id].append(merge_time)
+                                    self.tile_transfer_latency[layer_id].append(transfer_time)
+
+                                    if j == split_size[m] - 1:
+                                        if max_time < self.finish_time[layer_id][-1]:
+                                            max_time = self.finish_time[layer_id][-1]
+
+                            cur_column += split_size[m]
+                else:
+                    cur_multiple = self.multiple[layer_id]
+                    assert cur_multiple == 1, "Only the conv layer can be multipled"
+                    if layer_dict['type'] == 'fc':
+                        output_size = int(layer_dict['Outfeature'])
+                        input_size = int(layer_dict['Infeature'])
+                        self.layer_split.append([input_size])
+
+                        inputbit = int(layer_dict['Inputbit'])
+                        outputbit = int(layer_dict['outputbit'])
+                        self.begin_time.append([])
+                        self.finish_time.append([])
+                        self.compute_interval.append([])
+
+                        self.buffer_latency.append([])
+                        self.computing_latency.append([])
+                        self.DAC_latency.append([])
+                        self.xbar_latency.append([])
+                        self.ADC_latency.append([])
+                        self.digital_latency.append([])
+                        self.intra_tile_latency.append([])
+                        self.inter_tile_latency.append([])
+                        self.tile_merge_latency.append([])
+                        self.tile_transfer_latency.append([])
+                        indata = self.graph.layer_tileinfo[layer_id]['max_row'] * inputbit / 8
+                        rdata = indata * inputbit / 8
+                        temp_tile_latency = tile_latency_analysis(SimConfig_path=self.SimConfig_path,
+                                                                  read_row=self.graph.layer_tileinfo[layer_id]['max_row'],
+                                                                  read_column=self.graph.layer_tileinfo[layer_id][
+                                                                      'max_column'],
+                                                                  indata=indata, rdata=rdata, inprecision=inputbit,
+                                                                  PE_num=self.graph.layer_tileinfo[layer_id]['max_PE']
+                                                                  )
+                        merge_time = (self.graph.layer_tileinfo[layer_id][
+                                          'tilenum'] - 1) * temp_tile_latency.digital_period + \
+                                     self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
+                                         'max_column'] * outputbit / self.inter_tile_bandwidth
+                        # Todo: update merge time (adder tree) and transfer data volume
+                        transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                                output_size * outputbit / self.inter_tile_bandwidth)
+                        begin_time = self.finish_time[layer_id - 1][-1]
+                        compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
+                        self.begin_time[layer_id] = output_size * [begin_time]
+                        self.finish_time[layer_id] = output_size * [compute_time]
+                        self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                        self.buffer_latency[layer_id].append(
+                            temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
+                        self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
+                        self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
+                        self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
+                        self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
+                        self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
+                                                              temp_tile_latency.ireg_latency + temp_tile_latency.shiftadd_latency +
+                                                              temp_tile_latency.oreg_latency + temp_tile_latency.merge_latency)
+                        self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
+                        self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
+                        self.tile_merge_latency[layer_id].append(merge_time)
+                        self.tile_transfer_latency[layer_id].append(transfer_time)
+                    else:
+                        assert layer_dict['type'] == 'pooling', "Layer type can only be conv/fc/pooling"
+                        self.begin_time.append([])
+                        self.finish_time.append([])
+                        self.compute_interval.append([])
+
+                        self.buffer_latency.append([])
+                        self.computing_latency.append([])
+                        self.DAC_latency.append([])
+                        self.xbar_latency.append([])
+                        self.ADC_latency.append([])
+                        self.digital_latency.append([])
+                        self.intra_tile_latency.append([])
+                        self.inter_tile_latency.append([])
+                        self.tile_merge_latency.append([])
+                        self.tile_transfer_latency.append([])
+                        output_size = list(map(int, layer_dict['Outputsize']))
+                        input_size = list(map(int, layer_dict['Inputsize']))
+
+                        self.layer_split.append([input_size[1]])
+                        kernelsize = int(layer_dict['Kernelsize'])
+                        stride = int(layer_dict['Stride'])
+                        inputchannel = int(layer_dict['Inputchannel'])
+                        outputchannel = int(layer_dict['Outputchannel'])
+                        padding = int(layer_dict['Padding'])
+                        inputbit = int(layer_dict['Inputbit'])
+                        outputbit = int(layer_dict['outputbit'])
+                        temp_pooling_latency = pooling_latency_analysis(SimConfig_path=self.SimConfig_path,
+                                                                        indata=0, rdata=0)
+                        merge_time = 0
+                        # Todo: update merge time of pooling tile
+                        transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                                outputchannel * outputbit / self.inter_tile_bandwidth)
+                        # Todo: update transfer data volume
+                        ''' get the multiple for the conv layer '''
+                        cur_multiple = self.multiple[layer_id]
+                        split_size = Split_map(padding=padding, outputsize=output_size[1], multiple=cur_multiple)
+                        max_time = 0
+                        input_split = Split_map(padding=padding, outputsize=input_size[1], multiple=cur_multiple)
+                        for i in range(output_size[0]):
+                            self.pre_max_time = max_time
+                            max_time = 0
+                            cur_column = 0
+                            for m in range(cur_multiple):
+                                for j in range(split_size[m]):
+                                    last_layer_pos = (min(kernelsize + stride * i - padding, input_size[0]) - 1) * input_size[
+                                        1] + min(kernelsize + stride * j - padding, input_size[1]) - 1
+                                    if (i == 0) & (j == 0):
+                                        # the first output
+                                        if m == 0:
+                                            indata = inputchannel * (
+                                                    input_split[m] * max(kernelsize - padding - 1, 0) +
+                                                    max(kernelsize - padding, 0)) * inputbit / 8
+                                        else:
+                                            indata = inputchannel * (
+                                                    input_split[m] * max(kernelsize - padding - 1, 0) +
+                                                    kernelsize) * inputbit / 8
+                                        # fill the line buffer
+                                        rdata = inputchannel * kernelsize ** 2 * inputbit / 8
+                                        # from the line buffer to the input reg
+                                        temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                        begin_time = self.finish_time[layer_id - 1][last_layer_pos]
+                                        compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + begin_time
+                                        self.begin_time[layer_id].append(begin_time)
+                                        self.finish_time[layer_id].append(compute_time)
+                                        self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                                        self.buffer_latency[layer_id].append(
+                                            temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
+                                        self.computing_latency[layer_id].append(0)
+                                        self.DAC_latency[layer_id].append(0)
+                                        self.xbar_latency[layer_id].append(0)
+                                        self.ADC_latency[layer_id].append(0)
+                                        self.digital_latency[layer_id].append(temp_pooling_latency.digital_period)
+                                        # TODO: update pooling latency analysis
+                                        self.intra_tile_latency[layer_id].append(0)
+                                        self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
+                                        self.tile_merge_latency[layer_id].append(merge_time)
+                                        self.tile_transfer_latency[layer_id].append(transfer_time)
+                                    elif j == 0:
+                                        if mode == 0:
+                                            indata = inputbit / 8 * inputchannel * (input_size[1] * (stride - 1) +
+                                                                                    max(kernelsize - padding, 0))
+                                        elif mode == 1:
+                                            indata = inputchannel * stride * max(kernelsize - padding, 0) * inputbit / 8
+                                        else:
+                                            if m == 0:
+                                                indata = inputchannel * stride * max(kernelsize - padding,
+                                                                                     0) * inputbit / 8
+                                            else:
+                                                indata = inputchannel * stride * kernelsize * inputbit / 8
+
+                                        rdata = inputchannel * kernelsize ** 2 * inputbit / 8
+                                        temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+
+                                        longest_time_pos = self.Judge(last_layer_pos, layer_id)
+                                        # begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
+                                        #                  self.finish_time[layer_id][
+                                        #                      (i - 1) * output_size[1] + output_size[1] - 1])
+                                        if m == 0:
+                                            begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
+                                                             self.pre_max_time)
+                                        else:
+                                            begin_time = max(self.finish_time[layer_id - 1][longest_time_pos],
+                                                             self.pre_max_time)
+                                        compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
+                                                       begin_time
+                                        self.begin_time[layer_id].append(begin_time)
+                                        self.finish_time[layer_id].append(compute_time)
+                                        self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                                        self.buffer_latency[layer_id].append(
+                                            temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
+                                        self.computing_latency[layer_id].append(0)
+                                        self.DAC_latency[layer_id].append(0)
+                                        self.xbar_latency[layer_id].append(0)
+                                        self.ADC_latency[layer_id].append(0)
+                                        self.digital_latency[layer_id].append(temp_pooling_latency.digital_period)
+                                        # TODO: update pooling latency analysis
+                                        self.intra_tile_latency[layer_id].append(0)
+                                        self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
+                                        self.tile_merge_latency[layer_id].append(merge_time)
+                                        self.tile_transfer_latency[layer_id].append(transfer_time)
+                                    else:
+                                        if mode == 0:
+                                            indata = inputchannel * stride * inputbit / 8
+                                        else:
+                                            indata = inputchannel * stride ** 2 * inputbit / 8
+                                        rdata = stride * kernelsize * inputchannel * inputbit / 8
+                                        temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+
+                                        longest_time_pos = self.Judge(last_layer_pos, layer_id)
+                                        begin_time = max(self.finish_time[layer_id][-1],
+                                                         self.finish_time[layer_id - 1][longest_time_pos])
+                                        compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
+                                                       begin_time
+                                        self.begin_time[layer_id].append(begin_time)
+                                        self.finish_time[layer_id].append(compute_time)
+                                        self.compute_interval[layer_id].append([begin_time, compute_time])
+
+                                        self.buffer_latency[layer_id].append(
+                                            temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
+                                        self.computing_latency[layer_id].append(0)
+                                        self.DAC_latency[layer_id].append(0)
+                                        self.xbar_latency[layer_id].append(0)
+                                        self.ADC_latency[layer_id].append(0)
+                                        self.digital_latency[layer_id].append(temp_pooling_latency.digital_period)
+                                        # TODO: update pooling latency analysis
+                                        self.intra_tile_latency[layer_id].append(0)
+                                        self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
+                                        self.tile_merge_latency[layer_id].append(merge_time)
+                                        self.tile_transfer_latency[layer_id].append(transfer_time)
+
+                                        if j == split_size[m] - 1:
+                                            if max_time < self.finish_time[layer_id][-1]:
+                                                max_time = self.finish_time[layer_id][-1]
+
+            self.compute_interval[layer_id] = merge_interval(self.compute_interval[layer_id])
+            temp_runtime = 0
+            for l in range(len(self.compute_interval[layer_id])):
+                temp_runtime += (self.compute_interval[layer_id][l][1] - self.compute_interval[layer_id][l][0])
+            self.occupancy.append(temp_runtime / (max(self.finish_time[layer_id]) - min(self.begin_time[layer_id])))
+            self.total_buffer_latency.append(sum(self.buffer_latency[layer_id]))
+            self.total_computing_latency.append(sum(self.computing_latency[layer_id]))
+            self.total_DAC_latency.append(sum(self.DAC_latency[layer_id]))
+            self.total_xbar_latency.append(sum(self.xbar_latency[layer_id]))
+            self.total_ADC_latency.append(sum(self.ADC_latency[layer_id]))
+            self.total_digital_latency.append(sum(self.digital_latency[layer_id]))
+            self.total_inter_tile_latency.append(sum(self.inter_tile_latency[layer_id]))
+            self.total_intra_tile_latency.append(sum(self.intra_tile_latency[layer_id]))
+            self.total_tile_merge_latency.append(sum(self.tile_merge_latency[layer_id]))
+            self.total_tile_transfer_latency.append(sum(self.tile_transfer_latency[layer_id]))
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "alexnet_channels_bit/alexnet_16_9_params.pth")
+                                          "alexnet_params.pth")
 
-    __TestInterface = TrainTestInterface('alexnet_16_9', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
+    __TestInterface = TrainTestInterface('alexnet', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
                                          'cpu')
     structure_file = __TestInterface.get_structure()
     # lenet_multiple = [5,1,1,1,1,1,1]
@@ -2226,9 +2784,10 @@ if __name__ == '__main__':
     # structure_file[0][0][0]['Inputbit'] = 5
     # structure_file[1][0][0]['Outputchannel'] = 8
     # alexnet_multiple = [1,1,1,1,1,1,1,1,1,1,1] #C-P-C-P-C-C-C-P-F-f-f
-    test = Model_latency(structure_file, test_SimConfig_path)
+    test = Model_latency(structure_file, test_SimConfig_path, [2,1,1,1,1,1,1,1,1,1,1])
 
     tile = 0
+    # test.calculate_model_latency(mode=2)
     test.calculate_model_latency_2()
     test.model_latency_output()
 

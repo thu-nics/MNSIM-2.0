@@ -68,7 +68,7 @@ class TrainTestInterface(object):
         self.tile_column = self.tile_size[1]
         # net and weights
         if device != None:
-            self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
+            self.device = torch.device(f'cuda:0' if torch.cuda.is_available() else 'cpu')
         else:
             self.device = torch.device('cpu')
         self.net = import_module('MNSIM.Interface.network').get_net(self.hardware_config, cate = self.network_module)
