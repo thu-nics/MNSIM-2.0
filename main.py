@@ -45,6 +45,8 @@ def main():
                         help="Enable simulate variation, default: false")
     parser.add_argument("-FixRange", "--enable_fixed_Qrange", action='store_true', default=False,
                         help="Enable fixed quantization range (max value), default: false")
+    parser.add_argument("-DisPipe", "--disable_inner_pipeline", action='store_true', default=False,
+                        help="Disable inner layer pipeline in latency modeling, default: false")
     parser.add_argument("-D", "--device", default=0,
                         help="Determine hardware device for simulation, default: CPU")
     parser.add_argument("-DisModOut", "--disable_module_output", action='store_true', default=False,
@@ -80,7 +82,10 @@ def main():
         __bm.behavior_mapping_energy()
         __bm.behavior_mapping_output(not(args.disable_module_output), not(args.disable_layer_output))
         __latency = Model_latency(structure_file, args.hardware_description)
-        __latency.calculate_model_latency_2()
+        if not(args.disable_inner_pipeline):
+            __latency.calculate_model_latency_2()
+        else:
+            __latency.calculate_model_latency_nopipe()
         __latency.model_latency_output(not(args.disable_module_output),not(args.disable_layer_output))
 
     if not(args.disable_accuracy_simulation):
