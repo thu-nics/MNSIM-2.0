@@ -5,8 +5,8 @@ Xiaoming Chen<sup>4</sup>, Yuan Xie<sup>2, 5</sup>, Yu Cao<sup>6</sup>, X. Sharo
 
 <sup>1</sup>Tsinghua University, <sup>2</sup>Alibaba Group, <sup>3</sup>University of Notre Dame, 
 <sup>4</sup>Institute of Computing Technology, Chinese Academy of Sciences, 
-<sup>5</sup>University of California, Santa Barbara
-<sup>6</sup> Arizona State University
+<sup>5</sup>University of California, Santa Barbara,
+<sup>6</sup>Arizona State University
 
 <sup>*</sup>zhuzhenh18@mails.tsinghua.edu.cn, yu-wang@tsinghua.edu.cn
 
