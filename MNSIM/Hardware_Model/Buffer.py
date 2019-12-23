@@ -9,6 +9,15 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 
 # Default SimConfig file path: MNSIM_Python/SimConfig.ini
 
+def LinearCaculate(size, data):
+    lower_bound = math.floor(size / 2048) - 1
+    if lower_bound < 0:
+        power = data[0] / 2048 * size
+    else:
+        power = (size - 2048 * 2**lower_bound) / (2048 * 2**lower_bound) * (data[lower_bound + 1] - data[lower_bound]) \
+                + data[lower_bound]
+    return power
+
 
 class buffer(object):
     def __init__(self, SimConfig_path):
@@ -16,13 +25,14 @@ class buffer(object):
         buf_config.read(SimConfig_path, encoding='UTF-8')
         self.buf_choice = int(buf_config.get('Architecture level', 'Buffer_Choice'))
         self.buf_area = float(buf_config.get('Architecture level', 'Buffer_Area'))
+        # TODO: 读取文件里的rpower和wpower是否合理
         self.buf_rpower = float(buf_config.get('Architecture level', 'Buffer_ReadPower'))
         self.buf_wpower = float(buf_config.get('Architecture level', 'Buffer_WritePower'))
         self.buf_bitwidth = float(buf_config.get('Architecture level', 'Buffer_Bitwidth'))
         # TODO: Add in the config.ini
         self.buf_Tec = 22
         # bytes
-        self.buf_Size = 2048
+        self.buf_Size = 1024
         # unit: Byte
         buf_width_dict = {0: 8, 1: 64 * 8, 2: 32 * 8, 3: 16 * 8}
         if self.buf_bitwidth in buf_width_dict:
@@ -43,6 +53,9 @@ class buffer(object):
         self.buf_rlatency = 0
         self.buf_wenergy = 0
         self.buf_wlatency = 0
+        self.dynamic_buf_rpower = 0
+        self.dynamic_buf_wpower = 0
+        self.leakage_power = 0
         self.calculate_buf_read_power()
         self.calculate_buf_write_power()
 
@@ -130,18 +143,20 @@ class buffer(object):
             assert self.buf_choice in [1, 2]
             if self.buf_choice is 1:
                 ''' 线性插值 '''
-                pass
+                self.dynamic_buf_rpower = LinearCaculate(self.buf_Size, sram_dynamic_rpower_dict[self.buf_Tec])
+                self.leakage_power = LinearCaculate(self.buf_Size, sram_leakage_power[self.buf_Tec])
 
             elif self.buf_choice is 2:
-                pass
+                self.dynamic_buf_rpower = LinearCaculate(self.buf_Size, dram_dynamic_rpower_dict[self.buf_Tec])
+                self.leakage_power = LinearCaculate(self.buf_Size, dram_leakage_power[self.buf_Tec])
 
-
-
-        buf_rpower_dict = {1: 0.06 * 1e-3
-                           }
-        if self.buf_choice != -1:
-            assert self.buf_choice in [1]
-            self.buf_rpower = buf_rpower_dict[self.buf_choice]
+        #
+        #
+        # buf_rpower_dict = {1: 0.06 * 1e-3
+        #                    }
+        # if self.buf_choice != -1:
+        #     assert self.buf_choice in [1]
+        #     self.buf_rpower = buf_rpower_dict[self.buf_choice]
 
     def calculate_buf_write_power(self):
         # unit: W
@@ -174,11 +189,20 @@ class buffer(object):
                  19.871953123298216, 22.13599430123531, 24.729953107531664, 28.518664298921703, 30.44195819387776]
         }
 
-        buf_wpower_dict = {1: 0.02 * 1e-3
-                           }
         if self.buf_choice != -1:
-            assert self.buf_choice in [1]
-            self.buf_wpower = buf_wpower_dict[self.buf_choice]
+            assert self.buf_choice in [1, 2]
+            if self.buf_choice is 1:
+                ''' 线性插值 '''
+                self.dynamic_buf_wpower = LinearCaculate(self.buf_Size, sram_dynamic_wpower_dict[self.buf_Tec])
+
+            elif self.buf_choice is 2:
+                self.dynamic_buf_wpower = LinearCaculate(self.buf_Size, dram_dynamic_wpower_dict[self.buf_Tec])
+
+        # buf_wpower_dict = {1: 0.02 * 1e-3
+        #                    }
+        # if self.buf_choice != -1:
+        #     assert self.buf_choice in [1]
+        #     self.buf_wpower = buf_wpower_dict[self.buf_choice]
 
     def calculate_buf_read_latency(self, rdata=0):
         # unit: ns, Byte
@@ -203,12 +227,17 @@ class buffer(object):
             print("buf_choice: User defined")
         else:
             print("buf_choice:", self.buf_choice)
+        print("buf_Size:", self.buf_Size, "bytes")
+        print("buf_Tec:", self.buf_Tec, "nm")
         print("buf_area:", self.buf_area, "um^2")
         print("buf_read_power:", self.buf_rpower, "W")
+        print("buf_dynamic_rpower:", self.dynamic_buf_rpower, "mW")
         print("buf_read_energy:", self.buf_renergy, "nJ")
         print("buf_read_latency:", self.buf_rlatency, "ns")
         print("buf_write_power:", self.buf_wpower, "W")
+        print("buf_dynamic_wpower:", self.dynamic_buf_wpower, "mW")
         print("buf_write_energy:", self.buf_wenergy, "nJ")
+        print("buf_leakage_power:", self.leakage_power, "mW")
         print("buf_write_latency:", self.buf_wlatency, "ns")
 
 
