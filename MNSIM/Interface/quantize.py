@@ -32,7 +32,9 @@ class QuantizeFunction(Function):
             if training:
                 ratio = 0.707
                 tmp = last_value.item()
-                tmp = ratio * tmp + (1 - ratio) * torch.max(torch.abs(input)).item()
+                # tmp = ratio * tmp + (1 - ratio) * torch.max(torch.abs(input)).item()
+                tmp = ratio * tmp + (1 - ratio) * \
+                    (3 * torch.std(input).item() + torch.abs(torch.mean(input)).item())
                 last_value.data[0] = tmp
             scale = last_value.data[0]
         else:
