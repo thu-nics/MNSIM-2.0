@@ -7,6 +7,7 @@ from numpy import *
 import numpy as np
 from MNSIM.Hardware_Model.PE import ProcessElement
 from MNSIM.Hardware_Model.Adder import adder
+from MNSIM.Hardware_Model.Buffer import buffer
 from MNSIM.Hardware_Model.ShiftReg import shiftreg
 test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"SimConfig.ini")
 # Default SimConfig file path: MNSIM_Python/SimConfig.ini
@@ -42,6 +43,7 @@ class tile(ProcessElement):
 		self.tile_shiftreg_num = 0
 		self.tile_adder = adder(SimConfig_path)
 		self.tile_shiftreg = shiftreg(SimConfig_path)
+		self.buffer = buffer(SimConfig_path)
 
 		self.tile_utilization = 0
 		self.num_occupied_PE = 0
@@ -155,7 +157,7 @@ class tile(ProcessElement):
 		self.tile_adder_area += self.tile_adder_num * self.tile_adder.adder_area
 		self.tile_shiftreg_area += self.tile_shiftreg_num * self.tile_shiftreg.shiftreg_area
 		self.tile_digital_area = self.tile_input_demux_area + self.tile_output_mux_area + self.tile_adder_area + self.tile_shiftreg_area
-		self.tile_area = self.tile_xbar_area + self.tile_ADC_area + self.tile_DAC_area + self.tile_digital_area
+		self.tile_area = self.tile_xbar_area + self.tile_ADC_area + self.tile_DAC_area + self.tile_digital_area + self.buffer.buf_area
 
 	def tile_read_config(self, layer_num = 0, activation_precision = 0, sliding_times = 0,
 						 read_row = None, read_column = None, read_matrix = None, read_vector = None):

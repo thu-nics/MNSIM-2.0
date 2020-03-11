@@ -492,7 +492,9 @@ class Model_latency():
                                 # fill the line buffer
                                 rdata = inputchannel*kernelsize**2*inputbit/8
                                 # from the line buffer to the input reg
-                                temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                actual_num = indata / inputchannel / (inputbit / 8)
+                                temp_pooling_latency.update_pooling_latency(actual_num=actual_num, layer_size=kernelsize,
+                                                                            indata=indata, rdata=rdata)
                                 begin_time = self.finish_time[layer_id - 1][-1]
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
                                                begin_time
@@ -519,7 +521,9 @@ class Model_latency():
                                 # line feed in line buffer
                                 rdata = inputchannel*kernelsize**2*inputbit/8
                                 # from the line buffer to the input reg
-                                temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                actual_num = indata / inputchannel / (inputbit / 8)
+                                temp_pooling_latency.update_pooling_latency(actual_num=actual_num, layer_size=kernelsize,
+                                                                            indata=indata, rdata=rdata)
                                 begin_time = self.finish_time[layer_id][(i - 1) * output_size[1] + output_size[1] - 1]
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
                                                begin_time
@@ -544,7 +548,9 @@ class Model_latency():
                                 indata = inputchannel * stride ** 2*inputbit/8
                                 # write new input data to line buffer
                                 rdata = stride * kernelsize * inputchannel*inputbit/8
-                                temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                actual_num = indata / inputchannel / (inputbit / 8)
+                                temp_pooling_latency.update_pooling_latency(actual_num=actual_num, layer_size=kernelsize,
+                                                                            indata=indata, rdata=rdata)
                                 begin_time = self.finish_time[layer_id][i * output_size[1] + j - 1]
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
                                                begin_time
@@ -1165,7 +1171,9 @@ class Model_latency():
                                         # fill the line buffer
                                         rdata = inputchannel * kernelsize ** 2 * inputbit / 8
                                         # from the line buffer to the input reg
-                                        temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                        actual_num = indata / inputchannel / (inputbit / 8)
+                                        temp_pooling_latency.update_pooling_latency(actual_num=actual_num, layer_size=kernelsize,
+                                                                                    indata=indata, rdata=rdata)
                                         begin_time = self.finish_time[layer_id - 1][last_layer_pos]
                                         compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + begin_time
                                         self.begin_time[layer_id].append(begin_time)
@@ -1198,7 +1206,9 @@ class Model_latency():
                                                 indata = inputchannel * stride * kernelsize * inputbit / 8
 
                                         rdata = inputchannel * kernelsize ** 2 * inputbit / 8
-                                        temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                        actual_num = indata / inputchannel / (inputbit / 8)
+                                        temp_pooling_latency.update_pooling_latency(actual_num=actual_num, layer_size=kernelsize,
+                                                                                    indata=indata, rdata=rdata)
 
                                         longest_time_pos = self.Judge(last_layer_pos, layer_id)
                                         # begin_time = max(self.finish_time[layer_id - 1][last_layer_pos],
@@ -1234,7 +1244,9 @@ class Model_latency():
                                         else:
                                             indata = inputchannel * stride ** 2 * inputbit / 8
                                         rdata = stride * kernelsize * inputchannel * inputbit / 8
-                                        temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
+                                        actual_num = indata / inputchannel / (inputbit / 8)
+                                        temp_pooling_latency.update_pooling_latency(actual_num=actual_num, layer_size=kernelsize,
+                                                                                    indata=indata, rdata=rdata)
 
                                         longest_time_pos = self.Judge(last_layer_pos, layer_id)
                                         begin_time = max(self.finish_time[layer_id][-1],

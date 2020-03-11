@@ -29,10 +29,17 @@ class buffer(object):
         self.buf_rpower = float(buf_config.get('Architecture level', 'Buffer_ReadPower'))
         self.buf_wpower = float(buf_config.get('Architecture level', 'Buffer_WritePower'))
         self.buf_bitwidth = float(buf_config.get('Architecture level', 'Buffer_Bitwidth'))
-        # TODO: Add in the config.ini
-        self.buf_Tec = 22
+
+        # unit: nm
+        self.buf_Tec = int(buf_config.get('Architecture level', 'Buffer_Tecnology'))
+        if self.buf_Tec == 0:
+            self.buf_Tec = 22
+
         # bytes
-        self.buf_Size = 1024
+        self.buf_Size = float(buf_config.get('Architecture level', 'Buffer_Capacity'))
+        if self.buf_Size == 0:
+            self.buf_Size = 1024
+
         # unit: Byte
         buf_width_dict = {0: 8, 1: 64 * 8, 2: 32 * 8, 3: 16 * 8}
         if self.buf_bitwidth in buf_width_dict:
@@ -66,8 +73,7 @@ class buffer(object):
         '''
         # todo: change the unit into mm^2
         # unit: um^2
-        # TODO: 区分buffer的类型，不同的工艺
-        ''' buffer choice '''
+        ''' buffer technology '''
         sram_param_dict = {22: [0.0062, 1.0194], 32: [0.004, 0.6744], 40: [0.0019, 0.3222], 90: [0.0315, 5.2282]}
         dram_param_dict = {22: [0.0008, 0.0392], 32: [0.0012, 0.0461], 40: [0.0026, 0.0683], 90: [0.0128, 0.592]}
         if self.buf_choice != -1:
