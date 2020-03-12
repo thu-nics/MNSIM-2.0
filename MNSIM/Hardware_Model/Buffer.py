@@ -25,32 +25,32 @@ class buffer(object):
         buf_config.read(SimConfig_path, encoding='UTF-8')
         self.buf_choice = int(buf_config.get('Architecture level', 'Buffer_Choice'))
         self.buf_area = float(buf_config.get('Architecture level', 'Buffer_Area'))
-        # TODO: 读取文件里的rpower和wpower是否合理
-        self.buf_rpower = float(buf_config.get('Architecture level', 'Buffer_ReadPower'))
-        self.buf_wpower = float(buf_config.get('Architecture level', 'Buffer_WritePower'))
-        self.buf_bitwidth = float(buf_config.get('Architecture level', 'Buffer_Bitwidth'))
-
         # unit: nm
-        self.buf_Tec = int(buf_config.get('Architecture level', 'Buffer_Tecnology'))
+        self.buf_Tec = int(buf_config.get('Architecture level', 'Buffer_Technology'))
         if self.buf_Tec == 0:
             self.buf_Tec = 22
-
         # bytes
         self.buf_Size = float(buf_config.get('Architecture level', 'Buffer_Capacity'))
         if self.buf_Size == 0:
             self.buf_Size = 1024
 
+        if self.buf_area == 0:
+            self.calculate_buf_area()
+        # TODO: 读取文件里的rpower和wpower是否合理
+        self.buf_rpower = float(buf_config.get('Architecture level', 'Buffer_ReadPower'))
+        self.buf_wpower = float(buf_config.get('Architecture level', 'Buffer_WritePower'))
+        self.buf_bitwidth = float(buf_config.get('Architecture level', 'Buffer_Bitwidth'))
+
+
         # unit: Byte
         buf_width_dict = {0: 8, 1: 64 * 8, 2: 32 * 8, 3: 16 * 8}
         if self.buf_bitwidth in buf_width_dict:
             self.buf_bitwidth = buf_width_dict[0]
-
         buf_wfrequency_dict = {0: 1372, 1: 998.9, 2: 1589, 3: 1660}
         self.buf_rfrequency = float(buf_config.get(('Architecture level'), 'Buffer_ReadFrequency'))
         # unit: MHz
         if self.buf_rfrequency in buf_wfrequency_dict:
             self.buf_rfrequency = 1372
-
         buf_rfrequency_dict = {0: 1306, 1: 998.9, 2: 1589, 3: 1660}
         self.buf_wfrequency = float(buf_config.get(('Architecture level'), 'Buffer_WriteFrequency'))
         # unit: MHz
@@ -58,13 +58,14 @@ class buffer(object):
             self.buf_wfrequency = 1306
         self.buf_renergy = 0
         self.buf_rlatency = 0
+        # self.calculate_buf_read_latency()
         self.buf_wenergy = 0
         self.buf_wlatency = 0
+        # self.calculate_buf_write_energy()
         self.dynamic_buf_rpower = 0
         self.dynamic_buf_wpower = 0
         self.leakage_power = 0
-        self.calculate_buf_read_power()
-        self.calculate_buf_write_power()
+
 
     def calculate_buf_area(self):
         '''
@@ -155,7 +156,8 @@ class buffer(object):
             elif self.buf_choice is 2:
                 self.dynamic_buf_rpower = LinearCaculate(self.buf_Size, dram_dynamic_rpower_dict[self.buf_Tec])
                 self.leakage_power = LinearCaculate(self.buf_Size, dram_leakage_power[self.buf_Tec])
-
+        if self.buf_rpower == 0:
+            self.buf_rpower = self.dynamic_buf_rpower + self.leakage_power
         #
         #
         # buf_rpower_dict = {1: 0.06 * 1e-3
@@ -204,6 +206,8 @@ class buffer(object):
             elif self.buf_choice is 2:
                 self.dynamic_buf_wpower = LinearCaculate(self.buf_Size, dram_dynamic_wpower_dict[self.buf_Tec])
 
+        if self.buf_wpower == 0:
+            self.buf_wpower = self.dynamic_buf_wpower + self.leakage_power
         # buf_wpower_dict = {1: 0.02 * 1e-3
         #                    }
         # if self.buf_choice != -1:

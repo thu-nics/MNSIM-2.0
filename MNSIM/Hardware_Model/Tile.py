@@ -365,7 +365,7 @@ class tile(ProcessElement):
 							self.tile_adder_write_latency = 0
 			self.tile_write_latency = self.tile_xbar_write_latency + self.tile_ADC_write_latency \
 									  + self.tile_DAC_write_latency + self.tile_digital_write_latency
-	
+
 	def calculate_tile_read_power(self):
 		# unit: W
 		# Notice: before calculating power, tile_read_config must be executed
@@ -378,6 +378,7 @@ class tile(ProcessElement):
 		self.tile_shiftreg_read_power = 0
 		self.tile_input_demux_read_power = 0
 		self.tile_output_mux_read_power = 0
+
 		max_occupied_column = 0
 		if self.num_occupied_PE != 0:
 			for i in range(self.tile_PE_num[0]):
@@ -400,7 +401,8 @@ class tile(ProcessElement):
 			self.tile_digital_read_power = self.tile_adder_read_power + self.tile_shiftreg_read_power \
 										   + self.tile_input_demux_read_power + self.tile_output_mux_read_power
 			self.tile_read_power = self.tile_xbar_read_power + self.tile_ADC_read_power + self.tile_DAC_read_power \
-								   + self.tile_digital_read_power
+								   + self.tile_digital_read_power \
+								   + (self.buffer.dynamic_buf_rpower + self.buffer.leakage_power) * 1e-3
 
 	def calculate_tile_write_power(self):
 		# unit: W
@@ -427,7 +429,9 @@ class tile(ProcessElement):
 						self.tile_shiftreg_write_power += self.tile_PE_list[i][j].PE_shiftreg_write_power
 						self.tile_input_demux_write_power += self.tile_PE_list[i][j].input_demux_write_power
 						self.tile_output_mux_write_power += self.tile_PE_list[i][j].output_mux_write_power
-			self.tile_write_power = self.tile_xbar_write_power + self.tile_ADC_write_power + self.tile_DAC_write_power + self.tile_digital_write_power
+			self.tile_write_power = self.tile_xbar_write_power + self.tile_ADC_write_power + self.tile_DAC_write_power \
+									+ self.tile_digital_write_power \
+									+ (self.buffer.dynamic_buf_wpower + self.buffer.leakage_power) * 1e-3
 
 	def calculate_tile_read_energy(self):
 		# unit: nJ
@@ -453,7 +457,7 @@ class tile(ProcessElement):
 			self.tile_digital_read_energy = self.tile_adder_read_energy + self.tile_shiftreg_read_energy \
 											+ self.tile_input_demux_read_energy + self.tile_output_mux_read_energy
 			self.tile_read_energy = self.tile_xbar_read_energy + self.tile_ADC_read_energy \
-									+ self.tile_DAC_read_energy + self.tile_digital_read_energy
+									+ self.tile_DAC_read_energy + self.tile_digital_read_energy + self.buffer.buf_renergy
 
 	def calculate_tile_write_energy(self):
 		# unit: nJ
@@ -479,7 +483,7 @@ class tile(ProcessElement):
 			self.tile_digital_write_energy = self.tile_adder_write_energy + self.tile_shiftreg_write_energy \
 											 + self.tile_input_demux_write_energy + self.tile_output_mux_write_energy
 			self.tile_write_energy = self.tile_xbar_write_energy + self.tile_ADC_write_energy \
-									 + self.tile_DAC_write_energy + self.tile_digital_write_energy
+									 + self.tile_DAC_write_energy + self.tile_digital_write_energy + self.buffer.buf_wenergy
 
 	def tile_output(self):
 		self.tile_PE_list[0][0].PE_output()
@@ -499,6 +503,7 @@ class tile(ProcessElement):
 		print("				|---shift-reg area:", self.tile_shiftreg_area, "um^2")
 		print("				|---input_demux area:", self.tile_input_demux_area, "um^2")
 		print("				|---output_mux area:", self.tile_output_mux_area, "um^2")
+
 		print("--------------------tile Latency Simulation Results------------------")
 		print("tile read latency:", self.tile_read_latency, "ns")
 		print("			crossbar read latency:", self.tile_xbar_read_latency, "ns")
@@ -528,6 +533,7 @@ class tile(ProcessElement):
 		print("				|---shift-reg read power:", self.tile_shiftreg_read_power, "W")
 		print("				|---input demux read power:", self.tile_input_demux_read_power, "W")
 		print("				|---output mux read power:", self.tile_output_mux_read_power, "W")
+		print("			buffer read power:", (self.buffer.dynamic_buf_rpower + self.buffer.leakage_power) * 1e-3, "W")
 		print("tile write power:", self.tile_write_power, "W")
 		print("			crossbar write power:", self.tile_xbar_write_power, "W")
 		print("			DAC write power:", self.tile_DAC_write_power, "W")
@@ -537,6 +543,7 @@ class tile(ProcessElement):
 		print("				|---shift-reg write power:", self.tile_shiftreg_write_power, "W")
 		print("				|---input demux write power:", self.tile_input_demux_write_power, "W")
 		print("				|---output mux write power:", self.tile_output_mux_write_power, "W")
+		print("			buffer write power:", (self.buffer.dynamic_buf_wpower + self.buffer.leakage_power) * 1e-3, "W")
 		print("------------------Energy Simulation Results----------------------")
 		print("tile read energy:", self.tile_read_energy, "nJ")
 		print("			crossbar read energy:", self.tile_xbar_read_energy, "nJ")
