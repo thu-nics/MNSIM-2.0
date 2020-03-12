@@ -79,12 +79,12 @@ class buffer(object):
         dram_param_dict = {22: [0.0008, 0.0392], 32: [0.0012, 0.0461], 40: [0.0026, 0.0683], 90: [0.0128, 0.592]}
         if self.buf_choice != -1:
             assert self.buf_choice in [1, 2]
-            assert self.buf_Tec in [22, 32, 40, 90], "the Technology of buffer is illegal"
+            assert self.buf_Tech in [22, 32, 40, 90], "the Technology of buffer is illegal"
             if self.buf_choice is 1:
-                self.buf_area = self.buf_Size * sram_param_dict[self.buf_Tec][0] + sram_param_dict[self.buf_Tec][1]
+                self.buf_area = self.buf_Size * sram_param_dict[self.buf_Tech][0] + sram_param_dict[self.buf_Tech][1]
 
             elif self.buf_choice is 2:
-                self.buf_area = self.buf_Size * dram_param_dict[self.buf_Tec][0] + dram_param_dict[self.buf_Tec][1]
+                self.buf_area = self.buf_Size * dram_param_dict[self.buf_Tech][0] + dram_param_dict[self.buf_Tech][1]
 
 
 
@@ -92,7 +92,7 @@ class buffer(object):
         '''
         buf_choice
         buf_Size
-        buf_Tec
+        buf_Tech
         :return:
         '''
         # unit: mW
@@ -150,12 +150,12 @@ class buffer(object):
             assert self.buf_choice in [1, 2]
             if self.buf_choice is 1:
                 ''' 线性插值 '''
-                self.dynamic_buf_rpower = LinearCaculate(self.buf_Size, sram_dynamic_rpower_dict[self.buf_Tec])
-                self.leakage_power = LinearCaculate(self.buf_Size, sram_leakage_power[self.buf_Tec])
+                self.dynamic_buf_rpower = LinearCaculate(self.buf_Size, sram_dynamic_rpower_dict[self.buf_Tech])
+                self.leakage_power = LinearCaculate(self.buf_Size, sram_leakage_power[self.buf_Tech])
 
             elif self.buf_choice is 2:
-                self.dynamic_buf_rpower = LinearCaculate(self.buf_Size, dram_dynamic_rpower_dict[self.buf_Tec])
-                self.leakage_power = LinearCaculate(self.buf_Size, dram_leakage_power[self.buf_Tec])
+                self.dynamic_buf_rpower = LinearCaculate(self.buf_Size, dram_dynamic_rpower_dict[self.buf_Tech])
+                self.leakage_power = LinearCaculate(self.buf_Size, dram_leakage_power[self.buf_Tech])
         if self.buf_rpower == 0:
             self.buf_rpower = self.dynamic_buf_rpower + self.leakage_power
         #
@@ -201,10 +201,10 @@ class buffer(object):
             assert self.buf_choice in [1, 2]
             if self.buf_choice is 1:
                 ''' 线性插值 '''
-                self.dynamic_buf_wpower = LinearCaculate(self.buf_Size, sram_dynamic_wpower_dict[self.buf_Tec])
+                self.dynamic_buf_wpower = LinearCaculate(self.buf_Size, sram_dynamic_wpower_dict[self.buf_Tech])
 
             elif self.buf_choice is 2:
-                self.dynamic_buf_wpower = LinearCaculate(self.buf_Size, dram_dynamic_wpower_dict[self.buf_Tec])
+                self.dynamic_buf_wpower = LinearCaculate(self.buf_Size, dram_dynamic_wpower_dict[self.buf_Tech])
 
         if self.buf_wpower == 0:
             self.buf_wpower = self.dynamic_buf_wpower + self.leakage_power
@@ -238,7 +238,7 @@ class buffer(object):
         else:
             print("buf_choice:", self.buf_choice)
         print("buf_Size:", self.buf_Size, "bytes")
-        print("buf_Tec:", self.buf_Tec, "nm")
+        print("buf_Tech:", self.buf_Tech, "nm")
         print("buf_area:", self.buf_area, "um^2")
         print("buf_read_power:", self.buf_rpower, "W")
         print("buf_dynamic_rpower:", self.dynamic_buf_rpower, "mW")
