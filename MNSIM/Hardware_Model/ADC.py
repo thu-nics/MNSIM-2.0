@@ -34,7 +34,7 @@ class ADC(object):
 						 4: 580, #reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
 						 5: 1650, #ASPDAC1
 						 6: 1650, #ASPDAC2
-						 7: 1650 #ASPDAC3
+						 7: 500 #ASPDAC3
 		}
 		if self.ADC_choice != -1:
 			assert self.ADC_choice in [1,2,3,4,5,6,7]
