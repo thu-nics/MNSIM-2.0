@@ -13,10 +13,12 @@ class shiftreg(object):
 		shiftreg_config = cp.ConfigParser()
 		shiftreg_config.read(SimConfig_path, encoding='UTF-8')
 		self.shiftreg_tech = int(shiftreg_config.get('Digital module', 'ShiftReg_Tech'))
+		if self.shiftreg_tech <= 0:
+			self.shiftreg_tech = 65
 		self.shiftreg_area = float(shiftreg_config.get('Digital module', 'ShiftReg_Area'))
 		self.shiftreg_power = float(shiftreg_config.get('Digital module', 'ShiftReg_Power'))
 		if max_shiftbase is None:
-			self.max_shiftbase = 8
+			self.max_shiftbase = 16
 		else:
 			self.max_shiftbase = max_shiftbase
 		assert self.max_shiftbase > 0
@@ -33,114 +35,34 @@ class shiftreg(object):
 	def calculate_shiftreg_area(self):
 		# unit: um^2
 		if self.shiftreg_area == 0:
-			shiftreg_area_dict = {130: {4: 95.4,
-										8: 95.4,
-										16: 105.7},
-								  65: {4: 95.4,
-									   8: 95.4,
-									   16: 105.7},
-								  55: {4: 95.4,
-									   8: 95.4,
-									   16: 105.7},
-								  45: {4: 95.4,
-									   8: 95.4,
-									   16: 105.7},
-								  28: {4: 95.4,
-									   8: 95.4,
-									   16: 105.7}
+			shiftreg_area_dict = {
+				4: 228.96,
+				8: 217.44,
+				16:230.40
 			}
-			# TODO: add circuits simulation results
-			if self.shiftreg_tech <= 28:
-				if self.max_shiftbase <= 4:
-					self.shiftreg_area = shiftreg_area_dict[28][4]
-				elif self.max_shiftbase <= 8:
-					self.shiftreg_area = shiftreg_area_dict[28][8]
-				else:
-					self.shiftreg_area = shiftreg_area_dict[28][16]
-			elif self.shiftreg_tech <= 45:
-				if self.max_shiftbase <= 4:
-					self.shiftreg_area = shiftreg_area_dict[45][4]
-				elif self.max_shiftbase <= 8:
-					self.shiftreg_area = shiftreg_area_dict[45][8]
-				else:
-					self.shiftreg_area = shiftreg_area_dict[45][16]
-			elif self.shiftreg_tech <= 55:
-				if self.max_shiftbase <= 4:
-					self.shiftreg_area = shiftreg_area_dict[55][4]
-				elif self.max_shiftbase <= 8:
-					self.shiftreg_area = shiftreg_area_dict[55][8]
-				else:
-					self.shiftreg_area = shiftreg_area_dict[55][16]
-			elif self.shiftreg_tech <= 65:
-				if self.max_shiftbase <= 4:
-					self.shiftreg_area = shiftreg_area_dict[65][4]
-				elif self.max_shiftbase <= 8:
-					self.shiftreg_area = shiftreg_area_dict[65][8]
-				else:
-					self.shiftreg_area = shiftreg_area_dict[65][16]
+			if self.max_shiftbase <= 4:
+				self.shiftreg_area = shiftreg_area_dict[4]*pow((self.shiftreg_tech/65),2)
+			elif self.max_shiftbase <= 8:
+				self.shiftreg_area = shiftreg_area_dict[8]*pow((self.shiftreg_tech/65),2)
 			else:
-				if self.max_shiftbase <= 4:
-					self.shiftreg_area = shiftreg_area_dict[130][4]
-				elif self.max_shiftbase <= 8:
-					self.shiftreg_area = shiftreg_area_dict[130][8]
-				else:
-					self.shiftreg_area = shiftreg_area_dict[130][16]
+				self.shiftreg_area = shiftreg_area_dict[16]*pow((self.shiftreg_tech/65),2)
+
 
 	def calculate_shiftreg_power(self):
 		# unit: W
 		if self.shiftreg_power == 0:
-			shiftreg_power_dict = {130: {4: 1e-4,
-										8: 1e-4,
-										16: 1e-4},
-								  65: {4: 1e-4,
-									   8: 1e-4,
-									   16: 1e-4},
-								  55: {4: 1e-4,
-									   8: 1e-4,
-									   16: 1e-4},
-								  45: {4: 1e-4,
-									   8: 1e-4,
-									   16: 1e-4},
-								  28: {4: 1e-4,
-									   8: 1e-4,
-									   16: 1e-4}
+			shiftreg_power_dict = {
+				4: 2.13e-4,
+				8: 1.97e-4,
+				16: 1.24e-4
 			}
-			# TODO: add circuits simulation results
-			if self.shiftreg_tech <= 28:
-				if self.max_shiftbase <= 4:
-					self.shiftreg_power = shiftreg_power_dict[28][4]
-				elif self.max_shiftbase <= 8:
-					self.shiftreg_power = shiftreg_power_dict[28][8]
-				else:
-					self.shiftreg_power = shiftreg_power_dict[28][16]
-			elif self.shiftreg_tech <= 45:
-				if self.max_shiftbase <= 4:
-					self.shiftreg_power = shiftreg_power_dict[45][4]
-				elif self.max_shiftbase <= 8:
-					self.shiftreg_power = shiftreg_power_dict[45][8]
-				else:
-					self.shiftreg_power = shiftreg_power_dict[45][16]
-			elif self.shiftreg_tech <= 55:
-				if self.max_shiftbase <= 4:
-					self.shiftreg_power = shiftreg_power_dict[55][4]
-				elif self.max_shiftbase <= 8:
-					self.shiftreg_power = shiftreg_power_dict[55][8]
-				else:
-					self.shiftreg_power = shiftreg_power_dict[55][16]
-			elif self.shiftreg_tech <= 65:
-				if self.max_shiftbase <= 4:
-					self.shiftreg_power = shiftreg_power_dict[65][4]
-				elif self.max_shiftbase <= 8:
-					self.shiftreg_power = shiftreg_power_dict[65][8]
-				else:
-					self.shiftreg_power = shiftreg_power_dict[65][16]
+			if self.max_shiftbase <= 4:
+				self.shiftreg_power = shiftreg_power_dict[4]*pow((self.shiftreg_tech/65),2)
+			elif self.max_shiftbase <= 8:
+				self.shiftreg_power = shiftreg_power_dict[8]*pow((self.shiftreg_tech/65),2)
 			else:
-				if self.max_shiftbase <= 4:
-					self.shiftreg_power = shiftreg_power_dict[130][4]
-				elif self.max_shiftbase <= 8:
-					self.shiftreg_power = shiftreg_power_dict[130][8]
-				else:
-					self.shiftreg_power = shiftreg_power_dict[130][16]
+				self.shiftreg_power = shiftreg_power_dict[16]*pow((self.shiftreg_tech/65),2)
+
 
 	def calculate_shiftreg_energy(self):
 		assert self.shiftreg_power >= 0

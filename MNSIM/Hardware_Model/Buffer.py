@@ -26,9 +26,9 @@ class buffer(object):
         self.buf_choice = int(buf_config.get('Architecture level', 'Buffer_Choice'))
         self.buf_area = float(buf_config.get('Architecture level', 'Buffer_Area'))
         # unit: nm
-        self.buf_Tec = int(buf_config.get('Architecture level', 'Buffer_Technology'))
-        if self.buf_Tec == 0:
-            self.buf_Tec = 22
+        self.buf_Tech = int(buf_config.get('Architecture level', 'Buffer_Technology'))
+        if self.buf_Tech == 0:
+            self.buf_Tech = 22
         # bytes
         self.buf_Size = float(buf_config.get('Architecture level', 'Buffer_Capacity'))
         if self.buf_Size == 0:

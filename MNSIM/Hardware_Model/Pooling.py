@@ -35,32 +35,36 @@ class Pooling(object):
         Pooling_area_dict = {
             65: {
                 9: {
-                   64:  10
+                   64:  39.84
                 }
             }
         }
         if self.Pooling_Tech in [65]:
             if self.Pooling_size in [9]:
                 ''' 线性插值 '''
-                self.Pooling_power = Pooling_area_dict[self.Pooling_Tech][self.Pooling_size][self.Pooling_unit_num]
+                self.Pooling_area = Pooling_area_dict[self.Pooling_Tech][self.Pooling_size][self.Pooling_unit_num]
+        else:
+            self.Pooling_area = Pooling_area_dict[65][9][64] * pow((self.Pooling_Tech/65),2)
 
 
     def calculate_Pooling_power(self):
-        # Unit :
+        # Unit : W
         Pooling_power_dict = {
             65: {
                 9: {
-                   64:  10
+                   64:  16e-3
                 }
             }
         }
         if self.Pooling_Tech in [65]:
             if self.Pooling_size in [9]:
                 ''' 线性插值 '''
-                self.Pooling_energy = Pooling_power_dict[self.Pooling_Tech][self.Pooling_size][self.Pooling_unit_num]
+                self.Pooling_power = Pooling_power_dict[self.Pooling_Tech][self.Pooling_size][self.Pooling_unit_num]
+        else:
+            self.Pooling_power = Pooling_power_dict[65][9][64] * pow((self.Pooling_Tech/65),2)
 
     def calculate_Pooling_latency(self):
-        # Unit
+        # Unit: ns
         Pooling_latency_dict = {
             65: {
                 9: {
