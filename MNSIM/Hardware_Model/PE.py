@@ -595,8 +595,9 @@ class ProcessElement(crossbar, DAC, ADC):
 					self.output_mux_read_power += math.ceil(self.PE_xbar_list[i][0].xbar_num_read_column/self.output_mux)*self.output_mux_power
 					if self.PE_xbar_list[i][0].xbar_num_read_column > self.PE_max_occupied_column:
 						self.PE_max_occupied_column = self.PE_xbar_list[i][0].xbar_num_read_column
-			self.PE_adder_read_power = (self.num_occupied_group-1)*self.PE_max_occupied_column*self.PE_adder.adder_power
-			self.PE_shiftreg_read_power = (self.num_occupied_group-1)*self.PE_max_occupied_column*self.PE_shiftreg.shiftreg_power
+			PE_max_read_column = min(self.PE_max_occupied_column, self.PE_group_ADC_num)
+			self.PE_adder_read_power = (self.num_occupied_group-1)*PE_max_read_column*self.PE_adder.adder_power
+			self.PE_shiftreg_read_power = (self.num_occupied_group-1)*PE_max_read_column*self.PE_shiftreg.shiftreg_power
 			self.PE_digital_read_power = self.input_demux_read_power + self.output_mux_read_power + self.PE_adder_read_power + self.PE_shiftreg_read_power
 			self.PE_read_power = self.PE_xbar_read_power + self.PE_DAC_read_power + self.PE_ADC_read_power + self.PE_digital_read_power
 
@@ -704,6 +705,10 @@ class ProcessElement(crossbar, DAC, ADC):
 		print("			DAC read power:", self.PE_DAC_read_power, "W")
 		print("			ADC read power:", self.PE_ADC_read_power, "W")
 		print("			digital part read power:", self.PE_digital_read_power, "W")
+		print("			|---adder power:", self.PE_adder_read_power, "W")
+		print("			|---shift-reg power:", self.PE_shiftreg_read_power, "W")
+		print("			|---input_demux power:", self.input_demux_read_power, "W")
+		print("			|---output_mux power:", self.output_mux_read_power, "W")
 		print("PE write power:", self.PE_write_power, "W")
 		print("			crossbar write power:", self.PE_xbar_write_power, "W")
 		print("			DAC write power:", self.PE_DAC_write_power, "W")
