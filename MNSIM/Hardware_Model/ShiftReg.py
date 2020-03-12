@@ -33,21 +33,21 @@ class shiftreg(object):
 	def calculate_shiftreg_area(self):
 		# unit: um^2
 		if self.shiftreg_area == 0:
-			shiftreg_area_dict = {130: {4: 95.4,
-										8: 95.4,
-										16: 105.7},
-								  65: {4: 95.4,
-									   8: 95.4,
-									   16: 105.7},
-								  55: {4: 95.4,
-									   8: 95.4,
-									   16: 105.7},
-								  45: {4: 95.4,
-									   8: 95.4,
-									   16: 105.7},
-								  28: {4: 95.4,
-									   8: 95.4,
-									   16: 105.7}
+			shiftreg_area_dict = {130: {4: 1503,
+										8: 1582.08,
+										16: 1783.68},
+								  65: {4: 375.84,
+									   8: 395.52,
+									   16: 445.92},
+								  55: {4: 269.09,
+									   8: 283.18,
+									   16: 319.27},
+								  45: {4: 180.13,
+									   8: 189.57,
+									   16: 213.72},
+								  28: {4: 69.74,
+									   8: 73.39,
+									   16: 82.75}
 			}
 			# TODO: add circuits simulation results
 			if self.shiftreg_tech <= 28:
@@ -89,21 +89,21 @@ class shiftreg(object):
 	def calculate_shiftreg_power(self):
 		# unit: W
 		if self.shiftreg_power == 0:
-			shiftreg_power_dict = {130: {4: 1e-4,
-										8: 1e-4,
-										16: 1e-4},
-								  65: {4: 1e-4,
-									   8: 1e-4,
-									   16: 1e-4},
-								  55: {4: 1e-4,
-									   8: 1e-4,
-									   16: 1e-4},
-								  45: {4: 1e-4,
-									   8: 1e-4,
-									   16: 1e-4},
-								  28: {4: 1e-4,
-									   8: 1e-4,
-									   16: 1e-4}
+			shiftreg_power_dict = {130: {4: 19.88e-4,
+										8: 20.12e-4,
+										16: 16.28e-4},
+								  65: {4: 4.97e-4,
+									   8: 5.03e-4,
+									   16: 4.07e-4},
+								  55: {4: 3.56e-4,
+									   8: 3.60e-4,
+									   16: 2.91e-4},
+								  45: {4: 2.38e-4,
+									   8: 2.41e-4,
+									   16: 1.95e-4},
+								  28: {4: 9.2e-5,
+									   8: 0.93e-4,
+									   16: 0.76e-4}
 			}
 			# TODO: add circuits simulation results
 			if self.shiftreg_tech <= 28:
