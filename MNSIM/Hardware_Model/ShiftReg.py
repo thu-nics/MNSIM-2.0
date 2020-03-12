@@ -49,7 +49,6 @@ class shiftreg(object):
 									   8: 73.39,
 									   16: 82.75}
 			}
-			# TODO: add circuits simulation results
 			if self.shiftreg_tech <= 28:
 				if self.max_shiftbase <= 4:
 					self.shiftreg_area = shiftreg_area_dict[28][4]
@@ -105,7 +104,6 @@ class shiftreg(object):
 									   8: 0.93e-4,
 									   16: 0.76e-4}
 			}
-			# TODO: add circuits simulation results
 			if self.shiftreg_tech <= 28:
 				if self.max_shiftbase <= 4:
 					self.shiftreg_power = shiftreg_power_dict[28][4]
