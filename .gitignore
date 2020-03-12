@@ -7,6 +7,7 @@ __pycache__/
 /MNSIM/Interface/zoo/
 /MNSIM/Interface/runs/
 /MNSIM/Interface/cifar10/
+/MNSIM/Interface/cifar100/
 /MNSIM/Latency_Model/exp_DAC20.py
 /MNSIM/Latency_Model/Buffer_test.py
 *.pth

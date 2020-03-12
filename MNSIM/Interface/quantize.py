@@ -89,9 +89,11 @@ class QuantizeLayer(nn.Module):
                 self.layer_config['stride'] = 1
             if 'padding' not in self.layer_config.keys():
                 self.layer_config['padding'] = 0
-            self.layer_list = nn.ModuleList([nn.Conv2d(i, self.layer_config['out_channels'], self.layer_config['kernel_size'],
-                                                        stride = self.layer_config['stride'], padding = self.layer_config['padding'], dilation = 1, groups = 1, bias = False)
-                                                        for i in in_channels_list])
+            self.layer_list = nn.ModuleList([nn.Conv2d(
+                i, self.layer_config['out_channels'], self.layer_config['kernel_size'],
+                stride = self.layer_config['stride'], padding = self.layer_config['padding'], dilation = 1, groups = 1, bias = False
+                )
+                for i in in_channels_list])
             self.split_input = channel_N
         elif self.layer_config['type'] == 'fc':
             assert 'in_features' in self.layer_config.keys()
@@ -173,8 +175,10 @@ class QuantizeLayer(nn.Module):
             self.bit_scale_list.data[1, 0] = last_weight_bit
             self.bit_scale_list.data[1, 1] = last_weight_scale
             if self.layer_config['type'] == 'conv':
-                output = F.conv2d(input, weight, None, \
-                                  self.layer_config['stride'], self.layer_config['padding'], 1, 1)
+                output = F.conv2d(
+                    input, weight, None, \
+                    self.layer_config['stride'], self.layer_config['padding'], 1, 1
+                )
             elif self.layer_config['type'] == 'fc':
                 output = F.linear(input, weight, None)
             else:
@@ -255,8 +259,10 @@ class QuantizeLayer(nn.Module):
                 for j in range(weight_cycle):
                     tmp = None
                     if self.layer_config['type'] == 'conv':
-                        tmp = F.conv2d(activation_in_container[i], weight_container[j], None, \
-                                       self.layer_config['stride'], self.layer_config['padding'], 1, 1)
+                        tmp = F.conv2d(
+                            activation_in_container[i], weight_container[j], None, \
+                            self.layer_config['stride'], self.layer_config['padding'], 1, 1
+                        )
                     elif self.layer_config['type'] == 'fc':
                         tmp = F.linear(activation_in_container[i], weight_container[j], None)
                     else:
@@ -273,7 +279,7 @@ class QuantizeLayer(nn.Module):
                         # fix scale range
                         fix_scale_range = (2 ** self.hardware_config['input_bit'] - 1) * \
                                           (2 ** self.hardware_config['weight_bit'] - 1) * \
-                                          self.hardware_config['xbar_size']
+                                            self.hardware_config['xbar_size']
                         tmp = tmp / fix_scale_range * (2 ** (Q - 1))
                         tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
                         tmp = tmp * fix_scale_range / (2 ** (Q - 1))
@@ -322,13 +328,17 @@ class StraightLayer(nn.Module):
             if 'padding' not in self.layer_config.keys():
                 self.layer_config['padding'] = 0
             if self.layer_config['mode'] == 'AVE':
-                self.layer = nn.AvgPool2d(kernel_size = self.layer_config['kernel_size'], \
-                                          stride = self.layer_config['stride'], \
-                                          padding = self.layer_config['padding'])
+                self.layer = nn.AvgPool2d(
+                    kernel_size = self.layer_config['kernel_size'], \
+                    stride = self.layer_config['stride'], \
+                    padding = self.layer_config['padding']
+                )
             elif self.layer_config['mode'] == 'MAX':
-                self.layer = nn.MaxPool2d(kernel_size = self.layer_config['kernel_size'], \
-                                          stride = self.layer_config['stride'], \
-                                          padding = self.layer_config['padding'])
+                self.layer = nn.MaxPool2d(
+                    kernel_size = self.layer_config['kernel_size'], \
+                    stride = self.layer_config['stride'], \
+                    padding = self.layer_config['padding']
+                )
             else:
                 assert 0, f'not support {self.layer_config["mode"]}'
         elif self.layer_config['type'] == 'relu':

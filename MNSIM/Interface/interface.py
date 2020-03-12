@@ -11,7 +11,7 @@ import torch
 
 
 class TrainTestInterface(object):
-    def __init__(self, network_module, dataset_module, SimConfig_path, weights_file, device = None):
+    def __init__(self, network_module, dataset_module, SimConfig_path, weights_file, device = None, extra_define = None):
         # network_module = 'lenet'
         # dataset_module = 'cifar10'
         # weights_file = './zoo/cifar10_lenet_train_params.pth'
@@ -38,25 +38,27 @@ class TrainTestInterface(object):
         DAC_choice = int(xbar_config.get('Interface level', 'DAC_Choice'))
         temp_DAC_bit = int(xbar_config.get('Interface level', 'DAC_Precision'))
         temp_ADC_bit = int(xbar_config.get('Interface level', 'ADC_Precision'))
-        ADC_precision_dict = {-1: temp_ADC_bit,
-                              1: 10,
-                              # reference: A 10b 1.5GS/s Pipelined-SAR ADC with Background Second-Stage Common-Mode Regulation and Offset Calibration in 14nm CMOS FinFET
-                              2: 8,
-                              # reference: ISAAC: A Convolutional Neural Network Accelerator with In-Situ Analog Arithmetic in Crossbars
-                              3: 8,  # reference: A >3GHz ERBW 1.1GS/s 8b Two-Step SAR ADC with Recursive-Weight DAC
-                              4: 6,  # reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
-                              5: 8,  # ASPDAC1
-                              6: 6,  # ASPDAC2
-                              7: 4  # ASPDAC3
-                              }
-        DAC_precision_dict = {-1: temp_DAC_bit,
-                              1: 1,  # 1-bit
-                              2: 2,  # 2-bit
-                              3: 3,  # 3-bit
-                              4: 4,  # 4-bit
-                              5: 6,  # 6-bit
-                              6: 8  # 8-bit
-                              }
+        ADC_precision_dict = {
+            -1: temp_ADC_bit,
+            1: 10,
+            # reference: A 10b 1.5GS/s Pipelined-SAR ADC with Background Second-Stage Common-Mode Regulation and Offset Calibration in 14nm CMOS FinFET
+            2: 8,
+            # reference: ISAAC: A Convolutional Neural Network Accelerator with In-Situ Analog Arithmetic in Crossbars
+            3: 8,  # reference: A >3GHz ERBW 1.1GS/s 8b Two-Step SAR ADC with Recursive-Weight DAC
+            4: 6,  # reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
+            5: 8,  # ASPDAC1
+            6: 6,  # ASPDAC2
+            7: 4  # ASPDAC3
+        }
+        DAC_precision_dict = {
+            -1: temp_DAC_bit,
+            1: 1,  # 1-bit
+            2: 2,  # 2-bit
+            3: 3,  # 3-bit
+            4: 4,  # 4-bit
+            5: 6,  # 6-bit
+            6: 8  # 8-bit
+        }
         self.input_bit = DAC_precision_dict[DAC_choice]
         self.quantize_bit = ADC_precision_dict[ADC_choice]
         self.hardware_config['input_bit'] = self.input_bit
@@ -68,10 +70,20 @@ class TrainTestInterface(object):
         self.tile_column = self.tile_size[1]
         # net and weights
         if device != None:
-            self.device = torch.device(f'cuda:0' if torch.cuda.is_available() else 'cpu')
+            self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
         else:
             self.device = torch.device('cpu')
-        self.net = import_module('MNSIM.Interface.network').get_net(self.hardware_config, cate = self.network_module)
+        if dataset_module.endswith('cifar10'):
+            num_classes = 10
+        elif dataset_module.endswith('cifar100'):
+            num_classes = 100
+        else:
+            assert 0, f'unknown dataset'
+        if extra_define != None:
+            self.hardware_config['input_bit'] = extra_define['dac_res']
+            self.hardware_config['quantize_bit'] = extra_define['adc_res']
+            self.hardware_config['xbar_size'] = extra_define['xbar_size']
+        self.net = import_module('MNSIM.Interface.network').get_net(self.hardware_config, cate = self.network_module, num_classes = num_classes)
         self.net.load_change_weights(torch.load(weights_file, map_location=self.device))
         # if device != None:
         #     self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
@@ -168,8 +180,28 @@ def mysplit(array, length):
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "SimConfig.ini")
-    test_weights_file_path = os.path.join(os.path.dirname(__file__), "zoo/lenet_6_9_params.pth")
-    __TestInterface = TrainTestInterface('lenet_6_9', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, '1')
-    print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
-    print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
-    structure_info = __TestInterface.get_structure()
+    # test_weights_file_path = os.path.join(os.path.dirname(__file__), "zoo/lenet_6_9_params.pth")
+    # __TestInterface = TrainTestInterface('lenet_6_9', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, '1')
+    # print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
+    # print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
+    # structure_info = __TestInterface.get_structure()
+    # traverse all kinds
+    net_list = ['lenet', 'alexnet', 'vgg8']
+    xbar_size_list = [128, 256, 512, 1024]
+    adc_res_list = [4, 6, 8, 10]
+    dac_res_list = [1, 2, 4]
+    for net in net_list:
+        for xbar_size in xbar_size_list:
+            for adc_res in adc_res_list:
+                for dac_res in dac_res_list:
+                    # 正常情况下阻止循环的遍历
+                    continue
+                    tmp_config = collections.OrderedDict()
+                    tmp_config['xbar_size'] = xbar_size
+                    tmp_config['adc_res'] = adc_res
+                    tmp_config['dac_res'] = dac_res
+                    # test_weight
+                    test_weights_file_path = os.path.join(os.path.dirname(__file__), f'zoo/cifar10_{net}_params.pth')
+                    __TestInterface = TrainTestInterface(net, 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, '1', tmp_config)
+                    accuracy = __TestInterface.origin_evaluate(method='SINGLE_FIX_TEST')
+                    print(f'{net} {xbar_size} {adc_res} {dac_res} {accuracy}', flush=True)

@@ -13,9 +13,9 @@ tensorboard_writer = None
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
 GAMMA = 0.1
-lr = 0.1
-MILESTONES = [20, 40]
-EPOCHS = 60
+lr = 0.01
+MILESTONES = [30, 50]
+EPOCHS = 70
 
 TRAIN_PARAMETER = '''\
 # TRAIN_PARAMETER
@@ -50,9 +50,10 @@ def train_net(net, train_loader, test_loader, device, prefix):
         else:
             standard_params.append(param)
     optimizer = optim.SGD([
-                           {'params': individu_params, 'lr': 0., 'weight_decay': 0.},
-                           {'params': standard_params, 'lr': lr, 'weight_decay': WEIGHT_DECAY},
-                           ], momentum = MOMENTUM)
+        {'params': individu_params, 'lr': 0., 'weight_decay': 0.},
+        {'params': standard_params, 'lr': lr, 'weight_decay': WEIGHT_DECAY},
+        ], momentum = MOMENTUM
+    )
     # optimizer = optim.SGD(net.parameters(), lr = lr, weight_decay = WEIGHT_DECAY, momentum = MOMENTUM)
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones = MILESTONES, gamma = GAMMA)
     # test init
@@ -83,6 +84,8 @@ def eval_net(net, test_loader, epoch, device):
     test_total = 0
     with torch.no_grad():
         for i, (images, labels) in enumerate(test_loader):
+            if i > 10:
+                continue
             images = images.to(device)
             test_total += labels.size(0)
             outputs = net(images, 'FIX_TRAIN')
@@ -91,7 +94,7 @@ def eval_net(net, test_loader, epoch, device):
             _, predicted = torch.max(outputs, 1)
             test_correct += (predicted == labels).sum().item()
     print('%s After epoch %d, accuracy is %2.4f' % \
-          (time.asctime(time.localtime(time.time())), epoch, test_correct / test_total))
+        (time.asctime(time.localtime(time.time())), epoch, test_correct / test_total))
     if tensorboard_writer != None:
         tensorboard_writer.add_scalars('test_acc', {'test_acc': test_correct / test_total}, epoch)
     return test_correct / test_total
