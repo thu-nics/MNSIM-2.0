@@ -38,6 +38,7 @@ class tile(ProcessElement):
 				__PE = ProcessElement(SimConfig_path)
 				self.tile_PE_list[i].append(__PE)
 				self.tile_PE_enable[i].append(0)
+		self.layer_type = 'conv'
 		self.tile_layer_num = 0
 		self.tile_activation_precision = 0
 		self.tile_sliding_times = 0
@@ -76,6 +77,8 @@ class tile(ProcessElement):
 		self.tile_input_demux_read_power = 0
 		self.tile_output_mux_read_power = 0
 		self.tile_jointmodule_read_power = 0
+		self.tile_pooling_read_power = 0
+		self.tile_buffer_read_power = 0
 
 		self.tile_write_power = 0
 		self.tile_xbar_write_power = 0
@@ -181,6 +184,48 @@ class tile(ProcessElement):
 		self.tile_pooling_area = self.tile_pooling.Pooling_area
 		self.tile_buffer_area = self.tile_buffer.buf_area
 		self.tile_area = self.tile_xbar_area + self.tile_ADC_area + self.tile_DAC_area + self.tile_digital_area + self.tile_buffer_area+self.tile_pooling_area
+
+	def calculate_tile_read_power_fast(self, max_column=0, max_row=0, max_PE=0, max_group=0, layer_type=None):
+		# max_column: maximum used column in one crossbar in this tile
+		# max_row: maximum used row in one crossbar in this tile
+		# max_PE: maximum used PE in this tile
+		# max_group: maximum used groups in one PE
+		# unit: W
+		# coarse but fast estimation
+		self.tile_read_power = 0
+		self.tile_xbar_read_power = 0
+		self.tile_ADC_read_power = 0
+		self.tile_DAC_read_power = 0
+		self.tile_digital_read_power = 0
+		self.tile_adder_read_power = 0
+		self.tile_shiftreg_read_power = 0
+		self.tile_input_demux_read_power = 0
+		self.tile_output_mux_read_power = 0
+		self.tile_jointmodule_read_power = 0
+		self.tile_pooling_read_power = 0
+		self.tile_buffer_read_power = 0
+		if layer_type == 'pooling':
+			self.tile_pooling.calculate_Pooling_power()
+			self.tile_pooling_read_power = self.tile_pooling.Pooling_power
+		elif layer_type == 'conv' or layer_type  == 'fc':
+			self.calculate_PE_read_power_fast(max_column=max_column, max_row=max_row, max_group=max_group)
+			self.tile_xbar_read_power = max_PE * self.PE_xbar_read_power
+			self.tile_ADC_read_power = max_PE * self.PE_ADC_read_power
+			self.tile_DAC_read_power = max_PE * self.PE_DAC_read_power
+			self.tile_adder_read_power = max_PE * self.PE_adder_read_power
+			self.tile_shiftreg_read_power = max_PE * self.PE_shiftreg_read_power
+			self.tile_input_demux_read_power = max_PE * self.input_demux_read_power
+			self.tile_output_mux_read_power = max_PE * self.output_mux_read_power
+			self.tile_jointmodule_read_power = (max_PE-1)*math.ceil(max_column/self.output_mux)*self.tile_jointmodule.jointmodule_power
+			self.tile_digital_read_power = self.tile_adder_read_power+self.tile_shiftreg_read_power+\
+											self.tile_input_demux_read_power+self.tile_output_mux_read_power+self.tile_jointmodule_read_power
+		self.tile_buffer.calculate_buf_read_power()
+		self.tile_buffer.calculate_buf_write_power()
+		self.tile_buffer_read_power = (self.tile_buffer.buf_rpower+self.tile_buffer.buf_wpower)*1e-3
+		self.tile_digital_read_power = self.tile_adder_read_power+self.tile_shiftreg_read_power+\
+									   self.tile_input_demux_read_power+self.tile_output_mux_read_power+self.tile_jointmodule_read_power
+		self.tile_read_power = self.tile_xbar_read_power+self.tile_ADC_read_power+self.tile_DAC_read_power+\
+							   self.tile_digital_read_power+self.tile_pooling_read_power+self.tile_buffer_read_power
 
 	def tile_read_config(self, layer_num = 0, activation_precision = 0, sliding_times = 0,
 						 read_row = None, read_column = None, read_matrix = None, read_vector = None):
@@ -425,13 +470,16 @@ class tile(ProcessElement):
 			max_occupied_column = min(max_occupied_column, self.tile_PE_list[0][0].PE_ADC_num)
 			# self.tile_adder_read_power = (self.num_occupied_PE - 1) * max_occupied_column * self.tile_adder.adder_power
 			# self.tile_shiftreg_read_power = (self.num_occupied_PE - 1) * max_occupied_column * self.tile_shiftreg.shiftreg_power
-			self.tile_jointmodule_read_power = (self.num_occupied_PE - 1) * max_occupied_column * self.tile_jointmodule.jointmodule_power
+			self.tile_jointmodule_read_power = (self.num_occupied_PE - 1) * math.ceil(max_occupied_column/self.output_mux) * self.tile_jointmodule.jointmodule_power
 
 			self.tile_digital_read_power = self.tile_adder_read_power + self.tile_shiftreg_read_power \
 										   + self.tile_input_demux_read_power + self.tile_output_mux_read_power + self.tile_jointmodule_read_power
+			self.tile_buffer.calculate_buf_read_power()
+			self.tile_buffer.calculate_buf_write_power()
+			self.tile_buffer_read_power = (self.tile_buffer.buf_rpower + self.tile_buffer.buf_wpower) * 1e-3
 			self.tile_read_power = self.tile_xbar_read_power + self.tile_ADC_read_power + self.tile_DAC_read_power \
 								   + self.tile_digital_read_power \
-								   + (self.buffer.dynamic_buf_rpower + self.buffer.leakage_power) * 1e-3
+								   + self.tile_buffer_read_power
 
 	def calculate_tile_write_power(self):
 		# unit: W
@@ -487,7 +535,7 @@ class tile(ProcessElement):
 			self.tile_digital_read_energy = self.tile_adder_read_energy + self.tile_shiftreg_read_energy \
 											+ self.tile_input_demux_read_energy + self.tile_output_mux_read_energy + self.tile_jointmodule_read_energy
 			self.tile_read_energy = self.tile_xbar_read_energy + self.tile_ADC_read_energy \
-									+ self.tile_DAC_read_energy + self.tile_digital_read_energy + self.buffer.buf_renergy
+									+ self.tile_DAC_read_energy + self.tile_digital_read_energy + self.tile_buffer.buf_renergy
 
 	def calculate_tile_write_energy(self):
 		# unit: nJ
@@ -513,7 +561,7 @@ class tile(ProcessElement):
 			self.tile_digital_write_energy = self.tile_adder_write_energy + self.tile_shiftreg_write_energy \
 											 + self.tile_input_demux_write_energy + self.tile_output_mux_write_energy
 			self.tile_write_energy = self.tile_xbar_write_energy + self.tile_ADC_write_energy \
-									 + self.tile_DAC_write_energy + self.tile_digital_write_energy + self.buffer.buf_wenergy
+									 + self.tile_DAC_write_energy + self.tile_digital_write_energy + self.tile_buffer.buf_wenergy
 
 	def tile_output(self):
 		self.tile_PE_list[0][0].PE_output()

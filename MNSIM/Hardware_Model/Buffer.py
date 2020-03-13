@@ -156,8 +156,8 @@ class buffer(object):
             elif self.buf_choice is 2:
                 self.dynamic_buf_rpower = LinearCaculate(self.buf_Size, dram_dynamic_rpower_dict[self.buf_Tech])
                 self.leakage_power = LinearCaculate(self.buf_Size, dram_leakage_power[self.buf_Tech])
-        if self.buf_rpower == 0:
-            self.buf_rpower = self.dynamic_buf_rpower + self.leakage_power
+        # if self.buf_rpower == 0:
+        self.buf_rpower = self.dynamic_buf_rpower + self.leakage_power
         #
         #
         # buf_rpower_dict = {1: 0.06 * 1e-3
@@ -206,8 +206,8 @@ class buffer(object):
             elif self.buf_choice is 2:
                 self.dynamic_buf_wpower = LinearCaculate(self.buf_Size, dram_dynamic_wpower_dict[self.buf_Tech])
 
-        if self.buf_wpower == 0:
-            self.buf_wpower = self.dynamic_buf_wpower + self.leakage_power
+        # if self.buf_wpower == 0:
+        self.buf_wpower = self.dynamic_buf_wpower + self.leakage_power
         # buf_wpower_dict = {1: 0.02 * 1e-3
         #                    }
         # if self.buf_choice != -1:

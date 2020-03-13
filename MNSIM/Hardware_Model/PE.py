@@ -561,6 +561,39 @@ class ProcessElement(crossbar, DAC, ADC):
 		else:
 			self.output_mux_power = mux_power_dict[64]
 
+	def calculate_PE_read_power_fast(self, max_column=0, max_row=0, max_group=0):
+		# unit: W
+		# coarse but fast estimation
+		# max_column: maximum used column in one crossbar in this tile
+		# max_row: maximum used row in one crossbar in this tile
+		# max_group: maximum used groups in one PE
+		self.calculate_DAC_power()
+		self.calculate_ADC_power()
+		self.calculate_demux_power()
+		self.calculate_mux_power()
+		self.PE_shiftreg.calculate_shiftreg_power()
+		self.PE_adder.calculate_adder_power()
+		self.PE_read_power = 0
+		self.PE_xbar_read_power = 0
+		self.PE_ADC_read_power = 0
+		self.PE_DAC_read_power = 0
+		self.PE_adder_read_power = 0
+		self.PE_shiftreg_read_power = 0
+		self.input_demux_read_power = 0
+		self.output_mux_read_power = 0
+		self.PE_digital_read_power = 0
+		self.xbar_read_config(read_row=max_row, read_column=max_column)
+		self.calculate_xbar_read_power()
+		self.PE_xbar_read_power = self.PE_multiplex_xbar_num[1]*max_group*self.xbar_read_power/self.input_demux/self.output_mux
+		self.PE_DAC_read_power = max_group*math.ceil(max_row/self.input_demux) * self.DAC_power
+		self.PE_ADC_read_power = max_group*math.ceil(max_column/self.output_mux) * self.ADC_power
+		self.input_demux_read_power = max_group*math.ceil(max_row/self.input_demux) * self.input_demux_power
+		self.output_mux_read_power = max_group*math.ceil(max_column/self.output_mux) * self.output_mux_power
+		self.PE_adder_read_power = (max_group - 1) * math.ceil(max_column/self.output_mux) * self.PE_adder.adder_power
+		self.PE_shiftreg_read_power = max_group * math.ceil(max_column/self.output_mux) * self.PE_shiftreg.shiftreg_power
+		self.PE_digital_read_power = self.input_demux_read_power + self.output_mux_read_power + self.PE_adder_read_power + self.PE_shiftreg_read_power
+		self.PE_read_power = self.PE_xbar_read_power + self.PE_DAC_read_power + self.PE_ADC_read_power + self.PE_digital_read_power
+
 	def calculate_PE_read_power(self):
 		# unit: W
 		# Notice: before calculating latency, PE_read_config must be executed
@@ -594,10 +627,11 @@ class ProcessElement(crossbar, DAC, ADC):
 					self.input_demux_read_power += math.ceil(self.PE_xbar_list[i][0].xbar_num_read_row/self.input_demux)*self.input_demux_power
 					self.output_mux_read_power += math.ceil(self.PE_xbar_list[i][0].xbar_num_read_column/self.output_mux)*self.output_mux_power
 					if self.PE_xbar_list[i][0].xbar_num_read_column > self.PE_max_occupied_column:
+						# find the most occupied column of each group in one PE
 						self.PE_max_occupied_column = self.PE_xbar_list[i][0].xbar_num_read_column
-			PE_max_read_column = min(self.PE_max_occupied_column, self.PE_group_ADC_num)
-			self.PE_adder_read_power = (self.num_occupied_group-1)*PE_max_read_column*self.PE_adder.adder_power
-			self.PE_shiftreg_read_power = (self.num_occupied_group-1)*PE_max_read_column*self.PE_shiftreg.shiftreg_power
+			# PE_max_read_column = min(self.PE_max_occupied_column, self.PE_group_ADC_num)
+			self.PE_adder_read_power = (self.num_occupied_group-1)*(self.PE_max_occupied_column/self.output_mux)*self.PE_adder.adder_power
+			self.PE_shiftreg_read_power = (self.num_occupied_group)*(self.PE_max_occupied_column/self.output_mux)*self.PE_shiftreg.shiftreg_power
 			self.PE_digital_read_power = self.input_demux_read_power + self.output_mux_read_power + self.PE_adder_read_power + self.PE_shiftreg_read_power
 			self.PE_read_power = self.PE_xbar_read_power + self.PE_DAC_read_power + self.PE_ADC_read_power + self.PE_digital_read_power
 
