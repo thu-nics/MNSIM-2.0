@@ -1297,8 +1297,8 @@ if __name__ == '__main__':
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
                                           "alexnet_params.pth")
 
-    __TestInterface = TrainTestInterface('alexnet', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path,
-                                         'cpu')
+    __TestInterface = TrainTestInterface('alexnet', 'MNSIM.Interface.cifar10', test_SimConfig_path,
+                                         test_weights_file_path)
     structure_file = __TestInterface.get_structure()
     test = Model_latency(structure_file, test_SimConfig_path)
 
