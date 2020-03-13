@@ -11,7 +11,6 @@ import torch.nn.functional as F
 
 from MNSIM.Interface import quantize
 
-
 class NetworkGraph(nn.Module):
     def __init__(self, hardware_config, layer_config_list, quantize_config_list, input_index_list, input_params):
         super(NetworkGraph, self).__init__()
@@ -131,7 +130,7 @@ class NetworkGraph(nn.Module):
         # load weights
         self.load_state_dict(tmp_state_dict)
 
-def get_net(hardware_config = None, cate = 'lenet'):
+def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
     # initial config
     if hardware_config == None:
         hardware_config = {'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'quantize_bit': 10}
@@ -152,7 +151,7 @@ def get_net(hardware_config = None, cate = 'lenet'):
         layer_config_list.append({'type': 'view'})
         layer_config_list.append({'type': 'fc', 'in_features': 120, 'out_features': 84})
         layer_config_list.append({'type': 'relu'})
-        layer_config_list.append({'type': 'fc', 'in_features': 84, 'out_features': 10})
+        layer_config_list.append({'type': 'fc', 'in_features': 84, 'out_features': num_classes})
     elif cate.startswith('vgg16'):
         layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 64, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
@@ -192,7 +191,7 @@ def get_net(hardware_config = None, cate = 'lenet'):
         layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': 4096})
         layer_config_list.append({'type': 'dropout'})
         layer_config_list.append({'type': 'relu'})
-        layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': 10})
+        layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': num_classes})
     elif cate.startswith('vgg8'):
         layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 128, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
@@ -213,7 +212,7 @@ def get_net(hardware_config = None, cate = 'lenet'):
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'pooling', 'mode': 'MAX', 'kernel_size': 2, 'stride': 2})
         layer_config_list.append({'type': 'view'})
-        layer_config_list.append({'type': 'fc', 'in_features': 1024, 'out_features': 10})
+        layer_config_list.append({'type': 'fc', 'in_features': 1024, 'out_features': num_classes})
     elif cate.startswith('alexnet'):
         layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 64, 'kernel_size': 3, 'padding': 1, 'stride': 2})
         layer_config_list.append({'type': 'relu'})
@@ -233,7 +232,7 @@ def get_net(hardware_config = None, cate = 'lenet'):
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': 4096})
         layer_config_list.append({'type': 'relu'})
-        layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': 10})
+        layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': num_classes})
     else:
         assert 0, f'not support {cate}'
     for i in range(len(layer_config_list)):
