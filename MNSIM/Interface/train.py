@@ -14,8 +14,8 @@ MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
 GAMMA = 0.1
 lr = 0.01
-MILESTONES = [30, 50]
-EPOCHS = 70
+MILESTONES = [30, 60]
+EPOCHS = 90
 
 TRAIN_PARAMETER = '''\
 # TRAIN_PARAMETER
@@ -57,7 +57,7 @@ def train_net(net, train_loader, test_loader, device, prefix):
     # optimizer = optim.SGD(net.parameters(), lr = lr, weight_decay = WEIGHT_DECAY, momentum = MOMENTUM)
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones = MILESTONES, gamma = GAMMA)
     # test init
-    eval_net(net, test_loader, 0, device)
+    # eval_net(net, test_loader, 0, device)
     # epochs
     for epoch in range(EPOCHS):
         # train
@@ -88,7 +88,8 @@ def eval_net(net, test_loader, epoch, device):
                 continue
             images = images.to(device)
             test_total += labels.size(0)
-            outputs = net(images, 'FIX_TRAIN')
+            # outputs = net(images, 'FIX_TRAIN')
+            outputs = net(images, 'SINGLE_FIX_TEST')
             # predicted
             labels = labels.to(device)
             _, predicted = torch.max(outputs, 1)

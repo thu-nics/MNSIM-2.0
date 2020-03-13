@@ -185,23 +185,48 @@ if __name__ == '__main__':
     # print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
     # print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
     # structure_info = __TestInterface.get_structure()
+
     # traverse all kinds
-    net_list = ['lenet', 'alexnet', 'vgg8']
-    xbar_size_list = [128, 256, 512, 1024]
-    adc_res_list = [4, 6, 8, 10]
-    dac_res_list = [1, 2, 4]
-    for net in net_list:
-        for xbar_size in xbar_size_list:
-            for adc_res in adc_res_list:
-                for dac_res in dac_res_list:
-                    # 正常情况下阻止循环的遍历
-                    continue
-                    tmp_config = collections.OrderedDict()
-                    tmp_config['xbar_size'] = xbar_size
-                    tmp_config['adc_res'] = adc_res
-                    tmp_config['dac_res'] = dac_res
-                    # test_weight
-                    test_weights_file_path = os.path.join(os.path.dirname(__file__), f'zoo/cifar10_{net}_params.pth')
-                    __TestInterface = TrainTestInterface(net, 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, '1', tmp_config)
-                    accuracy = __TestInterface.origin_evaluate(method='SINGLE_FIX_TEST')
-                    print(f'{net} {xbar_size} {adc_res} {dac_res} {accuracy}', flush=True)
+    # net_list = ['lenet', 'alexnet', 'vgg8']
+    # xbar_size_list = [128, 256, 512, 1024]
+    # adc_res_list = [4, 6, 8, 10]
+    # dac_res_list = [1, 2, 4]
+    # for net in net_list:
+    #     for xbar_size in xbar_size_list:
+    #         for adc_res in adc_res_list:
+    #             for dac_res in dac_res_list:
+    #                 # 正常情况下阻止循环的遍历
+    #                 continue
+    #                 tmp_config = collections.OrderedDict()
+    #                 tmp_config['xbar_size'] = xbar_size
+    #                 tmp_config['adc_res'] = adc_res
+    #                 tmp_config['dac_res'] = dac_res
+    #                 # test_weight
+    #                 # test_weights_file_path = os.path.join(os.path.dirname(__file__), f'zoo/cifar10_{net}_params.pth')
+    #                 test_weights_file_path = os.path.join(os.path.dirname(__file__), f'zoo/wobn_cifar10_{net}_params.pth')
+    #                 __TestInterface = TrainTestInterface(net, 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, '1', tmp_config)
+    #                 accuracy = __TestInterface.origin_evaluate(method='SINGLE_FIX_TEST')
+    #                 print(f'{net} {xbar_size} {adc_res} {dac_res} {accuracy}', flush=True)
+
+    # traverse all weight bit
+    weight_choice = [8, 7, 6, 5]
+    tmp_config = collections.OrderedDict()
+    tmp_config['xbar_size'] = 256
+    tmp_config['adc_res'] = 8
+    tmp_config['dac_res'] = 1
+    test_weights_file_path = os.path.join(os.path.dirname(__file__), f'zoo/wobn_cifar10_vgg8_params.pth')
+    # construct = [9] * 7
+    construct = [9,9,8,8,7,7,6]
+    # construct = [9,7,7,6,5,5,5]
+    net = '_'.join(['vgg8'] + [str(v) for v in construct])
+    __TestInterface = TrainTestInterface(net, 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, '3', tmp_config)
+    accuracy = __TestInterface.origin_evaluate(method='SINGLE_FIX_TEST')
+    print(f'origin accuracy is {accuracy}', flush=True)
+    # for index in range(7):
+    #     for weight_bit in weight_choice:
+    #         construct = [9] * 7
+    #         construct[index] = weight_bit
+    #         net = '_'.join(['vgg8'] + [str(v) for v in construct])
+    #         __TestInterface = TrainTestInterface(net, 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, '3', tmp_config)
+    #         accuracy = __TestInterface.origin_evaluate(method='SINGLE_FIX_TEST')
+    #         print(f'{construct} accuracy is {accuracy}', flush=True)

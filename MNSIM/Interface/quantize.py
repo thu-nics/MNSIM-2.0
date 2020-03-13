@@ -142,10 +142,10 @@ class QuantizeLayer(nn.Module):
         else:
             assert 0, f'not support {self.layer_config["type"]}'
         self.layer_info['Inputbit'] = int(self.bit_scale_list[0,0].item())
-        self.layer_info['Weightbit'] = int(self.bit_scale_list[1,0].item())
+        self.layer_info['Weightbit'] = int(self.quantize_config['weight_bit'])
         self.layer_info['outputbit'] = int(self.bit_scale_list[2,0].item())
         self.layer_info['row_split_num'] = len(self.layer_list)
-        self.layer_info['weight_cycle'] = math.ceil((int(self.bit_scale_list[1, 0].item()) - 1) / (self.hardware_config['weight_bit']))
+        self.layer_info['weight_cycle'] = math.ceil((self.quantize_config['weight_bit'] - 1) / (self.hardware_config['weight_bit']))
         return output
     def forward(self, input, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
         METHOD = method
@@ -195,7 +195,8 @@ class QuantizeLayer(nn.Module):
             return output
         assert 0, f'not support {METHOD}'
     def get_bit_weights(self):
-        weight_bit = int(self.bit_scale_list[1, 0].item())
+        # weight_bit = int(self.bit_scale_list[1, 0].item())
+        weight_bit = self.quantize_config['weight_bit']
         weight_scale = self.bit_scale_list[1, 1].item()
         assert weight_bit != 0 and weight_scale != 0, f'weight bit and scale should be given by the params'
         bit_weights = collections.OrderedDict()
@@ -223,7 +224,8 @@ class QuantizeLayer(nn.Module):
         output = None
         input_list = torch.split(input, self.split_input, dim = 1)
         scale = self.last_value.item()
-        weight_bit = int(self.bit_scale_list[1, 0].item())
+        # weight_bit = int(self.bit_scale_list[1, 0].item())
+        weight_bit = self.quantize_config['weight_bit']
         weight_scale = self.bit_scale_list[1, 1].item()
         for layer_num, l in enumerate(self.layer_list):
             # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0, generate weight cycle
