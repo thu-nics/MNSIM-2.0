@@ -29,10 +29,10 @@ class buffer(object):
         self.buf_Tech = int(buf_config.get('Architecture level', 'Buffer_Technology'))
         if self.buf_Tech == 0:
             self.buf_Tech = 22
-        # bytes
+        # KB
         self.buf_Size = float(buf_config.get('Architecture level', 'Buffer_Capacity'))
         if self.buf_Size == 0:
-            self.buf_Size = 1024
+            self.buf_Size = 16
 
         if self.buf_area == 0:
             self.calculate_buf_area()
@@ -81,10 +81,10 @@ class buffer(object):
             assert self.buf_choice in [1, 2]
             assert self.buf_Tech in [22, 32, 40, 90], "the Technology of buffer is illegal"
             if self.buf_choice is 1:
-                self.buf_area = self.buf_Size * sram_param_dict[self.buf_Tech][0] + sram_param_dict[self.buf_Tech][1]
+                self.buf_area = (self.buf_Size * sram_param_dict[self.buf_Tech][0] + sram_param_dict[self.buf_Tech][1])*1e6
 
             elif self.buf_choice is 2:
-                self.buf_area = self.buf_Size * dram_param_dict[self.buf_Tech][0] + dram_param_dict[self.buf_Tech][1]
+                self.buf_area = (self.buf_Size * dram_param_dict[self.buf_Tech][0] + dram_param_dict[self.buf_Tech][1])*1e6
 
 
 
