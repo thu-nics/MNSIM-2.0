@@ -100,6 +100,8 @@ class Model_energy():
         self.arch_total_output_mux_energy = sum(self.arch_output_mux_energy)
         self.arch_total_jointmodule_energy = sum(self.arch_jointmodule_energy)
         self.arch_total_buf_energy = sum(self.arch_buf_energy)
+        self.arch_total_buf_r_energy = sum(self.arch_buf_r_energy)
+        self.arch_total_buf_w_energy = sum(self.arch_buf_w_energy)
         self.arch_total_pooling_energy = sum(self.arch_pooling_energy)
 
     def model_energy_output(self, module_information = 1, layer_information = 1):
