@@ -32,6 +32,8 @@ class Model_inference_power():
         self.arch_output_mux_power = self.total_layer_num * [0]
         self.arch_jointmodule_power = self.total_layer_num * [0]
         self.arch_buf_power = self.total_layer_num * [0]
+        self.arch_buf_r_power = self.total_layer_num * [0]
+        self.arch_buf_w_power = self.total_layer_num * [0]
         self.arch_pooling_power = self.total_layer_num * [0]
         self.arch_total_power = 0
         self.arch_total_xbar_power = 0
@@ -44,6 +46,8 @@ class Model_inference_power():
         self.arch_total_input_demux_power = 0
         self.arch_total_jointmodule_power = 0
         self.arch_total_buf_power = 0
+        self.arch_total_buf_r_power = 0
+        self.arch_total_buf_w_power = 0
         self.arch_total_output_mux_power = 0
         self.arch_total_pooling_power = 0
         self.calculate_model_power()
@@ -69,6 +73,8 @@ class Model_inference_power():
             self.arch_output_mux_power[i] = self.graph.tile.tile_output_mux_read_power * tile_num
             self.arch_jointmodule_power[i] = self.graph.tile.tile_jointmodule_read_power * tile_num
             self.arch_buf_power[i] = self.graph.tile.tile_buffer_read_power * tile_num
+            self.arch_buf_r_power[i] = self.graph.tile.tile_buffer_r_read_power * tile_num
+            self.arch_buf_w_power[i] = self.graph.tile.tile_buffer_w_read_power * tile_num
             self.arch_pooling_power[i] = self.graph.tile.tile_pooling_read_power * tile_num
         self.arch_total_power = sum(self.arch_power)
         self.arch_total_xbar_power = sum(self.arch_xbar_power)
@@ -82,6 +88,8 @@ class Model_inference_power():
         self.arch_total_output_mux_power = sum(self.arch_output_mux_power)
         self.arch_total_jointmodule_power = sum(self.arch_jointmodule_power)
         self.arch_total_buf_power = sum(self.arch_buf_power)
+        self.arch_total_buf_r_power = sum(self.arch_buf_r_power)
+        self.arch_total_buf_w_power = sum(self.arch_buf_w_power)
         self.arch_total_pooling_power = sum(self.arch_pooling_power)
     
     def model_power_output(self, module_information = 1, layer_information = 1):
@@ -91,6 +99,8 @@ class Model_inference_power():
             print("		DAC power:", self.arch_total_DAC_power, "W")
             print("		ADC power:", self.arch_total_ADC_power, "W")
             print("		Buffer power:", self.arch_total_buf_power, "W")
+            print("			|---read buffer power:", self.arch_total_buf_r_power, "W")
+            print("			|---write buffer power:", self.arch_total_buf_w_power, "W")
             print("		Pooling power:", self.arch_total_pooling_power, "W")
             print("		Other digital part power:", self.arch_total_digital_power, "W")
             print("			|---adder power:", self.arch_total_adder_power, "W")
