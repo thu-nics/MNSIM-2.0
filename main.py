@@ -71,9 +71,9 @@ def main():
     # print(structure_file)
     # print(__TestInterface.origin_evaluate(method = 'FIX_TRAIN', adc_action = 'SCALE'))
     # print(__TestInterface.set_net_bits_evaluate(weight, adc_action = 'SCALE'))
-
+    TCG_mapping = TCG(structure_file, args.hardware_description)
     if not(args.disable_hardware_modeling):
-        __bm = behavior_mapping(structure_file,args.hardware_description)
+        __bm = behavior_mapping(NetStruct=structure_file,SimConfig_path=args.hardware_description)
         __bm.config_behavior_mapping()
         __bm.behavior_mapping_area()
         __bm.behavior_mapping_utilization()
@@ -81,7 +81,7 @@ def main():
         __bm.behavior_mapping_power()
         __bm.behavior_mapping_energy()
         __bm.behavior_mapping_output(not(args.disable_module_output), not(args.disable_layer_output))
-        __latency = Model_latency(structure_file, args.hardware_description)
+        __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
         if not(args.disable_inner_pipeline):
             __latency.calculate_model_latency(mode=2)
         else:

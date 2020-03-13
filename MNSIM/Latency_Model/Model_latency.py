@@ -51,14 +51,16 @@ def Split_map(padding, outputsize, multiple): # 对下一层进行划分
 
 
 class Model_latency():
-    def __init__(self, NetStruct, SimConfig_path, multiple=None):
+    def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None):
         modelL_config = cp.ConfigParser()
         modelL_config.read(SimConfig_path, encoding='UTF-8')
         self.inter_tile_bandwidth = float(modelL_config.get('Tile level', 'Inter_Tile_Bandwidth'))
         self.NetStruct = NetStruct
         if multiple is None:
             multiple = [1] * len(self.NetStruct)
-        self.graph = TCG(NetStruct, SimConfig_path, multiple)
+        if TCG_mapping is None:
+            TCG_mapping = TCG(NetStruct, SimConfig_path, multiple)
+        self.graph = TCG_mapping
         self.graph.mapping_net()
         self.graph.calculate_transfer_distance()
         self.begin_time = []

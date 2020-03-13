@@ -194,6 +194,7 @@ def generate_zigzag_matrix(row, column):
 
 class TCG():
     def __init__(self, NetStruct, SimConfig_path, multiple=None):
+        # NetStruct: layer structure, SimConfig_path: Hardware config path, multiple: allocate more resources for some layers
         TCG_config = cp.ConfigParser()
         TCG_config.read(SimConfig_path, encoding='UTF-8')
         if multiple is None:
@@ -262,6 +263,7 @@ class TCG():
                     self.trans_time[0][layer_id] = int(layer_dict['Outputsize'][1]) * \
                                                    max(int(next_layer_dict['Kernelsize'])-int(next_layer_dict['Padding'])-1, 0) +\
                                                    max(int(next_layer_dict['Kernelsize'])-int(next_layer_dict['Padding'])-1, 0)
+                    # The amount of data that the former layer needs to calculate before the next layer starts
                 elif next_layer_dict['type'] == 'fc':
                     self.trans_time[0][layer_id] = 1
             tmp_tileinfo['PEnum'] = tmp_tileinfo['mx'] * tmp_tileinfo['my'] * multiple[layer_id]
@@ -356,9 +358,9 @@ class TCG():
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "cifar10_vgg8_params.pth")
+                                          "vgg8_params.pth")
 
-    __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
+    __TestInterface = TrainTestInterface('vgg8_128_9', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
     structure_file = __TestInterface.get_structure()
 
     test = TCG(structure_file, test_SimConfig_path)
