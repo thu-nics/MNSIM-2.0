@@ -235,11 +235,13 @@ class TCG():
                 tmp_tileinfo['my'] = math.ceil(int(layer_dict['Inputchannel']) /
                                                (self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)))
                     # my: PE number in y-axis
+                tmp_tileinfo['max_group'] = min(weight_precision,self.tile.group_num)
+                    # max_group: maximum used groups in one PE of this layer
                 tmp_tileinfo['max_row'] = min((self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)),
                                               int(layer_dict['Inputchannel'])) * (int(layer_dict['Kernelsize'])**2)
                     # max_row: maximum used row in one crossbar of this layer
                 tmp_tileinfo['max_column'] = min(int(layer_dict['Outputchannel']), self.tile.xbar_column)
-                    # max_row: maximum used column in one crossbar of this layer
+                    # max_column: maximum used column in one crossbar of this layer
             elif layer_type == 'fc':
                 tmp_tileinfo['type'] = 'fc'
                 tmp_tileinfo['mx'] = math.ceil(weight_precision / self.tile.group_num) * \
@@ -247,16 +249,19 @@ class TCG():
                     # mx: PE number in x-axis
                 tmp_tileinfo['my'] = math.ceil(int(layer_dict['Infeature']) / self.tile.xbar_row)
                     # my: PE number in y-axis
+                tmp_tileinfo['max_group'] = min(weight_precision, self.tile.group_num)
+                    # max_group: maximum used groups in one PE of this layer
                 tmp_tileinfo['max_row'] = min(int(layer_dict['Infeature']), self.tile.xbar_row)
-                # max_row: maximum used row in one crossbar of this layer
+                    # max_row: maximum used row in one crossbar of this layer
                 tmp_tileinfo['max_column'] = min(int(layer_dict['Outfeature']), self.tile.xbar_column)
-                # max_row: maximum used column in one crossbar of this layer
+                    # max_row: maximum used column in one crossbar of this layer
             else:
                 tmp_tileinfo['type'] = 'pooling'
                 tmp_tileinfo['mx'] = 1
                 tmp_tileinfo['my'] = 1
                 tmp_tileinfo['max_row'] = 0
                 tmp_tileinfo['max_column'] = 0
+                tmp_tileinfo['max_group'] = 0
             if layer_id < self.layer_num-1:
                 next_layer_dict = self.net[layer_id+1][0][0]
                 if next_layer_dict['type'] == 'conv' or next_layer_dict['type'] == 'pooling':
