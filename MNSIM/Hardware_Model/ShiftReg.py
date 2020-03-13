@@ -8,7 +8,7 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 
 
 class shiftreg(object):
-	def __init__(self, SimConfig_path, max_shiftbase = None, frequency = None):
+	def __init__(self, SimConfig_path, max_shiftbase = None):
 		# frequency unit: MHz
 		shiftreg_config = cp.ConfigParser()
 		shiftreg_config.read(SimConfig_path, encoding='UTF-8')
@@ -22,10 +22,9 @@ class shiftreg(object):
 		else:
 			self.max_shiftbase = max_shiftbase
 		assert self.max_shiftbase > 0
-		if frequency is None:
+		self.shiftreg_frequency =float(shiftreg_config.get('Digital module', 'Digital_Frequency'))
+		if self.shiftreg_frequency is None:
 			self.shiftreg_frequency = 100
-		else:
-			self.shiftreg_frequency = frequency
 		assert self.shiftreg_frequency > 0
 		self.shiftreg_latency = 1.0/self.shiftreg_frequency
 		self.calculate_shiftreg_power()

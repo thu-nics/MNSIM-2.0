@@ -7,7 +7,7 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
     #Default SimConfig file path: MNSIM_Python/SimConfig.ini
 
 class JointModule(object):
-    def __init__(self, SimConfig_path, max_bitwidth = None, frequency = None):
+    def __init__(self, SimConfig_path, max_bitwidth = None):
         # frequency unit: MHz
         jointmodule_config = cp.ConfigParser()
         jointmodule_config.read(SimConfig_path, encoding='UTF-8')
@@ -21,10 +21,9 @@ class JointModule(object):
         else:
             self.jointmodule_bit = max_bitwidth
         assert self.jointmodule_bit > 0
-        if frequency is None:
+        self.jointmodule_frequency = float(jointmodule_config.get('Digital module', 'Digital_Frequency'))
+        if self.jointmodule_frequency == 0:
             self.jointmodule_frequency = 100
-        else:
-            self.jointmodule_frequency = frequency
         assert self.jointmodule_frequency > 0
         self.jointmodule_latency = 1.0 / self.jointmodule_frequency
         self.adder_energy = 0
