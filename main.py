@@ -17,6 +17,7 @@ from MNSIM.Mapping_Model.Tile_connection_graph import TCG
 from MNSIM.Latency_Model.Model_latency import Model_latency
 from MNSIM.Area_Model.Model_Area import Model_area
 from MNSIM.Power_Model.Model_inference_power import Model_inference_power
+from MNSIM.Energy_Model.Model_energy import Model_energy
 
 def main():
     # home_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -90,12 +91,19 @@ def main():
             __latency.calculate_model_latency(mode=2)
         else:
             __latency.calculate_model_latency_nopipe()
-        __area.model_area_output(not(args.disable_module_output), not(args.disable_layer_output))
-        __power.model_power_output(not(args.disable_module_output), not(args.disable_layer_output))
+        __energy = Model_energy(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping,
+                                model_latency=__latency,model_power=__power)
+        print("========================Area Results=================================")
+        __area.model_area_output(not (args.disable_module_output), not (args.disable_layer_output))
+        print("========================Power Results=================================")
+        __power.model_power_output(not (args.disable_module_output), not (args.disable_layer_output))
+        print("========================Latency Results=================================")
         __latency.model_latency_output(not(args.disable_module_output),not(args.disable_layer_output))
+        print("========================Energy Results=================================")
+        __energy.model_energy_output(not (args.disable_module_output), not (args.disable_layer_output))
 
 
-    if not(args.disable_accuracy_simulation):
+    if (args.disable_accuracy_simulation):
         print("======================================")
         print("Accuracy simulation will take a few minutes on GPU")
         weight = __TestInterface.get_net_bits()
