@@ -10,6 +10,7 @@ from MNSIM.Hardware_Model.Adder import adder
 from MNSIM.Hardware_Model.Buffer import buffer
 from MNSIM.Hardware_Model.ShiftReg import shiftreg
 from MNSIM.Hardware_Model.JointModule import JointModule
+from MNSIM.Hardware_Model.Pooling import Pooling
 test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"SimConfig.ini")
 # Default SimConfig file path: MNSIM_Python/SimConfig.ini
 
@@ -46,7 +47,8 @@ class tile(ProcessElement):
 		self.tile_adder = adder(SimConfig_path)
 		self.tile_shiftreg = shiftreg(SimConfig_path)
 		self.tile_jointmodule = JointModule(SimConfig_path)
-		self.buffer = buffer(SimConfig_path)
+		self.tile_buffer = buffer(SimConfig_path)
+		self.tile_pooling = Pooling(SimConfig_path)
 
 		self.tile_utilization = 0
 		self.num_occupied_PE = 0
@@ -61,6 +63,8 @@ class tile(ProcessElement):
 		self.tile_input_demux_area = 0
 		self.tile_output_mux_area = 0
 		self.tile_jointmodule_area = 0
+		self.tile_pooling_area = 0
+		self.tile_buffer_area = 0
 
 		self.tile_read_power = 0
 		self.tile_xbar_read_power = 0
@@ -155,6 +159,9 @@ class tile(ProcessElement):
 		self.tile_adder.calculate_adder_area()
 		self.tile_shiftreg.calculate_shiftreg_area()
 		self.tile_jointmodule.calculate_jointmodule_area()
+		self.tile_buffer.calculate_buf_area()
+		self.tile_pooling.calculate_Pooling_area()
+
 		for i in range(self.tile_PE_num[0]):
 			for j in range(self.tile_PE_num[1]):
 				self.tile_PE_list[i][j].calculate_PE_area()
@@ -171,7 +178,9 @@ class tile(ProcessElement):
 		self.tile_jointmodule_area = self.tile_jointmodule_num * self.tile_jointmodule.jointmodule_area
 		self.tile_digital_area = self.tile_input_demux_area + self.tile_output_mux_area + self.tile_adder_area \
 								 + self.tile_shiftreg_area + self.tile_jointmodule_area
-		self.tile_area = self.tile_xbar_area + self.tile_ADC_area + self.tile_DAC_area + self.tile_digital_area + self.buffer.buf_area
+		self.tile_pooling_area = self.tile_pooling.Pooling_area
+		self.tile_buffer_area = self.tile_buffer.buf_area
+		self.tile_area = self.tile_xbar_area + self.tile_ADC_area + self.tile_DAC_area + self.tile_digital_area + self.tile_buffer_area+self.tile_pooling_area
 
 	def tile_read_config(self, layer_num = 0, activation_precision = 0, sliding_times = 0,
 						 read_row = None, read_column = None, read_matrix = None, read_vector = None):

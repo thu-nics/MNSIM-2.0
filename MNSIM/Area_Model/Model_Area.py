@@ -31,6 +31,7 @@ class Model_area():
         self.arch_output_mux_area = self.total_layer_num * [0]
         self.arch_jointmodule_area = self.total_layer_num * [0]
         self.arch_buf_area = self.total_layer_num * [0]
+        self.arch_pooling_area = self.total_layer_num * [0]
         self.arch_total_area = 0
         self.arch_total_xbar_area = 0
         self.arch_total_ADC_area = 0
@@ -42,6 +43,7 @@ class Model_area():
         self.arch_total_jointmodule_area = 0
         self.arch_total_buf_area = 0
         self.arch_total_output_mux_area = 0
+        self.arch_total_pooling_area = 0
         self.calculate_model_area()
 
     def calculate_model_area(self):
@@ -58,8 +60,8 @@ class Model_area():
             self.arch_input_demux_area[i] = self.graph.tile.tile_input_demux_area * tile_num
             self.arch_output_mux_area[i] = self.graph.tile.tile_output_mux_area * tile_num
             self.arch_jointmodule_area[i] = self.graph.tile.tile_jointmodule_area * tile_num
-            self.arch_buf_area[i] = self.graph.tile.buffer.buf_area * tile_num
-            print(self.arch_buf_area[i])
+            self.arch_buf_area[i] = self.graph.tile.tile_buffer_area * tile_num
+            self.arch_pooling_area[i] = self.graph.tile.tile_pooling_area * tile_num
         self.arch_total_area = sum(self.arch_area)
         self.arch_total_xbar_area = sum(self.arch_xbar_area)
         self.arch_total_ADC_area = sum(self.arch_ADC_area)
@@ -71,6 +73,7 @@ class Model_area():
         self.arch_total_output_mux_area = sum(self.arch_output_mux_area)
         self.arch_total_jointmodule_area = sum(self.arch_jointmodule_area)
         self.arch_total_buf_area = sum(self.arch_buf_area)
+        self.arch_total_pooling_area = sum(self.arch_pooling_area)
 
     def model_area_output(self, module_information = 1, layer_information = 1):
         print("Hardware area:", self.arch_total_area, "um^2")
@@ -79,7 +82,8 @@ class Model_area():
             print("		DAC area:", self.arch_total_DAC_area, "um^2")
             print("		ADC area:", self.arch_total_ADC_area, "um^2")
             print("		Buffer area:", self.arch_total_buf_area, "um^2")
-            print("		digital part area:", self.arch_total_digital_area, "um^2")
+            print("		Pooling area:", self.arch_total_pooling_area, "um^2")
+            print("		Other digital part area:", self.arch_total_digital_area, "um^2")
             print("			|---adder area:", self.arch_total_adder_area, "um^2")
             print("			|---shift-reg area:", self.arch_total_shiftreg_area, "um^2")
             print("			|---input_demux area:", self.arch_total_input_demux_area, "um^2")
