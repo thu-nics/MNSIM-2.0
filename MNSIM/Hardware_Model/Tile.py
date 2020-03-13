@@ -82,6 +82,8 @@ class tile(ProcessElement):
 		self.tile_jointmodule_read_power = 0
 		self.tile_pooling_read_power = 0
 		self.tile_buffer_read_power = 0
+		self.tile_buffer_r_read_power = 0
+		self.tile_buffer_w_read_power = 0
 
 		self.tile_write_power = 0
 		self.tile_xbar_write_power = 0
@@ -215,6 +217,8 @@ class tile(ProcessElement):
 		self.tile_jointmodule_read_power = 0
 		self.tile_pooling_read_power = 0
 		self.tile_buffer_read_power = 0
+		self.tile_buffer_r_read_power = 0
+		self.tile_buffer_w_read_power = 0
 		if layer_type == 'pooling':
 			self.tile_pooling.calculate_Pooling_power()
 			self.tile_pooling_read_power = self.tile_pooling.Pooling_power
@@ -233,7 +237,9 @@ class tile(ProcessElement):
 											self.tile_input_demux_read_power+self.tile_output_mux_read_power+self.tile_jointmodule_read_power
 		self.tile_buffer.calculate_buf_read_power()
 		self.tile_buffer.calculate_buf_write_power()
-		self.tile_buffer_read_power = (self.tile_buffer.buf_rpower+self.tile_buffer.buf_wpower)*1e-3
+		self.tile_buffer_r_read_power = self.tile_buffer.buf_rpower*1e-3
+		self.tile_buffer_w_read_power = self.tile_buffer.buf_wpower * 1e-3
+		self.tile_buffer_read_power = self.tile_buffer_r_read_power + self.tile_buffer_w_read_power
 		self.tile_digital_read_power = self.tile_adder_read_power+self.tile_shiftreg_read_power+self.tile_iReg_read_power+\
 									   self.tile_input_demux_read_power+self.tile_output_mux_read_power+self.tile_jointmodule_read_power
 		self.tile_read_power = self.tile_xbar_read_power+self.tile_ADC_read_power+self.tile_DAC_read_power+\
@@ -308,7 +314,7 @@ class tile(ProcessElement):
 								self.tile_PE_enable[i][j] = 0
 		self.tile_utilization /= self.tile_PE_total_num
 
-	def tile_write_config(self, write_row = None, write_column = None, write_matrix = None, write_vector = None):
+	'''def tile_write_config(self, write_row = None, write_column = None, write_matrix = None, write_vector = None):
 		# write_row and write_column are 2D lists with the size of (#occupied_PE x #occupied groups)
 		# write_matrix is a 3D list of matrices, with the size of (#occupied_PE x #occupied groups x Xbar_Polarity)
 		# write_vector is a 2D list of vectors, with the size of (#occupied_PE x #occupied groups)
@@ -370,7 +376,7 @@ class tile(ProcessElement):
 								self.tile_utilization += self.tile_PE_list[i][j].PE_utilization
 							else:
 								self.tile_PE_enable[i][j] = 0
-		self.tile_utilization /= self.tile_PE_total_num
+		self.tile_utilization /= self.tile_PE_total_num'''
 
 	'''def calculate_tile_read_latency(self):
 		# Notice: before calculating latency, tile_read_config must be executed
@@ -462,6 +468,9 @@ class tile(ProcessElement):
 		self.tile_iReg_read_power = 0
 		self.tile_input_demux_read_power = 0
 		self.tile_output_mux_read_power = 0
+		self.tile_buffer_read_power = 0
+		self.tile_buffer_r_read_power = 0
+		self.tile_buffer_w_read_power = 0
 
 		max_occupied_column = 0
 		if self.num_occupied_PE != 0:
@@ -490,7 +499,9 @@ class tile(ProcessElement):
 										   + self.tile_input_demux_read_power + self.tile_output_mux_read_power + self.tile_jointmodule_read_power
 			self.tile_buffer.calculate_buf_read_power()
 			self.tile_buffer.calculate_buf_write_power()
-			self.tile_buffer_read_power = (self.tile_buffer.buf_rpower + self.tile_buffer.buf_wpower) * 1e-3
+			self.tile_buffer_r_read_power = self.tile_buffer.buf_rpower * 1e-3
+			self.tile_buffer_w_read_power = self.tile_buffer.buf_wpower * 1e-3
+			self.tile_buffer_read_power = self.tile_buffer_r_read_power + self.tile_buffer_w_read_power
 			self.tile_read_power = self.tile_xbar_read_power + self.tile_ADC_read_power + self.tile_DAC_read_power \
 								   + self.tile_digital_read_power \
 								   + self.tile_buffer_read_power
