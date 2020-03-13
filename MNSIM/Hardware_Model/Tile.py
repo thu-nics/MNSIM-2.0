@@ -47,6 +47,7 @@ class tile(ProcessElement):
 		self.tile_jointmodule_num = 0
 		self.tile_adder = adder(SimConfig_path)
 		self.tile_shiftreg = shiftreg(SimConfig_path)
+		self.tile_iReg = shiftreg(SimConfig_path)
 		self.tile_jointmodule = JointModule(SimConfig_path)
 		self.tile_buffer = buffer(SimConfig_path)
 		self.tile_pooling = Pooling(SimConfig_path)
@@ -61,6 +62,7 @@ class tile(ProcessElement):
 		self.tile_digital_area = 0
 		self.tile_adder_area = 0
 		self.tile_shiftreg_area = 0
+		self.tile_iReg_area = 0
 		self.tile_input_demux_area = 0
 		self.tile_output_mux_area = 0
 		self.tile_jointmodule_area = 0
@@ -74,6 +76,7 @@ class tile(ProcessElement):
 		self.tile_digital_read_power = 0
 		self.tile_adder_read_power = 0
 		self.tile_shiftreg_read_power = 0
+		self.tile_iReg_read_power = 0
 		self.tile_input_demux_read_power = 0
 		self.tile_output_mux_read_power = 0
 		self.tile_jointmodule_read_power = 0
@@ -87,6 +90,7 @@ class tile(ProcessElement):
 		self.tile_digital_write_power = 0
 		self.tile_adder_write_power = 0
 		self.tile_shiftreg_write_power = 0
+		self.tile_iReg_write_power = 0
 		self.tile_input_demux_write_power = 0
 		self.tile_output_mux_write_power = 0
 		self.tile_jointmodule_write_power = 0
@@ -98,6 +102,7 @@ class tile(ProcessElement):
 		self.tile_digital_read_latency = 0
 		self.tile_adder_read_latency = 0
 		self.tile_shiftreg_read_latency = 0
+		self.tile_iReg_read_latency = 0
 		self.tile_input_demux_read_latency = 0
 		self.tile_output_mux_read_latency = 0
 		self.tile_jointmodule_read_latency = 0
@@ -110,6 +115,7 @@ class tile(ProcessElement):
 		self.tile_digital_write_latency = 0
 		self.tile_adder_write_latency = 0
 		self.tile_shiftreg_write_latency = 0
+		self.tile_iReg_write_latency = 0
 		self.tile_input_demux_write_latency = 0
 		self.tile_output_mux_write_latency = 0
 		self.tile_jointmodule_write_latency = 0
@@ -122,6 +128,7 @@ class tile(ProcessElement):
 		self.tile_digital_read_energy = 0
 		self.tile_adder_read_energy = 0
 		self.tile_shiftreg_read_energy = 0
+		self.tile_iReg_read_energy = 0
 		self.tile_input_demux_read_energy = 0
 		self.tile_output_mux_read_energy = 0
 		self.tile_jointmodule_read_energy = 0
@@ -133,6 +140,7 @@ class tile(ProcessElement):
 		self.tile_digital_write_energy = 0
 		self.tile_adder_write_energy = 0
 		self.tile_shiftreg_write_energy = 0
+		self.tile_iReg_write_energy = 0
 		self.tile_input_demux_write_energy = 0
 		self.tile_output_mux_write_energy = 0
 		self.tile_jointmodule_write_energy = 0
@@ -161,6 +169,7 @@ class tile(ProcessElement):
 		self.tile_digital_area = 0
 		self.tile_adder.calculate_adder_area()
 		self.tile_shiftreg.calculate_shiftreg_area()
+		self.tile_iReg.calculate_shiftreg_area()
 		self.tile_jointmodule.calculate_jointmodule_area()
 		self.tile_buffer.calculate_buf_area()
 		self.tile_pooling.calculate_Pooling_area()
@@ -175,12 +184,13 @@ class tile(ProcessElement):
 				self.tile_input_demux_area += self.tile_PE_list[i][j].PE_input_demux_area
 				self.tile_output_mux_area += self.tile_PE_list[i][j].PE_output_mux_area
 				self.tile_shiftreg_area += self.tile_PE_list[i][j].PE_shiftreg_area
+				self.tile_iReg_area += self.tile_PE_list[i][j].PE_iReg_area
 				self.tile_adder_area += self.tile_PE_list[i][j].PE_adder_area
 		# self.tile_adder_area += self.tile_adder_num * self.tile_adder.adder_area
 		# self.tile_shiftreg_area += self.tile_shiftreg_num * self.tile_shiftreg.shiftreg_area
 		self.tile_jointmodule_area = self.tile_jointmodule_num * self.tile_jointmodule.jointmodule_area
 		self.tile_digital_area = self.tile_input_demux_area + self.tile_output_mux_area + self.tile_adder_area \
-								 + self.tile_shiftreg_area + self.tile_jointmodule_area
+								 + self.tile_shiftreg_area + self.tile_jointmodule_area + self.tile_iReg_area
 		self.tile_pooling_area = self.tile_pooling.Pooling_area
 		self.tile_buffer_area = self.tile_buffer.buf_area
 		self.tile_area = self.tile_xbar_area + self.tile_ADC_area + self.tile_DAC_area + self.tile_digital_area + self.tile_buffer_area+self.tile_pooling_area
@@ -199,6 +209,7 @@ class tile(ProcessElement):
 		self.tile_digital_read_power = 0
 		self.tile_adder_read_power = 0
 		self.tile_shiftreg_read_power = 0
+		self.tile_iReg_read_power = 0
 		self.tile_input_demux_read_power = 0
 		self.tile_output_mux_read_power = 0
 		self.tile_jointmodule_read_power = 0
@@ -214,6 +225,7 @@ class tile(ProcessElement):
 			self.tile_DAC_read_power = max_PE * self.PE_DAC_read_power
 			self.tile_adder_read_power = max_PE * self.PE_adder_read_power
 			self.tile_shiftreg_read_power = max_PE * self.PE_shiftreg_read_power
+			self.tile_iReg_read_power = max_PE * self.PE_iReg_read_power
 			self.tile_input_demux_read_power = max_PE * self.input_demux_read_power
 			self.tile_output_mux_read_power = max_PE * self.output_mux_read_power
 			self.tile_jointmodule_read_power = (max_PE-1)*math.ceil(max_column/self.output_mux)*self.tile_jointmodule.jointmodule_power
@@ -222,7 +234,7 @@ class tile(ProcessElement):
 		self.tile_buffer.calculate_buf_read_power()
 		self.tile_buffer.calculate_buf_write_power()
 		self.tile_buffer_read_power = (self.tile_buffer.buf_rpower+self.tile_buffer.buf_wpower)*1e-3
-		self.tile_digital_read_power = self.tile_adder_read_power+self.tile_shiftreg_read_power+\
+		self.tile_digital_read_power = self.tile_adder_read_power+self.tile_shiftreg_read_power+self.tile_iReg_read_power+\
 									   self.tile_input_demux_read_power+self.tile_output_mux_read_power+self.tile_jointmodule_read_power
 		self.tile_read_power = self.tile_xbar_read_power+self.tile_ADC_read_power+self.tile_DAC_read_power+\
 							   self.tile_digital_read_power+self.tile_pooling_read_power+self.tile_buffer_read_power
@@ -360,7 +372,7 @@ class tile(ProcessElement):
 								self.tile_PE_enable[i][j] = 0
 		self.tile_utilization /= self.tile_PE_total_num
 
-	def calculate_tile_read_latency(self):
+	'''def calculate_tile_read_latency(self):
 		# Notice: before calculating latency, tile_read_config must be executed
 		# unit: ns
 		self.tile_read_latency = 0
@@ -435,7 +447,7 @@ class tile(ProcessElement):
 							self.tile_adder_write_latency = 0
 							self.tile_jointmodule_write_latency = 0
 			self.tile_write_latency = self.tile_xbar_write_latency + self.tile_ADC_write_latency \
-									  + self.tile_DAC_write_latency + self.tile_digital_write_latency
+									  + self.tile_DAC_write_latency + self.tile_digital_write_latency'''
 
 	def calculate_tile_read_power(self):
 		# unit: W
@@ -447,6 +459,7 @@ class tile(ProcessElement):
 		self.tile_digital_read_power = 0
 		self.tile_adder_read_power = 0
 		self.tile_shiftreg_read_power = 0
+		self.tile_iReg_read_power = 0
 		self.tile_input_demux_read_power = 0
 		self.tile_output_mux_read_power = 0
 
@@ -461,6 +474,7 @@ class tile(ProcessElement):
 						self.tile_DAC_read_power += self.tile_PE_list[i][j].PE_DAC_read_power
 						self.tile_adder_read_power += self.tile_PE_list[i][j].PE_adder_read_power
 						self.tile_shiftreg_read_power += self.tile_PE_list[i][j].PE_shiftreg_read_power
+						self.tile_iReg_read_power += self.tile_PE_list[i][j].PE_iReg_read_power
 						self.tile_input_demux_read_power += self.tile_PE_list[i][j].input_demux_read_power
 						self.tile_output_mux_read_power += self.tile_PE_list[i][j].output_mux_read_power
 						# self.tile_digital_read_power += self.tile_PE_list[i][j].PE_digital_read_power
@@ -472,7 +486,7 @@ class tile(ProcessElement):
 			# self.tile_shiftreg_read_power = (self.num_occupied_PE - 1) * max_occupied_column * self.tile_shiftreg.shiftreg_power
 			self.tile_jointmodule_read_power = (self.num_occupied_PE - 1) * math.ceil(max_occupied_column/self.output_mux) * self.tile_jointmodule.jointmodule_power
 
-			self.tile_digital_read_power = self.tile_adder_read_power + self.tile_shiftreg_read_power \
+			self.tile_digital_read_power = self.tile_adder_read_power + self.tile_shiftreg_read_power + self.tile_iReg_read_power \
 										   + self.tile_input_demux_read_power + self.tile_output_mux_read_power + self.tile_jointmodule_read_power
 			self.tile_buffer.calculate_buf_read_power()
 			self.tile_buffer.calculate_buf_write_power()
@@ -481,7 +495,7 @@ class tile(ProcessElement):
 								   + self.tile_digital_read_power \
 								   + self.tile_buffer_read_power
 
-	def calculate_tile_write_power(self):
+	'''def calculate_tile_write_power(self):
 		# unit: W
 		# Notice: before calculating power, tile_write_config must be executed
 		self.tile_write_power = 0
@@ -561,7 +575,7 @@ class tile(ProcessElement):
 			self.tile_digital_write_energy = self.tile_adder_write_energy + self.tile_shiftreg_write_energy \
 											 + self.tile_input_demux_write_energy + self.tile_output_mux_write_energy
 			self.tile_write_energy = self.tile_xbar_write_energy + self.tile_ADC_write_energy \
-									 + self.tile_DAC_write_energy + self.tile_digital_write_energy + self.tile_buffer.buf_wenergy
+									 + self.tile_DAC_write_energy + self.tile_digital_write_energy + self.tile_buffer.buf_wenergy'''
 
 	def tile_output(self):
 		self.tile_PE_list[0][0].PE_output()

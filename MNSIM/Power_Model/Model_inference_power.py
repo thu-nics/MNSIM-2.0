@@ -27,6 +27,7 @@ class Model_inference_power():
         self.arch_digital_power = self.total_layer_num * [0]
         self.arch_adder_power = self.total_layer_num * [0]
         self.arch_shiftreg_power = self.total_layer_num * [0]
+        self.arch_iReg_power = self.total_layer_num * [0]
         self.arch_input_demux_power = self.total_layer_num * [0]
         self.arch_output_mux_power = self.total_layer_num * [0]
         self.arch_jointmodule_power = self.total_layer_num * [0]
@@ -39,6 +40,7 @@ class Model_inference_power():
         self.arch_total_digital_power = 0
         self.arch_total_adder_power = 0
         self.arch_total_shiftreg_power = 0
+        self.arch_total_iReg_power = 0
         self.arch_total_input_demux_power = 0
         self.arch_total_jointmodule_power = 0
         self.arch_total_buf_power = 0
@@ -62,6 +64,7 @@ class Model_inference_power():
             self.arch_digital_power[i] = self.graph.tile.tile_digital_read_power * tile_num
             self.arch_adder_power[i] = self.graph.tile.tile_adder_read_power * tile_num
             self.arch_shiftreg_power[i] = self.graph.tile.tile_shiftreg_read_power * tile_num
+            self.arch_iReg_power[i] = self.graph.tile.tile_iReg_read_power * tile_num
             self.arch_input_demux_power[i] = self.graph.tile.tile_input_demux_read_power * tile_num
             self.arch_output_mux_power[i] = self.graph.tile.tile_output_mux_read_power * tile_num
             self.arch_jointmodule_power[i] = self.graph.tile.tile_jointmodule_read_power * tile_num
@@ -74,6 +77,7 @@ class Model_inference_power():
         self.arch_total_digital_power = sum(self.arch_digital_power)
         self.arch_total_adder_power = sum(self.arch_adder_power)
         self.arch_total_shiftreg_power = sum(self.arch_shiftreg_power)
+        self.arch_total_iReg_power = sum(self.arch_iReg_power)
         self.arch_total_input_demux_power = sum(self.arch_input_demux_power)
         self.arch_total_output_mux_power = sum(self.arch_output_mux_power)
         self.arch_total_jointmodule_power = sum(self.arch_jointmodule_power)
@@ -90,7 +94,8 @@ class Model_inference_power():
             print("		Pooling power:", self.arch_total_pooling_power, "W")
             print("		Other digital part power:", self.arch_total_digital_power, "W")
             print("			|---adder power:", self.arch_total_adder_power, "W")
-            print("			|---shift-reg power:", self.arch_total_shiftreg_power, "W")
+            print("			|---output-shift-reg power:", self.arch_total_shiftreg_power, "W")
+            print("			|---input-reg power:", self.arch_total_iReg_power, "W")
             print("			|---input_demux power:", self.arch_total_input_demux_power, "W")
             print("			|---output_mux power:", self.arch_total_output_mux_power, "W")
             print("			|---joint_module power:", self.arch_total_jointmodule_power, "W")

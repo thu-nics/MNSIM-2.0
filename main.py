@@ -15,6 +15,8 @@ from MNSIM.Accuracy_Model.Weight_update import weight_update
 from MNSIM.Mapping_Model.Behavior_mapping import behavior_mapping
 from MNSIM.Mapping_Model.Tile_connection_graph import TCG
 from MNSIM.Latency_Model.Model_latency import Model_latency
+from MNSIM.Area_Model.Model_Area import Model_area
+from MNSIM.Power_Model.Model_inference_power import Model_inference_power
 
 def main():
     # home_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -73,20 +75,25 @@ def main():
     # print(__TestInterface.set_net_bits_evaluate(weight, adc_action = 'SCALE'))
     TCG_mapping = TCG(structure_file, args.hardware_description)
     if not(args.disable_hardware_modeling):
-        __bm = behavior_mapping(NetStruct=structure_file,SimConfig_path=args.hardware_description)
-        __bm.config_behavior_mapping()
-        __bm.behavior_mapping_area()
-        __bm.behavior_mapping_utilization()
-        __bm.behavior_mapping_latency()
-        __bm.behavior_mapping_power()
-        __bm.behavior_mapping_energy()
-        __bm.behavior_mapping_output(not(args.disable_module_output), not(args.disable_layer_output))
+        # __bm = behavior_mapping(NetStruct=structure_file,SimConfig_path=args.hardware_description)
+        # __bm.config_behavior_mapping()
+        # __bm.behavior_mapping_area()
+        # __bm.behavior_mapping_utilization()
+        # __bm.behavior_mapping_latency()
+        # __bm.behavior_mapping_power()
+        # __bm.behavior_mapping_energy()
+        # __bm.behavior_mapping_output(not(args.disable_module_output), not(args.disable_layer_output))
+        __area = Model_area(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
+        __power = Model_inference_power(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
         __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
         if not(args.disable_inner_pipeline):
             __latency.calculate_model_latency(mode=2)
         else:
             __latency.calculate_model_latency_nopipe()
+        __area.model_area_output(not(args.disable_module_output), not(args.disable_layer_output))
+        __power.model_power_output(not(args.disable_module_output), not(args.disable_layer_output))
         __latency.model_latency_output(not(args.disable_module_output),not(args.disable_layer_output))
+
 
     if not(args.disable_accuracy_simulation):
         print("======================================")
