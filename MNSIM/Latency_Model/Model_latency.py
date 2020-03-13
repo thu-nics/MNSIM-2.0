@@ -6,10 +6,12 @@ import configparser as cp
 work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 import numpy as np
+import pandas as pd
 from MNSIM.Interface.interface import *
 from MNSIM.Mapping_Model.Tile_connection_graph import TCG
 from MNSIM.Latency_Model.Tile_latency import tile_latency_analysis
 from MNSIM.Latency_Model.Pooling_latency import pooling_latency_analysis
+from MNSIM.NoC.interconnect_estimation import interconnect_estimation
 
 def merge_interval(interval):
     if len(interval) == 0:
@@ -49,6 +51,23 @@ def Split_map(padding, outputsize, multiple): # 对下一层进行划分
             split.append(base)
     return split
 
+def netstructure_dump(Netstruct):
+    data = []
+    for layer_id in range(len(Netstruct)):
+        layer_dict = Netstruct[layer_id][0][0]
+        if layer_dict['type'] == 'fc':
+            input_size = int(layer_dict['Infeature'])
+            inputchannel = 1
+        else:
+            input_size_list = list(map(int, layer_dict['Inputsize']))
+            input_size = input_size_list[0] * input_size_list[1]
+            inputchannel = int(layer_dict['Inputchannel'])
+        inputbit = int(layer_dict['Inputbit'])
+        data.append(input_size * inputchannel * inputbit)
+    print(data)
+    demo = pd.DataFrame(data)
+    demo.to_csv('MNSIM/NoC/to_interconnect/ip_activation.csv', index=False, header=False)
+
 
 class Model_latency():
     def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None):
@@ -56,6 +75,7 @@ class Model_latency():
         modelL_config.read(SimConfig_path, encoding='UTF-8')
         self.inter_tile_bandwidth = float(modelL_config.get('Tile level', 'Inter_Tile_Bandwidth'))
         self.NetStruct = NetStruct
+        netstructure_dump(self.NetStruct)
         if multiple is None:
             multiple = [1] * len(self.NetStruct)
         if TCG_mapping is None:
@@ -67,6 +87,8 @@ class Model_latency():
         self.finish_time = []
         self.layer_tile_latency = []
 
+        self.Noc_latency, self.Noc_area, self.Noc_power = interconnect_estimation()
+        # print(self.Noc_latency)
         self.SimConfig_path = SimConfig_path
         self.compute_interval = []
         self.occupancy = []
@@ -141,6 +163,7 @@ class Model_latency():
 
     def calculate_model_latency_nopipe(self):
         for layer_id in range(len(self.NetStruct)):
+            print(layer_id)
             layer_dict = self.NetStruct[layer_id][0][0]
             if layer_id == 0:
                 # for the first layer, first layer must be conv layer
@@ -188,13 +211,18 @@ class Model_latency():
                 # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
                 #                                                          self.graph.layer_tileinfo[layer_id][
                 #                                                              'max_column'] * outputbit / self.inter_tile_bandwidth)
-                merge_time = (self.graph.layer_tileinfo[layer_id]['tilenum'] - 1) * temp_tile_latency.digital_period + \
-                             self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id]['max_column'] * \
-                             outputbit / self.inter_tile_bandwidth
-
+                # merge_time = (self.graph.layer_tileinfo[layer_id]['tilenum'] - 1) * temp_tile_latency.digital_period + \
+                #              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id]['max_column'] * \
+                #              outputbit / self.inter_tile_bandwidth
+                merge_time = 0
                     # Todo: update merge time (adder tree) and transfer data volume
-                transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                            outputchannel * outputbit / self.inter_tile_bandwidth)
+                # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                #             outputchannel * outputbit / self.inter_tile_bandwidth)
+                if layer_id != len(self.NetStruct) - 1:
+                    transfer_time = self.Noc_latency[layer_id]
+                else:
+                    transfer_time = 0
+
                     # Todo: update transfer data volume
                 for i in range(output_size[0]):
                     for j in range(output_size[1]):
@@ -357,14 +385,18 @@ class Model_latency():
                     # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
                     #                                                          self.graph.layer_tileinfo[layer_id]['max_column'] *
                     #                                                          outputbit / self.inter_tile_bandwidth)
-                    merge_time = (self.graph.layer_tileinfo[layer_id][
-                                      'tilenum'] - 1) * temp_tile_latency.digital_period + \
-                                 self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
-                                     'max_column'] * outputbit / self.inter_tile_bandwidth
-
+                    # merge_time = (self.graph.layer_tileinfo[layer_id][
+                    #                   'tilenum'] - 1) * temp_tile_latency.digital_period + \
+                    #              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
+                    #                  'max_column'] * outputbit / self.inter_tile_bandwidth
+                    merge_time = 0
                     # Todo: update merge time (adder tree) and transfer data volume
-                    transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                            outputchannel * outputbit / self.inter_tile_bandwidth)
+                    # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                    #         outputchannel * outputbit / self.inter_tile_bandwidth)
+                    if layer_id != len(self.NetStruct) - 1:
+                        transfer_time = self.Noc_latency[layer_id]
+                    else:
+                        transfer_time = 0
                     # Todo: update transfer data volume
                     last_layer_finish_time = self.finish_time[layer_id-1][-1]
                     for i in range(output_size[0]):
@@ -535,14 +567,19 @@ class Model_latency():
                     # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
                     #                                                          self.graph.layer_tileinfo[layer_id]['max_column'] *
                     #                                                          outputbit / self.inter_tile_bandwidth)
-                    merge_time = (self.graph.layer_tileinfo[layer_id][
-                                      'tilenum'] - 1) * temp_tile_latency.digital_period + \
-                                 self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
-                                     'max_column'] * outputbit / self.inter_tile_bandwidth
-
+                    # merge_time = (self.graph.layer_tileinfo[layer_id][
+                    #                   'tilenum'] - 1) * temp_tile_latency.digital_period + \
+                    #              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
+                    #                  'max_column'] * outputbit / self.inter_tile_bandwidth
+                    merge_time = 0
                     # Todo: update merge time (adder tree) and transfer data volume
-                    transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                            output_size * outputbit / self.inter_tile_bandwidth)
+                    # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                    #         output_size * outputbit / self.inter_tile_bandwidth)
+                    if layer_id != len(self.NetStruct) - 1:
+                        transfer_time = self.Noc_latency[layer_id]
+                    else:
+                        transfer_time = 0
+
                     begin_time = self.finish_time[layer_id-1][-1]
                     compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
                     self.begin_time[layer_id] = output_size * [begin_time]
@@ -614,8 +651,12 @@ class Model_latency():
                                                                     indata=0, rdata=0)
                     merge_time = 0
                     # Todo: update merge time of pooling tile
-                    transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                            outputchannel * outputbit / self.inter_tile_bandwidth)
+                    # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                    #         outputchannel * outputbit / self.inter_tile_bandwidth)
+                    if layer_id != len(self.NetStruct) - 1:
+                        transfer_time = self.Noc_latency[layer_id]
+                    else:
+                        transfer_time = 0
                     # Todo: update transfer data volume
                     for i in range(output_size[0]):
                         for j in range(output_size[1]):
@@ -969,12 +1010,17 @@ class Model_latency():
                 # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
                 #                                                          self.graph.layer_tileinfo[layer_id][
                 #                                                              'max_column'] * outputbit / self.inter_tile_bandwidth)
-                merge_time = (self.graph.layer_tileinfo[layer_id]['tilenum'] - 1) * temp_tile_latency.digital_period + \
-                             self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
-                                 'max_column'] * outputbit / self.inter_tile_bandwidth
+                # merge_time = (self.graph.layer_tileinfo[layer_id]['tilenum'] - 1) * temp_tile_latency.digital_period + \
+                #              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
+                #                  'max_column'] * outputbit / self.inter_tile_bandwidth
+                merge_time = 0
                 # Todo: update merge time (adder tree) and transfer data volume
-                transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                        outputchannel * outputbit / self.inter_tile_bandwidth)
+                # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                #         outputchannel * outputbit / self.inter_tile_bandwidth)
+                if layer_id != len(self.NetStruct)-1 :
+                    transfer_time = self.Noc_latency[layer_id]
+                else:
+                    transfer_time = 0
 
                 cur_multiple = self.multiple[layer_id]
                 split_size = Split_map(padding=padding, outputsize=output_size[1], multiple=cur_multiple)
@@ -1169,13 +1215,18 @@ class Model_latency():
                                                               indata=0, rdata=0, inprecision=inputbit,
                                                               PE_num=self.graph.layer_tileinfo[layer_id]['max_PE']
                                                               )
-                    merge_time = (self.graph.layer_tileinfo[layer_id][
-                                      'tilenum'] - 1) * temp_tile_latency.digital_period + \
-                                 self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
-                                     'max_column'] * outputbit / self.inter_tile_bandwidth
+                    # merge_time = (self.graph.layer_tileinfo[layer_id][
+                    #                   'tilenum'] - 1) * temp_tile_latency.digital_period + \
+                    #              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
+                    #                  'max_column'] * outputbit / self.inter_tile_bandwidth
+                    merge_time = 0
                     # Todo: update merge time (adder tree) and transfer data volume
-                    transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                            outputchannel * outputbit / self.inter_tile_bandwidth)
+                    # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                    #         outputchannel * outputbit / self.inter_tile_bandwidth)
+                    if layer_id != len(self.NetStruct) - 1:
+                        transfer_time = self.Noc_latency[layer_id]
+                    else:
+                        transfer_time = 0
                     # Todo: update transfer data volume
                     ''' get the multiple for the conv layer '''
                     cur_multiple = self.multiple[layer_id]
@@ -1373,13 +1424,18 @@ class Model_latency():
                                                                   indata=indata, rdata=rdata, inprecision=inputbit,
                                                                   PE_num=self.graph.layer_tileinfo[layer_id]['max_PE']
                                                                   )
-                        merge_time = (self.graph.layer_tileinfo[layer_id][
-                                          'tilenum'] - 1) * temp_tile_latency.digital_period + \
-                                     self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
-                                         'max_column'] * outputbit / self.inter_tile_bandwidth
+                        # merge_time = (self.graph.layer_tileinfo[layer_id][
+                        #                   'tilenum'] - 1) * temp_tile_latency.digital_period + \
+                        #              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
+                        #                  'max_column'] * outputbit / self.inter_tile_bandwidth
+                        merge_time = 0
                         # Todo: update merge time (adder tree) and transfer data volume
-                        transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                                output_size * outputbit / self.inter_tile_bandwidth)
+                        # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                        #         output_size * outputbit / self.inter_tile_bandwidth)
+                        if layer_id != len(self.NetStruct) - 1:
+                            transfer_time = self.Noc_latency[layer_id]
+                        else:
+                            transfer_time = 0
                         begin_time = self.finish_time[layer_id - 1][-1]
                         compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
                         self.begin_time[layer_id] = output_size * [begin_time]
@@ -1450,8 +1506,12 @@ class Model_latency():
                                                                         indata=0, rdata=0)
                         merge_time = 0
                         # Todo: update merge time of pooling tile
-                        transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                                outputchannel * outputbit / self.inter_tile_bandwidth)
+                        # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                        #         outputchannel * outputbit / self.inter_tile_bandwidth)
+                        if layer_id != len(self.NetStruct) - 1:
+                            transfer_time = self.Noc_latency[layer_id]
+                        else:
+                            transfer_time = 0
                         # Todo: update transfer data volume
                         ''' get the multiple for the conv layer '''
                         cur_multiple = self.multiple[layer_id]

@@ -6,6 +6,7 @@ import configparser as cp
 work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 import numpy as np
+import pandas as pd
 from MNSIM.Interface.interface import *
 from MNSIM.Mapping_Model.Tile_connection_graph import TCG
 from MNSIM.Hardware_Model.Tile import tile
@@ -15,6 +16,8 @@ from MNSIM.Latency_Model.Model_latency import Model_latency
 class Model_energy():
     def __init__(self,NetStruct,SimConfig_path,model_power=None,
                  model_latency=None,multiple=None,TCG_mapping=None):
+        path = os.getcwd() + '/Final_Results/'
+        data = pd.read_csv(path + 'Energy.csv')
         self.NetStruct = NetStruct
         self.SimConfig_path = SimConfig_path
         if multiple is None:
@@ -62,7 +65,9 @@ class Model_energy():
         self.arch_total_buf_w_energy = 0
         self.arch_total_output_mux_energy = 0
         self.arch_total_pooling_energy = 0
+        self.arch_Noc_energy = float(data.columns[1]) * 1e-3
         self.calculate_model_energy()
+
     def calculate_model_energy(self):
         for i in range(self.total_layer_num):
             tile_num = self.graph.layer_tileinfo[i]['tilenum']
@@ -83,7 +88,7 @@ class Model_energy():
                                           self.arch_input_demux_energy[i]+self.arch_output_mux_energy[i]+self.arch_jointmodule_energy[i]
             self.arch_energy[i] = self.arch_xbar_energy[i]+self.arch_ADC_energy[i]+self.arch_DAC_energy[i]+\
                                   self.arch_digital_energy[i]+self.arch_buf_energy[i]+self.arch_pooling_energy[i]
-        self.arch_total_energy = sum(self.arch_energy)
+        self.arch_total_energy = sum(self.arch_energy) + self.arch_Noc_energy
         self.arch_total_xbar_energy = sum(self.arch_xbar_energy)
         self.arch_total_ADC_energy = sum(self.arch_ADC_energy)
         self.arch_total_DAC_energy = sum(self.arch_DAC_energy)
@@ -114,17 +119,19 @@ class Model_energy():
             print("			|---input_demux energy:", self.arch_total_input_demux_energy, "nJ")
             print("			|---output_mux energy:", self.arch_total_output_mux_energy, "nJ")
             print("			|---joint_module energy:", self.arch_total_jointmodule_energy, "nJ")
+            print("		NoC part energy:", self.arch_Noc_energy, "nJ")
         if layer_information:
             for i in range(self.total_layer_num):
                 print("Layer", i, ":")
                 print("     Hardware energy:", self.arch_energy[i], "nJ")
+
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
                                           "vgg8_params.pth")
 
     __TestInterface = TrainTestInterface('vgg8_128_9', 'MNSIM.Interface.cifar10', test_SimConfig_path,
-                                         test_weights_file_path, 'cpu')
+                                         test_weights_file_path)
     structure_file = __TestInterface.get_structure()
     __TCG_mapping = TCG(structure_file, test_SimConfig_path)
     __energy = Model_energy(NetStruct=structure_file,SimConfig_path=test_SimConfig_path,TCG_mapping=__TCG_mapping)

@@ -8,10 +8,13 @@ sys.path.append(work_path)
 import numpy as np
 from MNSIM.Interface.interface import *
 from MNSIM.Mapping_Model.Tile_connection_graph import TCG
+import pandas as pd
 from MNSIM.Hardware_Model.Tile import tile
 
 class Model_area():
     def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None):
+        path = os.getcwd() + '/Final_Results/'
+        data = pd.read_csv(path + 'area.csv')
         self.NetStruct = NetStruct
         self.SimConfig_path = SimConfig_path
         if multiple is None:
@@ -46,9 +49,11 @@ class Model_area():
         self.arch_total_buf_area = 0
         self.arch_total_output_mux_area = 0
         self.arch_total_pooling_area = 0
+        self.arch_Noc_area = float(data.columns[1])
         self.calculate_model_area()
 
-    def calculate_model_area(self):
+    def calculate_model_area(self): #Todo: Noc area
+
         self.graph.tile.calculate_tile_area()
         for i in range(self.total_layer_num):
             tile_num = self.graph.layer_tileinfo[i]['tilenum']
@@ -65,7 +70,7 @@ class Model_area():
             self.arch_jointmodule_area[i] = self.graph.tile.tile_jointmodule_area * tile_num
             self.arch_buf_area[i] = self.graph.tile.tile_buffer_area * tile_num
             self.arch_pooling_area[i] = self.graph.tile.tile_pooling_area * tile_num
-        self.arch_total_area = sum(self.arch_area)
+        self.arch_total_area = sum(self.arch_area) + self.arch_Noc_area
         self.arch_total_xbar_area = sum(self.arch_xbar_area)
         self.arch_total_ADC_area = sum(self.arch_ADC_area)
         self.arch_total_DAC_area = sum(self.arch_DAC_area)
@@ -94,17 +99,19 @@ class Model_area():
             print("			|---input_demux area:", self.arch_total_input_demux_area, "um^2")
             print("			|---output_mux area:", self.arch_total_output_mux_area, "um^2")
             print("			|---joint_module area:", self.arch_total_jointmodule_area, "um^2")
+            print("		NoC part area:", self.arch_Noc_area, "um^2")
         if layer_information:
             for i in range(self.total_layer_num):
                 print("Layer", i, ":")
                 print("     Hardware area:", self.arch_area[i], "um^2")
+
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
                                           "vgg8_params.pth")
 
     __TestInterface = TrainTestInterface('vgg8_128_9', 'MNSIM.Interface.cifar10', test_SimConfig_path,
-                                         test_weights_file_path, 'cpu')
+                                         test_weights_file_path)
     structure_file = __TestInterface.get_structure()
     __TCG_mapping = TCG(structure_file, test_SimConfig_path)
     __area = Model_area(NetStruct=structure_file,SimConfig_path=test_SimConfig_path,TCG_mapping=__TCG_mapping)

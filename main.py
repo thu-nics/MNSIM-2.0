@@ -19,6 +19,28 @@ from MNSIM.Area_Model.Model_Area import Model_area
 from MNSIM.Power_Model.Model_inference_power import Model_inference_power
 from MNSIM.Energy_Model.Model_energy import Model_energy
 
+def Data_clean():
+    path = os.getcwd()
+    NoC_file = path + '/MNSIM/NoC/'
+    inj_file = 'inj_dir'
+    log_file = 'log'
+    res_file = 'Final_Results'
+    files = os.listdir(NoC_file)
+    for file in files:
+        if file == inj_file:
+            for target in os.listdir(NoC_file + inj_file):
+                os.remove(NoC_file + inj_file + '/' + target)
+        elif file == log_file:
+            for target in os.listdir(NoC_file + log_file):
+                os.remove(NoC_file + log_file + '/' + target)
+        elif file == res_file:
+            for target in os.listdir(NoC_file + res_file):
+                os.remove(NoC_file + res_file + '/' + target)
+        else:
+            continue
+    print("Removed unnecessary file.")
+
+
 def main():
     # home_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     # print("home path", home_path)
@@ -84,9 +106,11 @@ def main():
         # __bm.behavior_mapping_power()
         # __bm.behavior_mapping_energy()
         # __bm.behavior_mapping_output(not(args.disable_module_output), not(args.disable_layer_output))
+        __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description,
+                                  TCG_mapping=TCG_mapping)
         __area = Model_area(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
         __power = Model_inference_power(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
-        __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
+
         if not(args.disable_inner_pipeline):
             __latency.calculate_model_latency(mode=2)
         else:
@@ -117,7 +141,7 @@ def main():
             print("PIM-based computing accuracy:", __TestInterface.set_net_bits_evaluate(weight_2, adc_action='FIX'))
 
 
-
     # print(structure_file)
 if __name__ == '__main__':
+    Data_clean()
     main()

@@ -12,6 +12,7 @@ from MNSIM.Hardware_Model.Crossbar import crossbar
 from MNSIM.Hardware_Model.Tile import tile
 from MNSIM.Interface.interface import *
 import collections
+import pandas as pd
 
 class PE_node():
     def __init__(self, PE_id = 0, ltype='conv', lnum = 0):
@@ -217,6 +218,8 @@ class TCG():
         start_tileid = 0
             # the start PEid
         self.trans_time = np.ones([1, self.layer_num])
+
+        num = []
         for layer_id in range(self.layer_num):
             layer_dict = self.net[layer_id][0][0]
             tmp_tileinfo = collections.OrderedDict()
@@ -272,6 +275,7 @@ class TCG():
                 elif next_layer_dict['type'] == 'fc':
                     self.trans_time[0][layer_id] = 1
             tmp_tileinfo['PEnum'] = tmp_tileinfo['mx'] * tmp_tileinfo['my'] * multiple[layer_id]
+            num.append(tmp_tileinfo['PEnum'])
             # print(layer_id, tmp_tileinfo['mx'])
             # print(layer_id, tmp_tileinfo['my'])
             # print(layer_id, tmp_tileinfo['PEnum'])
@@ -280,6 +284,8 @@ class TCG():
             tmp_tileinfo['max_PE'] = min(tmp_tileinfo['PEnum'], self.tile.tile_PE_total_num)
             start_tileid += tmp_tileinfo['tilenum']
             self.layer_tileinfo.append(tmp_tileinfo)
+        res = pd.DataFrame(num)
+        res.to_csv('MNSIM/NoC/to_interconnect/num_tiles_per_layer.csv', index=False, header=False)
         self.tile_num = start_tileid
         assert self.tile_num <= self.tile_total_num, "Tile number is not enough"
         self.inLayer_distance = np.ones([1, self.layer_num])
