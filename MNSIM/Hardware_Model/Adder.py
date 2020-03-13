@@ -8,7 +8,7 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 
 
 class adder(object):
-	def __init__(self, SimConfig_path, bitwidth = None, frequency = None):
+	def __init__(self, SimConfig_path, bitwidth = None):
 		# frequency unit: MHz
 		adder_config = cp.ConfigParser()
 		adder_config.read(SimConfig_path, encoding='UTF-8')
@@ -20,10 +20,9 @@ class adder(object):
 		else:
 			self.adder_bitwidth = bitwidth
 		assert self.adder_bitwidth > 0
-		if frequency is None:
+		self.adder_frequency = float(adder_config.get('Digital module', 'Digital_Frequency'))
+		if self.adder_frequency is None:
 			self.adder_frequency = 100
-		else:
-			self.adder_frequency = frequency
 		assert self.adder_frequency > 0
 		self.adder_latency = 1.0/self.adder_frequency
 		self.adder_energy = 0

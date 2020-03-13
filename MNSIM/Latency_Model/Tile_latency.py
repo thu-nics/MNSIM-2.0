@@ -35,16 +35,16 @@ class tile_latency_analysis(PE_latency_analysis):
         self.tile_PE_total_num = self.tile_PE_num[0] * self.tile_PE_num[1]
         assert PE_num <= self.tile_PE_total_num, "PE number exceeds the range"
         total_level = math.ceil(math.log2(self.tile_PE_total_num))
-        self.merge_latency = merge_time * self.digital_period
+        self.jointmodule_latency = merge_time * self.digital_period
         self.transfer_latency = (total_level*(self.PE.ADC_precision+merge_time)-merge_time*(merge_time+1)/2)\
                                 *read_column/self.intra_tile_bandwidth
         self.buf.calculate_buf_write_latency(wdata=(self.PE.ADC_precision+merge_time)*read_column/8)
         self.tile_buf_wtime = self.buf.buf_wlatency
          # do not consider
-        self.tile_latency = self.PE_latency + self.merge_latency + self.transfer_latency
+        self.tile_latency = self.PE_latency + self.jointmodule_latency + self.transfer_latency
     def update_tile_latency(self, indata = 0, rdata = 0):
         self.update_PE_latency(indata=indata,rdata=rdata)
-        self.tile_latency = self.PE_latency + self.merge_latency + self.transfer_latency
+        self.tile_latency = self.PE_latency + self.jointmodule_latency + self.transfer_latency
 
 
 if __name__ == '__main__':

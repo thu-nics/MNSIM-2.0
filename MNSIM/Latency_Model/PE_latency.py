@@ -79,20 +79,25 @@ class PE_latency_analysis():
         self.DAC_latency = multiple_time * self.PE.DAC_latency
         self.PE.calculate_ADC_latency()
         self.ADC_latency = multiple_time * self.PE.ADC_latency
-        self.ireg_latency = multiple_time*self.digital_period
-        self.shiftadd_latency = multiple_time*self.digital_period
-        self.computing_latency = self.ireg_latency+self.DAC_latency+self.xbar_latency+self.ADC_latency+self.shiftadd_latency
-        self.inPE_add_latency = math.ceil(math.log2(self.PE.group_num))*self.digital_period
+        self.iReg_latency = multiple_time*self.digital_period
+        self.shiftreg_latency = multiple_time * self.digital_period
+        self.input_demux_latency = multiple_time*self.digital_period/10
+        self.adder_latency = math.ceil(read_column/self.PE.PE_group_ADC_num)*math.ceil(math.log2(self.PE.group_num))*self.digital_period
+        self.output_mux_latency = multiple_time*self.digital_period/10
+        self.PE_digital_latency = self.iReg_latency + self.shiftreg_latency + self.input_demux_latency + self.adder_latency + self.output_mux_latency
+        self.computing_latency = self.DAC_latency+self.xbar_latency+self.ADC_latency
+        self.inPE_add_latency = 0 #math.ceil(math.log2(self.PE.group_num))*self.digital_period
         self.oreg_latency = self.digital_period
         self.PE_latency = self.buf_wlatency + self.buf_rlatency + self.computing_latency + self.inPE_add_latency +\
-                          self.oreg_latency + self.muxLatency + self.decoderLatency
+                          self.oreg_latency + self.muxLatency + self.decoderLatency + self.PE_digital_latency
     def update_PE_latency(self, indata=0, rdata=0):
         # update the latency computing when indata and rdata change
         self.buf.calculate_buf_write_latency(indata)
         self.buf_wlatency = self.buf.buf_wlatency
         self.buf.calculate_buf_read_latency(rdata)
         self.buf_rlatency = self.buf.buf_rlatency
-        self.PE_latency = self.buf_wlatency + self.buf_rlatency + self.computing_latency + self.inPE_add_latency + self.oreg_latency
+        self.PE_latency = self.buf_wlatency + self.buf_rlatency + self.computing_latency + self.inPE_add_latency +\
+                          self.oreg_latency + self.muxLatency + self.decoderLatency + self.PE_digital_latency
 
 
 if __name__ == '__main__':

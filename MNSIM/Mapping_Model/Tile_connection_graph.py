@@ -12,6 +12,7 @@ from MNSIM.Hardware_Model.Crossbar import crossbar
 from MNSIM.Hardware_Model.Tile import tile
 from MNSIM.Interface.interface import *
 import collections
+import pandas as pd
 
 class PE_node():
     def __init__(self, PE_id = 0, ltype='conv', lnum = 0):
@@ -217,6 +218,8 @@ class TCG():
         start_tileid = 0
             # the start PEid
         self.trans_time = np.ones([1, self.layer_num])
+
+        num = []
         for layer_id in range(self.layer_num):
             layer_dict = self.net[layer_id][0][0]
             tmp_tileinfo = collections.OrderedDict()
@@ -235,11 +238,13 @@ class TCG():
                 tmp_tileinfo['my'] = math.ceil(int(layer_dict['Inputchannel']) /
                                                (self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)))
                     # my: PE number in y-axis
+                tmp_tileinfo['max_group'] = min(weight_precision,self.tile.group_num)
+                    # max_group: maximum used groups in one PE of this layer
                 tmp_tileinfo['max_row'] = min((self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)),
                                               int(layer_dict['Inputchannel'])) * (int(layer_dict['Kernelsize'])**2)
                     # max_row: maximum used row in one crossbar of this layer
                 tmp_tileinfo['max_column'] = min(int(layer_dict['Outputchannel']), self.tile.xbar_column)
-                    # max_row: maximum used column in one crossbar of this layer
+                    # max_column: maximum used column in one crossbar of this layer
             elif layer_type == 'fc':
                 tmp_tileinfo['type'] = 'fc'
                 tmp_tileinfo['mx'] = math.ceil(weight_precision / self.tile.group_num) * \
@@ -247,16 +252,19 @@ class TCG():
                     # mx: PE number in x-axis
                 tmp_tileinfo['my'] = math.ceil(int(layer_dict['Infeature']) / self.tile.xbar_row)
                     # my: PE number in y-axis
+                tmp_tileinfo['max_group'] = min(weight_precision, self.tile.group_num)
+                    # max_group: maximum used groups in one PE of this layer
                 tmp_tileinfo['max_row'] = min(int(layer_dict['Infeature']), self.tile.xbar_row)
-                # max_row: maximum used row in one crossbar of this layer
+                    # max_row: maximum used row in one crossbar of this layer
                 tmp_tileinfo['max_column'] = min(int(layer_dict['Outfeature']), self.tile.xbar_column)
-                # max_row: maximum used column in one crossbar of this layer
+                    # max_row: maximum used column in one crossbar of this layer
             else:
                 tmp_tileinfo['type'] = 'pooling'
                 tmp_tileinfo['mx'] = 1
                 tmp_tileinfo['my'] = 1
                 tmp_tileinfo['max_row'] = 0
                 tmp_tileinfo['max_column'] = 0
+                tmp_tileinfo['max_group'] = 0
             if layer_id < self.layer_num-1:
                 next_layer_dict = self.net[layer_id+1][0][0]
                 if next_layer_dict['type'] == 'conv' or next_layer_dict['type'] == 'pooling':
@@ -267,6 +275,7 @@ class TCG():
                 elif next_layer_dict['type'] == 'fc':
                     self.trans_time[0][layer_id] = 1
             tmp_tileinfo['PEnum'] = tmp_tileinfo['mx'] * tmp_tileinfo['my'] * multiple[layer_id]
+            num.append(tmp_tileinfo['PEnum'])
             # print(layer_id, tmp_tileinfo['mx'])
             # print(layer_id, tmp_tileinfo['my'])
             # print(layer_id, tmp_tileinfo['PEnum'])
@@ -275,6 +284,8 @@ class TCG():
             tmp_tileinfo['max_PE'] = min(tmp_tileinfo['PEnum'], self.tile.tile_PE_total_num)
             start_tileid += tmp_tileinfo['tilenum']
             self.layer_tileinfo.append(tmp_tileinfo)
+        res = pd.DataFrame(num)
+        res.to_csv('MNSIM/NoC/to_interconnect/num_tiles_per_layer.csv', index=False, header=False)
         self.tile_num = start_tileid
         assert self.tile_num <= self.tile_total_num, "Tile number is not enough"
         self.inLayer_distance = np.ones([1, self.layer_num])
