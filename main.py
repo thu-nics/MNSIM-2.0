@@ -51,14 +51,16 @@ def main():
     home_path = os.getcwd()
     # print(home_path)
     SimConfig_path = os.path.join(home_path, "SimConfig.ini")
-    weights_file_path = os.path.join(home_path, "vgg8_params.pth")
+    weights_file_path = os.path.join(home_path, "alexnet_params.pth")
     # print(SimConfig_path)
     parser = argparse.ArgumentParser(description='MNSIM example')
+    parser.add_argument("-AutoDelete", "--file_auto_delete", default=True,
+                        help="Whether delete the unnecessary files automatically")
     parser.add_argument("-HWdes", "--hardware_description", default=SimConfig_path,
                         help="Hardware description file location & name, default:/MNSIM_Python/SimConfig.ini")
     parser.add_argument("-Weights", "--weights", default=weights_file_path,
                         help="NN model weights file location & name, default:/MNSIM_Python/vgg8_params.pth")
-    parser.add_argument("-NN", "--NN", default='vgg8',
+    parser.add_argument("-NN", "--NN", default='alexnet',
                         help="NN model description (name), default: vgg8_128_9")
     parser.add_argument("-DisHW", "--disable_hardware_modeling", action='store_true', default=False,
                         help="Disable hardware modeling, default: false")
@@ -79,6 +81,11 @@ def main():
     parser.add_argument("-DisLayOut", "--disable_layer_output", action='store_true', default=False,
                         help="Disable layer-wise simulation results output, default: false")
     args = parser.parse_args()
+    if args.file_auto_delete:
+        print("use the root mode by 'sudo -s'")
+        Data_clean()
+    else:
+        print("You should make sure that the files are removed which may cause confusions")
     print("Hardware description file location:", args.hardware_description)
     print("Software model file location:", args.weights)
     print("Whether perform hardware simulation:", not(args.disable_hardware_modeling))
@@ -143,5 +150,5 @@ def main():
 
     # print(structure_file)
 if __name__ == '__main__':
-    Data_clean()
+    # Data_clean()
     main()

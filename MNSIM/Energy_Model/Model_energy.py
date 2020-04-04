@@ -65,10 +65,13 @@ class Model_energy():
         self.arch_total_buf_w_energy = 0
         self.arch_total_output_mux_energy = 0
         self.arch_total_pooling_energy = 0
-        self.arch_Noc_energy = float(data.columns[1]) * 1e-3
+        self.arch_Noc_energy = float(data.columns[0].split(' ')[-2]) * 1e-3
+        print("**********************************")
+        print(self.arch_Noc_energy)
         self.calculate_model_energy()
 
     def calculate_model_energy(self):
+        print(self.model_latency.total_buffer_r_latency)
         for i in range(self.total_layer_num):
             tile_num = self.graph.layer_tileinfo[i]['tilenum']
             self.arch_xbar_energy[i] = self.model_power.arch_xbar_power[i]*self.model_latency.total_xbar_latency[i]

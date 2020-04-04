@@ -88,7 +88,7 @@ class Model_latency():
         self.layer_tile_latency = []
 
         self.Noc_latency, self.Noc_area, self.Noc_power = interconnect_estimation()
-        # print(self.Noc_latency)
+        print(self.Noc_latency)
         self.SimConfig_path = SimConfig_path
         self.compute_interval = []
         self.occupancy = []
@@ -1696,6 +1696,7 @@ class Model_latency():
             self.total_pooling_latency.append(sum(self.pooling_latency[layer_id]))
             self.total_buffer_r_latency.append(sum(self.buffer_r_latency[layer_id]))
             self.total_buffer_w_latency.append(sum(self.buffer_w_latency[layer_id]))
+
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
