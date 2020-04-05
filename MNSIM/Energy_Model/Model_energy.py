@@ -66,8 +66,8 @@ class Model_energy():
         self.arch_total_output_mux_energy = 0
         self.arch_total_pooling_energy = 0
         self.arch_Noc_energy = float(data.columns[0].split(' ')[-2]) * 1e-3
-        print("**********************************")
-        print(self.arch_Noc_energy)
+        # print("**********************************")
+        # print(self.arch_Noc_energy)
         self.calculate_model_energy()
 
     def calculate_model_energy(self):

@@ -65,7 +65,7 @@ def netstructure_dump(Netstruct):
             inputchannel = int(layer_dict['Inputchannel'])
         inputbit = int(layer_dict['Inputbit'])
         data.append(input_size * inputchannel * inputbit)
-    print(data)
+    # print(data)
     demo = pd.DataFrame(data)
     demo.to_csv('MNSIM/NoC/to_interconnect/ip_activation.csv', index=False, header=False)
 
@@ -89,7 +89,7 @@ class Model_latency():
         self.layer_tile_latency = []
 
         self.Noc_latency, self.Noc_area, self.Noc_power = interconnect_estimation()
-        print(self.Noc_latency)
+        # print(self.Noc_latency)
         self.SimConfig_path = SimConfig_path
         self.compute_interval = []
         self.occupancy = []
@@ -134,7 +134,6 @@ class Model_latency():
         self.total_pooling_latency = []
         self.total_buffer_r_latency = []
         self.total_buffer_w_latency = []
-
 
         self.layer_type = []
         self.layer_split = []

@@ -201,7 +201,7 @@ def interconnect_latency_estimation(homepath):
         NoC_latency.append(float(latency_dict[run_name]))
         # total_latency = total_latency + int(latency_dict[run_name])
         latency_array[index] = latency_dict[run_name]
-        
+
     outfile.close()
 
     return latency_array, NoC_latency

@@ -49,7 +49,7 @@ class Model_area():
         self.arch_total_buf_area = 0
         self.arch_total_output_mux_area = 0
         self.arch_total_pooling_area = 0
-        print(data.columns)
+        # print(data.columns)
         self.arch_Noc_area = float(data.columns[0].split(' ')[-2])
         self.calculate_model_area()
 
