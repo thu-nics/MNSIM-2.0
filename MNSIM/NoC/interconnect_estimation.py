@@ -14,7 +14,7 @@ def interconnect_estimation():
 
     network_type, arch_type = obtain_interconnect_spec(homepath)
     # arch_type = 'serial'
-    print(arch_type)
+    # print(arch_type)
     num_layers, num_tiles_per_layer, ip_activation_per_tile, volume_per_tile = create_injection_rate(network_type,
                                                                                                      arch_type, homepath)
     latency_array, NoC_latency = interconnect_latency_estimation(homepath)
@@ -188,7 +188,7 @@ def interconnect_latency_estimation(homepath):
         latency_dict[run_name] = latency
 
     # Open output file handle
-    print(homepath + '/logs/latency_mesh.csv')
+    # print(homepath + '/logs/latency_mesh.csv')
     outfile = open(homepath + '/logs/latency_mesh.csv', 'w')
 
     latency_array = np.zeros(file_counter)
@@ -201,8 +201,7 @@ def interconnect_latency_estimation(homepath):
         NoC_latency.append(float(latency_dict[run_name]))
         # total_latency = total_latency + int(latency_dict[run_name])
         latency_array[index] = latency_dict[run_name]
-    # print("**************************************")
-    # print(len(NoC_latency))
+        
     outfile.close()
 
     return latency_array, NoC_latency
