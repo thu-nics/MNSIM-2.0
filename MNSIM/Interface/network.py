@@ -274,22 +274,22 @@ def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
             pass
         else:
             # change for multi_bit
-            # str_res = re.findall(r'vgg8_(\d+)_(\d+)', cate)
-            # assert len(str_res) == 1
-            # channels = int(str_res[0][0])
-            # input_bit = int(str_res[0][1])
-            # assert channels in [128, 96, 64, 32]
-            # assert input_bit in [9, 7, 5]
-            # # change the conv1_2 structure
-            # layer_config_list[0]['out_channels'] = channels
-            # layer_config_list[2]['in_channels'] = channels
-            # quantize_config_list[2]['activation_bit'] = input_bit
-            weight_bit_list = cate.split('_')[1:]
-            assert len(weight_bit_list) == 7
-            index_list = [0, 2, 5, 7, 10, 12, 15]
-            for i, index in enumerate(index_list):
-                assert layer_config_list[index]['type'] == 'conv'
-                quantize_config_list[index]['weight_bit'] = int(weight_bit_list[i])
+            str_res = re.findall(r'vgg8_(\d+)_(\d+)', cate)
+            assert len(str_res) == 1
+            channels = int(str_res[0][0])
+            input_bit = int(str_res[0][1])
+            assert channels in [128, 96, 64, 32]
+            assert input_bit in [9, 7, 5]
+            # change the conv1_2 structure
+            layer_config_list[0]['out_channels'] = channels
+            layer_config_list[2]['in_channels'] = channels
+            quantize_config_list[2]['activation_bit'] = input_bit
+            # weight_bit_list = cate.split('_')[1:]
+            # assert len(weight_bit_list) == 7
+            # index_list = [0, 2, 5, 7, 10, 12, 15]
+            # for i, index in enumerate(index_list):
+            #     assert layer_config_list[index]['type'] == 'conv'
+            #     quantize_config_list[index]['weight_bit'] = int(weight_bit_list[i])
     if cate.startswith('alexnet'):
         if cate == 'alexnet':
             pass
@@ -308,7 +308,7 @@ def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
     L = len(layer_config_list)
     for i in range(L-1, -1, -1):
         if layer_config_list[i]['type'] == 'conv':
-            continue
+            # continue
             layer_config_list.insert(i+1, {'type': 'bn', 'features': layer_config_list[i]['out_channels']})
             quantize_config_list.insert(i+1, {'weight_bit': 9, 'activation_bit': 9, 'point_shift': -2})
             input_index_list.insert(i+1, [-1])

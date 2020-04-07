@@ -13,3 +13,9 @@ __pycache__/
 *.pth
 *.xlsx
 *.zip
+/MNSIM/Interface/datasets
+/MNSIM/Interface/debug
+/MNSIM/Interface/network_configs
+/MNSIM/Interface/solver_configs
+/MNSIM/Interface/outputs
+/MNSIM/Interface/nohup.out
