@@ -52,31 +52,12 @@ def Split_map(padding, outputsize, multiple): # 对下一层进行划分
     return split
 
 
-def netstructure_dump(Netstruct):
-    data = []
-    for layer_id in range(len(Netstruct)):
-        layer_dict = Netstruct[layer_id][0][0]
-        if layer_dict['type'] == 'fc':
-            input_size = int(layer_dict['Infeature'])
-            inputchannel = 1
-        else:
-            input_size_list = list(map(int, layer_dict['Inputsize']))
-            input_size = input_size_list[0] * input_size_list[1]
-            inputchannel = int(layer_dict['Inputchannel'])
-        inputbit = int(layer_dict['Inputbit'])
-        data.append(input_size * inputchannel * inputbit)
-    # print(data)
-    demo = pd.DataFrame(data)
-    demo.to_csv('MNSIM/NoC/to_interconnect/ip_activation.csv', index=False, header=False)
-
-
 class Model_latency():
     def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None):
         modelL_config = cp.ConfigParser()
         modelL_config.read(SimConfig_path, encoding='UTF-8')
         self.inter_tile_bandwidth = float(modelL_config.get('Tile level', 'Inter_Tile_Bandwidth'))
         self.NetStruct = NetStruct
-        netstructure_dump(self.NetStruct)
         if multiple is None:
             multiple = [1] * len(self.NetStruct)
         if TCG_mapping is None:
@@ -88,7 +69,7 @@ class Model_latency():
         self.finish_time = []
         self.layer_tile_latency = []
 
-        self.Noc_latency, self.Noc_area, self.Noc_power = interconnect_estimation()
+        self.Noc_latency = interconnect_estimation()
         # print(self.Noc_latency)
         self.SimConfig_path = SimConfig_path
         self.compute_interval = []

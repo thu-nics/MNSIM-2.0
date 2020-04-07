@@ -35,7 +35,7 @@ def interconnect_estimation():
     latency_file.write('Total interconnect latency is ' + str(interconnect_latency) + ' ns')
     latency_file.close()
 
-    return NoC_latency, interconnect_area, interconnect_power
+    return NoC_latency
 
 
 def obtain_interconnect_spec(homepath):

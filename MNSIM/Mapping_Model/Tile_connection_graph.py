@@ -5,6 +5,7 @@ import sys
 import os
 import math
 import configparser as cp
+
 work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 from MNSIM.Hardware_Model import *
@@ -14,23 +15,27 @@ from MNSIM.Interface.interface import *
 import collections
 import pandas as pd
 
+
 class PE_node():
-    def __init__(self, PE_id = 0, ltype='conv', lnum = 0):
+    def __init__(self, PE_id=0, ltype='conv', lnum=0):
         # PE_id: the id of PE node, ltype: layer type of this PE, lnum: layer number of this PE
         self.id = PE_id
         self.type = ltype
         self.lnum = lnum
         self.inMerge_list = []
         self.outMerge = 0
+
     def set_inMerge(self, Merge_id):
         if Merge_id not in self.inMerge_list:
             self.inMerge_list.append(Merge_id)
             self.inMerge_list.sort()
+
     def set_outMerge(self, Merge_id):
         self.outMerge = Merge_id
 
+
 class Merge_node():
-    def __init__(self, Merge_id = 0, mtype = 0, lnum = 0):
+    def __init__(self, Merge_id=0, mtype=0, lnum=0):
         # Merge_id: the id of Merge node, mtype: merge type (0: add, 1: concat, 2: pooling)
         self.id = Merge_id
         self.type = mtype
@@ -39,25 +44,30 @@ class Merge_node():
         self.outPE_list = []
         self.inMerge_list = []
         self.outMerge_list = []
+
     def set_inPE(self, PE_id):
         if PE_id not in self.inPE_list:
             self.inPE_list.append(PE_id)
             self.inPE_list.sort()
+
     def set_outPE(self, PE_id):
         if PE_id not in self.outPE_list:
             self.outPE_list.append(PE_id)
             self.outPE_list.sort()
+
     def set_inMerge(self, Merge_id):
         if Merge_id not in self.inMerge_list:
             self.inMerge_list.append(Merge_id)
             self.inMerge_list.sort()
+
     def set_outMerge(self, Merge_id):
         if Merge_id not in self.outMerge_list:
             self.outMerge_list.append(Merge_id)
             self.outMerge_list.sort()
 
+
 def generate_normal_matrix(row, column):
-    matrix = np.zeros([row,column])
+    matrix = np.zeros([row, column])
     start = 0
     for i in range(row):
         for j in range(column):
@@ -65,8 +75,9 @@ def generate_normal_matrix(row, column):
             start += 1
     return matrix
 
-def generate_snake_matrix (row, column):
-    matrix = np.zeros([row,column])
+
+def generate_snake_matrix(row, column):
+    matrix = np.zeros([row, column])
     start = 0
     for i in range(row):
         for j in range(column):
@@ -77,8 +88,9 @@ def generate_snake_matrix (row, column):
             start += 1
     return matrix
 
-def generate_hui_matrix (row, column):
-    matrix = np.zeros([row,column])
+
+def generate_hui_matrix(row, column):
+    matrix = np.zeros([row, column])
     state = 0
     stride = 1
     step = 0
@@ -87,7 +99,7 @@ def generate_hui_matrix (row, column):
     ru = 0
     i = 0
     j = 0
-    for x in range(row*column):
+    for x in range(row * column):
         if x == 0:
             matrix[i][j] = start
         else:
@@ -136,20 +148,21 @@ def generate_hui_matrix (row, column):
         start += 1
     return matrix
 
+
 def generate_zigzag_matrix(row, column):
-    matrix = np.zeros([row,column])
+    matrix = np.zeros([row, column])
     state = 0
     stride = 1
     step = 0
     i = 0
     j = 0
     start = 0
-    for x in range(row*column):
+    for x in range(row * column):
         if x == 0:
             matrix[i][j] = start
         else:
             if state == 0:
-                if j < column-1:
+                if j < column - 1:
                     j += 1
                     matrix[i][j] = start
                 else:
@@ -161,7 +174,7 @@ def generate_zigzag_matrix(row, column):
                 j -= 1
                 matrix[i][j] = start
                 step += 1
-                if i == row-1:
+                if i == row - 1:
                     state = 2
                     stride -= 1
                     step = 0
@@ -170,19 +183,19 @@ def generate_zigzag_matrix(row, column):
                     stride += 1
                     step = 0
             elif state == 2:
-                if i < row-1:
+                if i < row - 1:
                     i += 1
                     matrix[i][j] = start
                 else:
                     j += 1
                     matrix[i][j] = start
                 state = 3
-            elif state ==3:
+            elif state == 3:
                 j += 1
                 i -= 1
                 matrix[i][j] = start
                 step += 1
-                if j == column-1:
+                if j == column - 1:
                     state = 0
                     stride -= 1
                     step = 0
@@ -192,6 +205,7 @@ def generate_zigzag_matrix(row, column):
                     step = 0
         start += 1
     return matrix
+
 
 class TCG():
     def __init__(self, NetStruct, SimConfig_path, multiple=None):
@@ -213,13 +227,14 @@ class TCG():
         assert self.tile_num[0] > 0, "Tile number < 0"
         assert self.tile_num[1] > 0, "Tile number < 0"
         self.tile_total_num = self.tile_num[0] * self.tile_num[1]
-        self.mapping_order = -1*np.ones(self.tile_num)
-        self.mapping_result = -1*np.ones(self.tile_num)
+        self.mapping_order = -1 * np.ones(self.tile_num)
+        self.mapping_result = -1 * np.ones(self.tile_num)
         start_tileid = 0
-            # the start PEid
+        # the start PEid
         self.trans_time = np.ones([1, self.layer_num])
 
         num = []
+        data = []
         for layer_id in range(self.layer_num):
             layer_dict = self.net[layer_id][0][0]
             tmp_tileinfo = collections.OrderedDict()
@@ -234,30 +249,38 @@ class TCG():
                 tmp_tileinfo['type'] = 'conv'
                 tmp_tileinfo['mx'] = math.ceil(weight_precision / self.tile.group_num) * \
                                      math.ceil(int(layer_dict['Outputchannel']) / self.tile.xbar_column)
-                    # mx: PE number in x-axis
+                # mx: PE number in x-axis
                 tmp_tileinfo['my'] = math.ceil(int(layer_dict['Inputchannel']) /
                                                (self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)))
-                    # my: PE number in y-axis
-                tmp_tileinfo['max_group'] = min(weight_precision,self.tile.group_num)
-                    # max_group: maximum used groups in one PE of this layer
+                # my: PE number in y-axis
+                tmp_tileinfo['max_group'] = min(weight_precision, self.tile.group_num)
+                # max_group: maximum used groups in one PE of this layer
                 tmp_tileinfo['max_row'] = min((self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)),
-                                              int(layer_dict['Inputchannel'])) * (int(layer_dict['Kernelsize'])**2)
-                    # max_row: maximum used row in one crossbar of this layer
+                                              int(layer_dict['Inputchannel'])) * (int(layer_dict['Kernelsize']) ** 2)
+                # max_row: maximum used row in one crossbar of this layer
                 tmp_tileinfo['max_column'] = min(int(layer_dict['Outputchannel']), self.tile.xbar_column)
-                    # max_column: maximum used column in one crossbar of this layer
+                # max_column: maximum used column in one crossbar of this layer
+
+                input_size_list = list(map(int, layer_dict['Inputsize']))
+                input_size = input_size_list[0] * input_size_list[1]
+                inputchannel = int(layer_dict['Inputchannel'])
+
             elif layer_type == 'fc':
                 tmp_tileinfo['type'] = 'fc'
                 tmp_tileinfo['mx'] = math.ceil(weight_precision / self.tile.group_num) * \
                                      math.ceil(int(layer_dict['Outfeature']) / self.tile.xbar_column)
-                    # mx: PE number in x-axis
+                # mx: PE number in x-axis
                 tmp_tileinfo['my'] = math.ceil(int(layer_dict['Infeature']) / self.tile.xbar_row)
-                    # my: PE number in y-axis
+                # my: PE number in y-axis
                 tmp_tileinfo['max_group'] = min(weight_precision, self.tile.group_num)
-                    # max_group: maximum used groups in one PE of this layer
+                # max_group: maximum used groups in one PE of this layer
                 tmp_tileinfo['max_row'] = min(int(layer_dict['Infeature']), self.tile.xbar_row)
-                    # max_row: maximum used row in one crossbar of this layer
+                # max_row: maximum used row in one crossbar of this layer
                 tmp_tileinfo['max_column'] = min(int(layer_dict['Outfeature']), self.tile.xbar_column)
-                    # max_row: maximum used column in one crossbar of this layer
+                # max_row: maximum used column in one crossbar of this layer
+
+                input_size = int(layer_dict['Infeature'])
+                inputchannel = 1
             else:
                 tmp_tileinfo['type'] = 'pooling'
                 tmp_tileinfo['mx'] = 1
@@ -265,12 +288,17 @@ class TCG():
                 tmp_tileinfo['max_row'] = 0
                 tmp_tileinfo['max_column'] = 0
                 tmp_tileinfo['max_group'] = 0
-            if layer_id < self.layer_num-1:
-                next_layer_dict = self.net[layer_id+1][0][0]
+                input_size_list = list(map(int, layer_dict['Inputsize']))
+                input_size = input_size_list[0] * input_size_list[1]
+                inputchannel = int(layer_dict['Inputchannel'])
+            if layer_id < self.layer_num - 1:
+                next_layer_dict = self.net[layer_id + 1][0][0]
                 if next_layer_dict['type'] == 'conv' or next_layer_dict['type'] == 'pooling':
                     self.trans_time[0][layer_id] = int(layer_dict['Outputsize'][1]) * \
-                                                   max(int(next_layer_dict['Kernelsize'])-int(next_layer_dict['Padding'])-1, 0) +\
-                                                   max(int(next_layer_dict['Kernelsize'])-int(next_layer_dict['Padding'])-1, 0)
+                                                   max(int(next_layer_dict['Kernelsize']) - int(
+                                                       next_layer_dict['Padding']) - 1, 0) + \
+                                                   max(int(next_layer_dict['Kernelsize']) - int(
+                                                       next_layer_dict['Padding']) - 1, 0)
                     # The amount of data that the former layer needs to calculate before the next layer starts
                 elif next_layer_dict['type'] == 'fc':
                     self.trans_time[0][layer_id] = 1
@@ -284,13 +312,20 @@ class TCG():
             tmp_tileinfo['max_PE'] = min(tmp_tileinfo['PEnum'], self.tile.tile_PE_total_num)
             start_tileid += tmp_tileinfo['tilenum']
             self.layer_tileinfo.append(tmp_tileinfo)
+
+            inputbit = int(layer_dict['Inputbit'])
+            data.append(input_size * inputchannel * inputbit)
+
         res = pd.DataFrame(num)
         res.to_csv('MNSIM/NoC/to_interconnect/num_tiles_per_layer.csv', index=False, header=False)
+        demo = pd.DataFrame(data)
+        demo.to_csv('MNSIM/NoC/to_interconnect/ip_activation.csv', index=False, header=False)
+
         self.tile_num = start_tileid
         assert self.tile_num <= self.tile_total_num, "Tile number is not enough"
         self.inLayer_distance = np.ones([1, self.layer_num])
         self.transLayer_distance = np.ones([1, self.layer_num])
-        self.aggregate_arg = np.zeros([self.layer_num,2])
+        self.aggregate_arg = np.zeros([self.layer_num, 2])
 
     def mapping_matrix_gen(self):
         if self.tile_connection == 0:
@@ -307,25 +342,25 @@ class TCG():
         for i in range(self.mapping_order.shape[0]):
             for j in range(self.mapping_order.shape[1]):
                 if self.mapping_order[i][j] < self.tile_num:
-                    for layer_id in range(self.layer_num-1):
+                    for layer_id in range(self.layer_num - 1):
                         if ((self.mapping_order[i][j] >= self.layer_tileinfo[layer_id]['startid']) &
-                            (self.mapping_order[i][j] < self.layer_tileinfo[layer_id + 1]['startid'])):
+                                (self.mapping_order[i][j] < self.layer_tileinfo[layer_id + 1]['startid'])):
                             self.mapping_result[i][j] = layer_id
                             break
                         elif self.mapping_order[i][j] >= self.layer_tileinfo[self.layer_num - 1]['startid']:
-                            self.mapping_result[i][j] = self.layer_num-1
+                            self.mapping_result[i][j] = self.layer_num - 1
 
     def calculate_transfer_distance(self):
-        for layer_id in range(self.layer_num-1):
+        for layer_id in range(self.layer_num - 1):
             # Determine the aggregate node for layer 0~N-1
             src_pos = np.argwhere(self.mapping_result == layer_id)
-            dst_pos = np.argwhere(self.mapping_result == layer_id+1)
+            dst_pos = np.argwhere(self.mapping_result == layer_id + 1)
             if len(src_pos) == 1:
                 self.inLayer_distance[0][layer_id] = 0
                 self.aggregate_arg[layer_id] = src_pos[0]
                 maxdis = 0
                 for i in range(len(dst_pos)):
-                    dis = abs(src_pos[0][0]-dst_pos[i][0]) + abs(src_pos[0][1]-dst_pos[i][1])
+                    dis = abs(src_pos[0][0] - dst_pos[i][0]) + abs(src_pos[0][1] - dst_pos[i][1])
                     if dis > maxdis:
                         maxdis = dis
                 self.transLayer_distance[0][layer_id] = maxdis
@@ -335,47 +370,48 @@ class TCG():
                     maxdis_in = 0
                     for i in range(len(src_pos)):
                         if i != A:
-                            dis_in = abs(src_pos[A][0]-src_pos[i][0]) + abs(src_pos[A][1]-src_pos[i][1])
+                            dis_in = abs(src_pos[A][0] - src_pos[i][0]) + abs(src_pos[A][1] - src_pos[i][1])
                             if dis_in > maxdis_in:
                                 maxdis_in = dis_in
                     maxdis_out = 0
                     for j in range(len(dst_pos)):
                         dis_out = abs(src_pos[A][0] - dst_pos[j][0]) + abs(src_pos[A][1] - dst_pos[j][1])
                         if dis_out > maxdis_out:
-                            maxdis_out= dis_out
+                            maxdis_out = dis_out
                     tempdis = maxdis_in + maxdis_out
                     if tempdis < mindis_total:
                         self.inLayer_distance[0][layer_id] = maxdis_in
                         self.transLayer_distance[0][layer_id] = maxdis_out
                         self.aggregate_arg[layer_id] = src_pos[A]
                         mindis_total = tempdis
-        final_pos = np.argwhere(self.mapping_result == self.layer_num-1)
-            # Determine the aggregate node for layer N (output layer)
+        final_pos = np.argwhere(self.mapping_result == self.layer_num - 1)
+        # Determine the aggregate node for layer N (output layer)
         mindis = 100
         for i in range(len(final_pos)):
             maxdis = 0
             for j in range(len(final_pos)):
                 if j != i:
-                    dis = abs(final_pos[i][0]-final_pos[j][0])+abs(final_pos[i][1]-final_pos[j][1])
+                    dis = abs(final_pos[i][0] - final_pos[j][0]) + abs(final_pos[i][1] - final_pos[j][1])
                     if dis > maxdis:
                         maxdis = dis
             if maxdis < mindis:
                 mindis = maxdis
-                self.inLayer_distance[0][self.layer_num-1] = mindis
-                self.aggregate_arg[self.layer_num-1] = final_pos[i]
-                self.transLayer_distance[0][self.layer_num-1] = 0
-        self.total_distance = sum(sum(self.trans_time * (self.inLayer_distance+self.transLayer_distance)))
+                self.inLayer_distance[0][self.layer_num - 1] = mindis
+                self.aggregate_arg[self.layer_num - 1] = final_pos[i]
+                self.transLayer_distance[0][self.layer_num - 1] = 0
+        self.total_distance = sum(sum(self.trans_time * (self.inLayer_distance + self.transLayer_distance)))
+
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
                                           "vgg8_params.pth")
 
-    __TestInterface = TrainTestInterface('vgg8_128_9', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
+    __TestInterface = TrainTestInterface('vgg8_128_9', 'MNSIM.Interface.cifar10', test_SimConfig_path,
+                                         test_weights_file_path, 'cpu')
     structure_file = __TestInterface.get_structure()
 
     test = TCG(structure_file, test_SimConfig_path)
     test.mapping_net()
     test.calculate_transfer_distance()
     print(test.total_distance)
-

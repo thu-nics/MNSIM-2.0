@@ -19,6 +19,7 @@ from MNSIM.Area_Model.Model_Area import Model_area
 from MNSIM.Power_Model.Model_inference_power import Model_inference_power
 from MNSIM.Energy_Model.Model_energy import Model_energy
 
+
 def Data_clean():
     path = os.getcwd()
     NoC_file = path + '/MNSIM/NoC/'
@@ -88,8 +89,8 @@ def main():
         print("You should make sure that the files are removed which may cause confusions")
     print("Hardware description file location:", args.hardware_description)
     print("Software model file location:", args.weights)
-    print("Whether perform hardware simulation:", not(args.disable_hardware_modeling))
-    print("Whether perform accuracy simulation:", not(args.disable_accuracy_simulation))
+    print("Whether perform hardware simulation:", not (args.disable_hardware_modeling))
+    print("Whether perform accuracy simulation:", not (args.disable_accuracy_simulation))
     print("Whether consider SAFs:", args.enable_SAF)
     print("Whether consider variations:", args.enable_variation)
     if args.enable_fixed_Qrange:
@@ -104,7 +105,7 @@ def main():
     # print(__TestInterface.origin_evaluate(method = 'FIX_TRAIN', adc_action = 'SCALE'))
     # print(__TestInterface.set_net_bits_evaluate(weight, adc_action = 'SCALE'))
     TCG_mapping = TCG(structure_file, args.hardware_description)
-    if not(args.disable_hardware_modeling):
+    if not (args.disable_hardware_modeling):
         # __bm = behavior_mapping(NetStruct=structure_file,SimConfig_path=args.hardware_description)
         # __bm.config_behavior_mapping()
         # __bm.behavior_mapping_area()
@@ -116,23 +117,24 @@ def main():
         __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                   TCG_mapping=TCG_mapping)
         __area = Model_area(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
-        __power = Model_inference_power(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
+        __power = Model_inference_power(NetStruct=structure_file, SimConfig_path=args.hardware_description,
+                                        TCG_mapping=TCG_mapping)
 
-        if not(args.disable_inner_pipeline):
+        if not (args.disable_inner_pipeline):
             __latency.calculate_model_latency(mode=2)
         else:
             __latency.calculate_model_latency_nopipe()
-        __energy = Model_energy(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping,
-                                model_latency=__latency,model_power=__power)
+        __energy = Model_energy(NetStruct=structure_file, SimConfig_path=args.hardware_description,
+                                TCG_mapping=TCG_mapping,
+                                model_latency=__latency, model_power=__power)
         print("========================Area Results=================================")
         __area.model_area_output(not (args.disable_module_output), not (args.disable_layer_output))
         print("========================Power Results=================================")
         __power.model_power_output(not (args.disable_module_output), not (args.disable_layer_output))
         print("========================Latency Results=================================")
-        __latency.model_latency_output(not(args.disable_module_output),not(args.disable_layer_output))
+        __latency.model_latency_output(not (args.disable_module_output), not (args.disable_layer_output))
         print("========================Energy Results=================================")
         __energy.model_energy_output(not (args.disable_module_output), not (args.disable_layer_output))
-
 
     if (args.disable_accuracy_simulation):
         print("======================================")
@@ -140,15 +142,16 @@ def main():
         weight = __TestInterface.get_net_bits()
         weight_2 = weight_update(args.hardware_description, weight,
                                  is_Variation=args.enable_variation, is_SAF=args.enable_SAF)
-        if not(args.enable_fixed_Qrange):
-            print("Original accuracy:", __TestInterface.origin_evaluate(method = 'FIX_TRAIN', adc_action = 'SCALE'))
-            print("PIM-based computing accuracy:", __TestInterface.set_net_bits_evaluate(weight_2,adc_action='SCALE'))
+        if not (args.enable_fixed_Qrange):
+            print("Original accuracy:", __TestInterface.origin_evaluate(method='FIX_TRAIN', adc_action='SCALE'))
+            print("PIM-based computing accuracy:", __TestInterface.set_net_bits_evaluate(weight_2, adc_action='SCALE'))
         else:
             print("Original accuracy:", __TestInterface.origin_evaluate(method='FIX_TRAIN', adc_action='FIX'))
             print("PIM-based computing accuracy:", __TestInterface.set_net_bits_evaluate(weight_2, adc_action='FIX'))
 
-
     # print(structure_file)
+
+
 if __name__ == '__main__':
     # Data_clean()
     main()
