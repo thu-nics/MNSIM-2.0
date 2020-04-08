@@ -1,0 +1,2 @@
+arch_type = serial 
+network_type = mesh

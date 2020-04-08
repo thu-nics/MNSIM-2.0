@@ -1,2 +1,0 @@
-arch_type = parallel 
-network_type = mesh
