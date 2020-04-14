@@ -12,9 +12,12 @@ import pandas as pd
 from MNSIM.Hardware_Model.Tile import tile
 
 class Model_area():
-    def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None, NoC_Compute=False):
+    def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None):
         self.NetStruct = NetStruct
         self.SimConfig_path = SimConfig_path
+        modelL_config = cp.ConfigParser()
+        modelL_config.read(self.SimConfig_path, encoding='UTF-8')
+        NoC_Compute = int(modelL_config.get('Algorithm Configuration', 'NoC_enable'))
         if multiple is None:
             multiple = [1] * len(self.NetStruct)
         if TCG_mapping is None:
@@ -48,7 +51,7 @@ class Model_area():
         self.arch_total_output_mux_area = 0
         self.arch_total_pooling_area = 0
         # print(data.columns)
-        if NoC_Compute:
+        if NoC_Compute == 1:
             path = os.getcwd() + '/Final_Results/'
             data = pd.read_csv(path + 'area.csv')
             self.arch_Noc_area = float(data.columns[0].split(' ')[-2])

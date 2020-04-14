@@ -57,8 +57,8 @@ def main():
     parser = argparse.ArgumentParser(description='MNSIM example')
     parser.add_argument("-AutoDelete", "--file_auto_delete", default=True,
                         help="Whether delete the unnecessary files automatically")
-    parser.add_argument("-NoC", "--NoC_computation", default=False,
-                        help="Whether call booksim to compute the NoC part")
+    # parser.add_argument("-NoC", "--NoC_computation", default=False,
+    #                     help="Whether call booksim to compute the NoC part")
     parser.add_argument("-HWdes", "--hardware_description", default=SimConfig_path,
                         help="Hardware description file location & name, default:/MNSIM_Python/SimConfig.ini")
     parser.add_argument("-Weights", "--weights", default=weights_file_path,
@@ -89,10 +89,6 @@ def main():
         Data_clean()
     else:
         print("You should make sure that the files are removed which may cause confusions")
-    if args.NoC_computation:
-        print("Make sure you ran the program in Linux")
-    else:
-        print("NoC part is cancelled")
     print("Hardware description file location:", args.hardware_description)
     print("Software model file location:", args.weights)
     print("Whether perform hardware simulation:", not (args.disable_hardware_modeling))
@@ -121,9 +117,8 @@ def main():
         # __bm.behavior_mapping_energy()
         # __bm.behavior_mapping_output(not(args.disable_module_output), not(args.disable_layer_output))
         __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description,
-                                  TCG_mapping=TCG_mapping, NoC_Compute=args.NoC_computation)
-        __area = Model_area(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping,
-                            NoC_Compute=args.NoC_computation)
+                                  TCG_mapping=TCG_mapping)
+        __area = Model_area(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
         __power = Model_inference_power(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                         TCG_mapping=TCG_mapping)
 
@@ -133,7 +128,7 @@ def main():
             __latency.calculate_model_latency_nopipe()
         __energy = Model_energy(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                 TCG_mapping=TCG_mapping,
-                                model_latency=__latency, model_power=__power,  NoC_Compute=args.NoC_computation)
+                                model_latency=__latency, model_power=__power)
         print("========================Area Results=================================")
         __area.model_area_output(not (args.disable_module_output), not (args.disable_layer_output))
         print("========================Power Results=================================")

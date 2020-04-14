@@ -56,9 +56,10 @@ def Split_map(padding, outputsize, multiple):  # 对下一层进行划分
 
 
 class Model_latency():
-    def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None, NoC_Compute=False):
+    def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None):
         modelL_config = cp.ConfigParser()
         modelL_config.read(SimConfig_path, encoding='UTF-8')
+        NoC_Compute = int(modelL_config.get('Algorithm Configuration', 'NoC_enable'))
         self.inter_tile_bandwidth = float(modelL_config.get('Tile level', 'Inter_Tile_Bandwidth'))
         self.NetStruct = NetStruct
         if multiple is None:
@@ -72,7 +73,7 @@ class Model_latency():
         self.finish_time = []
         self.layer_tile_latency = []
 
-        if NoC_Compute:
+        if NoC_Compute == 1:
             self.Noc_latency = interconnect_estimation()
         else:
             self.Noc_latency = [0] * len(self.NetStruct)

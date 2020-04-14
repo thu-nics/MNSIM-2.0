@@ -15,9 +15,12 @@ from MNSIM.Latency_Model.Model_latency import Model_latency
 
 class Model_energy():
     def __init__(self,NetStruct,SimConfig_path,model_power=None,
-                 model_latency=None,multiple=None,TCG_mapping=None,  NoC_Compute=False):
+                 model_latency=None,multiple=None,TCG_mapping=None):
         self.NetStruct = NetStruct
         self.SimConfig_path = SimConfig_path
+        modelL_config = cp.ConfigParser()
+        modelL_config.read(self.SimConfig_path, encoding='UTF-8')
+        NoC_Compute = int(modelL_config.get('Algorithm Configuration', 'NoC_enable'))
         if multiple is None:
             multiple = [1] * len(self.NetStruct)
         if TCG_mapping is None:
@@ -63,7 +66,7 @@ class Model_energy():
         self.arch_total_buf_w_energy = 0
         self.arch_total_output_mux_energy = 0
         self.arch_total_pooling_energy = 0
-        if NoC_Compute:
+        if NoC_Compute == 1:
             path = os.getcwd() + '/Final_Results/'
             data = pd.read_csv(path + 'Energy.csv')
             self.arch_Noc_energy = float(data.columns[0].split(' ')[-2]) * 1e-3
