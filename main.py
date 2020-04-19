@@ -124,6 +124,7 @@ def main():
 
         if not (args.disable_inner_pipeline):
             __latency.calculate_model_latency(mode=2)
+            # __latency.calculate_model_latency_nopipe()
         else:
             __latency.calculate_model_latency_nopipe()
         __energy = Model_energy(NetStruct=structure_file, SimConfig_path=args.hardware_description,
