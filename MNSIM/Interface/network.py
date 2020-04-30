@@ -41,8 +41,19 @@ class NetworkGraph(nn.Module):
         for i, layer in enumerate(self.layer_list):
             # find the input tensor
             input_index = self.input_index_list[i]
-            assert len(input_index) == 1
-            tensor_list.append(layer.forward(tensor_list[input_index[0] + i + 1], method, adc_action))
+            assert len(input_index) in [1, 2]
+            if len(input_index) == 1:
+                tensor_list.append(layer.forward(tensor_list[input_index[0] + i + 1], method, adc_action))
+            else:
+                tensor_list.append(
+                    layer.forward([
+                        tensor_list[input_index[0] + i + 1],
+                        tensor_list[input_index[1] + i + 1],
+                    ],
+                    method,
+                    adc_action,
+                    )
+                )
         return tensor_list[-1]
     def get_weights(self):
         net_bit_weights = []
@@ -61,13 +72,24 @@ class NetworkGraph(nn.Module):
         for i, layer in enumerate(self.layer_list):
             # find the input tensor
             input_index = self.input_index_list[i]
-            assert len(input_index) == 1
+            assert len(input_index) in [1, 2]
             if isinstance(layer, quantize.QuantizeLayer):
                 tensor_list.append(layer.set_weights_forward(tensor_list[input_index[0] + i + 1], net_bit_weights[count], adc_action))
                 # tensor_list.append(layer.forward(tensor_list[input_index[0] + i + 1], 'SINGLE_FIX_TEST', adc_action))
                 count = count + 1
             else:
-                tensor_list.append(layer.forward(tensor_list[input_index[0] + i + 1], 'FIX_TRAIN', None))
+                if len(input_index) == 1:
+                    tensor_list.append(layer.forward(tensor_list[input_index[0] + i + 1], 'FIX_TRAIN', None))
+                else:
+                    tensor_list.append(
+                    layer.forward([
+                        tensor_list[input_index[0] + i + 1],
+                        tensor_list[input_index[1] + i + 1],
+                    ],
+                    'FIX_TRAIN',
+                    None,
+                    )
+                )
         return tensor_list[-1]
     def get_structure(self):
         # forward structure
@@ -78,9 +100,18 @@ class NetworkGraph(nn.Module):
         for i, layer in enumerate(self.layer_list):
             # find the input tensor
             input_index = self.input_index_list[i]
-            assert len(input_index) == 1
+            assert len(input_index) in [1, 2]
             # print(tensor_list[input_index[0]+i+1].shape)
-            tensor_list.append(layer.structure_forward(tensor_list[input_index[0] + i + 1]))
+            if len(input_index) == 1:
+                tensor_list.append(layer.structure_forward(tensor_list[input_index[0] + i + 1]))
+            else:
+                tensor_list.append(
+                    layer.structure_forward([
+                        tensor_list[input_index[0] + i + 1],
+                        tensor_list[input_index[1] + i + 1],
+                    ],
+                    )
+                )
         # structure information, stored as list
         net_info = []
         for layer in self.layer_list:
@@ -234,11 +265,20 @@ def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
         layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': 4096})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': num_classes})
+    elif cate.startswith('resnet'):
+        layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 3, 'kernel_size': 3, 'padding': 1, 'stride': 1})
+        layer_config_list.append({'type': 'element_sum', 'input_index': [-1, -2]})
+        layer_config_list.append({'type': 'relu'})
+        layer_config_list.append({'type': 'view'})
+        layer_config_list.append({'type': 'fc', 'in_features': 3072, 'out_features': num_classes})
     else:
         assert 0, f'not support {cate}'
     for i in range(len(layer_config_list)):
         quantize_config_list.append({'weight_bit': 9, 'activation_bit': 9, 'point_shift': -2})
-        input_index_list.append([-1])
+        if 'input_index' in layer_config_list[i]:
+            input_index_list.append(layer_config_list[i]['input_index'])
+        else:
+            input_index_list.append([-1])
     input_params = {'activation_scale': 1. / 255., 'activation_bit': 9, 'input_shape': (1, 3, 32, 32)}
     # change for network structure optimization
     if cate.startswith('lenet'):
@@ -312,6 +352,13 @@ def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
             layer_config_list.insert(i+1, {'type': 'bn', 'features': layer_config_list[i]['out_channels']})
             quantize_config_list.insert(i+1, {'weight_bit': 9, 'activation_bit': 9, 'point_shift': -2})
             input_index_list.insert(i+1, [-1])
+            for j in range(i + 2, len(layer_config_list), 1):
+                for relative_input_index in range(len(input_index_list[j])):
+                    if j + input_index_list[j][relative_input_index] < i + 1:
+                        input_index_list[j][relative_input_index] -= 1
+    # print(layer_config_list)
+    # print(quantize_config_list)
+    # print(input_index_list)
     # generate net
     net = NetworkGraph(hardware_config, layer_config_list, quantize_config_list, input_index_list, input_params)
     return net

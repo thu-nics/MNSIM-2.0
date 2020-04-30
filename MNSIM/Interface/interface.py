@@ -11,7 +11,7 @@ import torch
 
 
 class TrainTestInterface(object):
-    def __init__(self, network_module, dataset_module, SimConfig_path, weights_file, device = None, extra_define = None):
+    def __init__(self, network_module, dataset_module, SimConfig_path, weights_file = None, device = None, extra_define = None):
         # network_module = 'lenet'
         # dataset_module = 'cifar10'
         # weights_file = './zoo/cifar10_lenet_train_params.pth'
@@ -84,7 +84,8 @@ class TrainTestInterface(object):
             self.hardware_config['quantize_bit'] = extra_define['adc_res']
             self.hardware_config['xbar_size'] = extra_define['xbar_size']
         self.net = import_module('MNSIM.Interface.network').get_net(self.hardware_config, cate = self.network_module, num_classes = num_classes)
-        self.net.load_change_weights(torch.load(weights_file, map_location=self.device))
+        if weights_file is not None:
+            self.net.load_change_weights(torch.load(weights_file, map_location=self.device))
         # if device != None:
         #     self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
         # else:
@@ -129,6 +130,7 @@ class TrainTestInterface(object):
     def get_structure(self):
         net_bit_weights = self.net.get_weights()
         net_structure_info = self.net.get_structure()
+        # print(net_structure_info)
         assert len(net_bit_weights) == len(net_structure_info)
         net_array = []
         for layer_num, (layer_bit_weights, layer_structure_info) in enumerate(zip(net_bit_weights, net_structure_info)):
@@ -181,52 +183,7 @@ def mysplit(array, length):
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "SimConfig.ini")
     # test_weights_file_path = os.path.join(os.path.dirname(__file__), "zoo/lenet_6_9_params.pth")
-    # __TestInterface = TrainTestInterface('lenet_6_9', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, '1')
-    # print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
-    # print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
-    # structure_info = __TestInterface.get_structure()
-
-    # traverse all kinds
-    # net_list = ['lenet', 'alexnet', 'vgg8']
-    # xbar_size_list = [128, 256, 512, 1024]
-    # adc_res_list = [4, 6, 8, 10]
-    # dac_res_list = [1, 2, 4]
-    # for net in net_list:
-    #     for xbar_size in xbar_size_list:
-    #         for adc_res in adc_res_list:
-    #             for dac_res in dac_res_list:
-    #                 # 正常情况下阻止循环的遍历
-    #                 continue
-    #                 tmp_config = collections.OrderedDict()
-    #                 tmp_config['xbar_size'] = xbar_size
-    #                 tmp_config['adc_res'] = adc_res
-    #                 tmp_config['dac_res'] = dac_res
-    #                 # test_weight
-    #                 # test_weights_file_path = os.path.join(os.path.dirname(__file__), f'zoo/cifar10_{net}_params.pth')
-    #                 test_weights_file_path = os.path.join(os.path.dirname(__file__), f'zoo/wobn_cifar10_{net}_params.pth')
-    #                 __TestInterface = TrainTestInterface(net, 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, '1', tmp_config)
-    #                 accuracy = __TestInterface.origin_evaluate(method='SINGLE_FIX_TEST')
-    #                 print(f'{net} {xbar_size} {adc_res} {dac_res} {accuracy}', flush=True)
-
-    # traverse all weight bit
-    weight_choice = [8, 7, 6, 5]
-    tmp_config = collections.OrderedDict()
-    tmp_config['xbar_size'] = 256
-    tmp_config['adc_res'] = 8
-    tmp_config['dac_res'] = 1
-    test_weights_file_path = os.path.join(os.path.dirname(__file__), f'zoo/wobn_cifar10_vgg8_params.pth')
-    # construct = [9] * 7
-    construct = [9,9,8,8,7,7,6]
-    # construct = [9,7,7,6,5,5,5]
-    net = '_'.join(['vgg8'] + [str(v) for v in construct])
-    __TestInterface = TrainTestInterface(net, 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, '3', tmp_config)
-    accuracy = __TestInterface.origin_evaluate(method='SINGLE_FIX_TEST')
-    print(f'origin accuracy is {accuracy}', flush=True)
-    # for index in range(7):
-    #     for weight_bit in weight_choice:
-    #         construct = [9] * 7
-    #         construct[index] = weight_bit
-    #         net = '_'.join(['vgg8'] + [str(v) for v in construct])
-    #         __TestInterface = TrainTestInterface(net, 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, '3', tmp_config)
-    #         accuracy = __TestInterface.origin_evaluate(method='SINGLE_FIX_TEST')
-    #         print(f'{construct} accuracy is {accuracy}', flush=True)
+    __TestInterface = TrainTestInterface('resnet', 'MNSIM.Interface.cifar10', test_SimConfig_path, None, '1')
+    print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
+    print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
+    structure_info = __TestInterface.get_structure()

@@ -110,7 +110,14 @@ class QuantizeLayer(nn.Module):
         else:
             assert 0, f'not support {self.layer_config["type"]}'
         self.last_value = nn.Parameter(torch.zeros(1))
+        self.last_value[0] = 1
         self.bit_scale_list = nn.Parameter(torch.zeros(3, 2))
+        self.bit_scale_list[0, 0] = 9
+        self.bit_scale_list[0, 1] = 1
+        self.bit_scale_list[1, 0] = 9
+        self.bit_scale_list[1, 1] = 1
+        self.bit_scale_list[2, 0] = 9
+        self.bit_scale_list[2, 1] = 1
         # layer information
         self.layer_info = None
     def structure_forward(self, input):
@@ -316,6 +323,12 @@ class ViewLayer(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
+class EleSumLayer(nn.Module):
+    def __init__(self):
+        super(EleSumLayer, self).__init__()
+    def forward(self, x):
+        return x[0] + x[1]
+
 class StraightLayer(nn.Module):
     def __init__(self, hardware_config, layer_config, quantize_config):
         super(StraightLayer, self).__init__()
@@ -351,41 +364,52 @@ class StraightLayer(nn.Module):
             self.layer = nn.BatchNorm2d(self.layer_config['features'])
         elif self.layer_config['type'] == 'dropout':
             self.layer = nn.Dropout()
+        elif self.layer_config['type'] == 'element_sum':
+            self.layer = EleSumLayer()
         else:
             assert 0, f'not support {self.layer_config["type"]}'
         self.last_value = nn.Parameter(torch.zeros(1))
+        self.last_value[0] = 1
         self.layer_info = None
     def structure_forward(self, input):
-        # generate input shape and output shape
-        self.input_shape = input.shape
-        output = self.layer.forward(input)
-        self.output_shape = output.shape
-        # generate layer_info
-        self.layer_info = collections.OrderedDict()
-        if self.layer_config['type'] == 'pooling':
-            self.layer_info['type'] = 'pooling'
-            self.layer_info['Inputchannel'] = int(self.input_shape[1])
-            self.layer_info['Inputsize'] = list(self.input_shape)[2:]
-            self.layer_info['Kernelsize'] = self.layer_config['kernel_size']
-            self.layer_info['Stride'] = self.layer_config['stride']
-            self.layer_info['Padding'] = self.layer_config['padding']
-            self.layer_info['Outputchannel'] = int(self.output_shape[1])
-            self.layer_info['Outputsize'] = list(self.output_shape)[2:]
-        elif self.layer_config['type'] == 'relu':
-            self.layer_info['type'] = 'relu'
-        elif self.layer_config['type'] == 'view':
-            self.layer_info['type'] = 'view'
-        elif self.layer_config['type'] == 'bn':
-            self.layer_info['type'] = 'bn'
-            self.layer_info['features'] = self.layer_config['features']
-        elif self.layer_config['type'] == 'dropout':
-            self.layer_info['type'] = 'dropout'
+        if self.layer_config['type'] != 'element_sum':
+            # generate input shape and output shape
+            self.input_shape = input.shape
+            output = self.layer.forward(input)
+            self.output_shape = output.shape
+            # generate layer_info
+            self.layer_info = collections.OrderedDict()
+            if self.layer_config['type'] == 'pooling':
+                self.layer_info['type'] = 'pooling'
+                self.layer_info['Inputchannel'] = int(self.input_shape[1])
+                self.layer_info['Inputsize'] = list(self.input_shape)[2:]
+                self.layer_info['Kernelsize'] = self.layer_config['kernel_size']
+                self.layer_info['Stride'] = self.layer_config['stride']
+                self.layer_info['Padding'] = self.layer_config['padding']
+                self.layer_info['Outputchannel'] = int(self.output_shape[1])
+                self.layer_info['Outputsize'] = list(self.output_shape)[2:]
+            elif self.layer_config['type'] == 'relu':
+                self.layer_info['type'] = 'relu'
+            elif self.layer_config['type'] == 'view':
+                self.layer_info['type'] = 'view'
+            elif self.layer_config['type'] == 'bn':
+                self.layer_info['type'] = 'bn'
+                self.layer_info['features'] = self.layer_config['features']
+            elif self.layer_config['type'] == 'dropout':
+                self.layer_info['type'] = 'dropout'
+            else:
+                assert 0, f'not support {self.layer_config["type"]}'
         else:
-            assert 0, f'not support {self.layer_config["type"]}'
+            self.input_shape = (input[0].shape, input[1].shape)
+            output = self.layer.forward(input)
+            self.output_shape = output.shape
+            self.layer_info = collections.OrderedDict()
+            self.layer_info['type'] = 'element_sum'
         self.layer_info['Inputbit'] = self.quantize_config['activation_bit']
         self.layer_info['Weightbit'] = self.quantize_config['weight_bit']
         self.layer_info['outputbit'] = self.quantize_config['activation_bit']
         return output
+
     def forward(self, input, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
         # DOES NOT use method and adc_action, for unifying with QuantizeLayer
         METHOD = method
@@ -404,4 +428,4 @@ class StraightLayer(nn.Module):
         return None
     def extra_repr(self):
         return str(self.hardware_config) + ' ' + str(self.layer_config) + ' ' + str(self.quantize_config)
-StraightLayerStr = ['pooling', 'relu', 'view', 'bn', 'dropout']
+StraightLayerStr = ['pooling', 'relu', 'view', 'bn', 'dropout', 'element_sum']
