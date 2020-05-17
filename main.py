@@ -52,7 +52,7 @@ def main():
     home_path = os.getcwd()
     # print(home_path)
     SimConfig_path = os.path.join(home_path, "SimConfig.ini")
-    weights_file_path = os.path.join(home_path, "alexnet_params.pth")
+    weights_file_path = os.path.join(home_path, "vgg8_params.pth")
     # print(SimConfig_path)
     parser = argparse.ArgumentParser(description='MNSIM example')
     parser.add_argument("-AutoDelete", "--file_auto_delete", default=True,
@@ -63,7 +63,7 @@ def main():
                         help="Hardware description file location & name, default:/MNSIM_Python/SimConfig.ini")
     parser.add_argument("-Weights", "--weights", default=weights_file_path,
                         help="NN model weights file location & name, default:/MNSIM_Python/vgg8_params.pth")
-    parser.add_argument("-NN", "--NN", default='alexnet',
+    parser.add_argument("-NN", "--NN", default='vgg8',
                         help="NN model description (name), default: vgg8_128_9")
     parser.add_argument("-DisHW", "--disable_hardware_modeling", action='store_true', default=False,
                         help="Disable hardware modeling, default: false")
@@ -99,29 +99,23 @@ def main():
         print("Quantization range: fixed range (depends on the maximum value)")
     else:
         print("Quantization range: dynamic range (depends on the data distribution)")
-    __TestInterface = TrainTestInterface(args.NN, 'MNSIM.Interface.cifar10', args.hardware_description,
-                                         args.weights, args.device)
+    # __TestInterface = TrainTestInterface(args.NN, 'MNSIM.Interface.cifar10', args.hardware_description,
+    #                                      args.weights, args.device)
+    __TestInterface = TrainTestInterface(network_module=args.NN, dataset_module='MNSIM.Interface.cifar10', SimConfig_path=args.hardware_description,
+                                         device=args.device)
     structure_file = __TestInterface.get_structure()
     weight = __TestInterface.get_net_bits()
     # print(structure_file)
     # print(__TestInterface.origin_evaluate(method = 'FIX_TRAIN', adc_action = 'SCALE'))
     # print(__TestInterface.set_net_bits_evaluate(weight, adc_action = 'SCALE'))
     TCG_mapping = TCG(structure_file, args.hardware_description)
+    #print(TCG_mapping.max_buf_size)
     if not (args.disable_hardware_modeling):
-        # __bm = behavior_mapping(NetStruct=structure_file,SimConfig_path=args.hardware_description)
-        # __bm.config_behavior_mapping()
-        # __bm.behavior_mapping_area()
-        # __bm.behavior_mapping_utilization()
-        # __bm.behavior_mapping_latency()
-        # __bm.behavior_mapping_power()
-        # __bm.behavior_mapping_energy()
-        # __bm.behavior_mapping_output(not(args.disable_module_output), not(args.disable_layer_output))
         __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                   TCG_mapping=TCG_mapping)
         __area = Model_area(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
         __power = Model_inference_power(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                         TCG_mapping=TCG_mapping)
-
         if not (args.disable_inner_pipeline):
             __latency.calculate_model_latency(mode=2)
             # __latency.calculate_model_latency_nopipe()

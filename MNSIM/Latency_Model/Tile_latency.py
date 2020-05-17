@@ -12,7 +12,7 @@ from MNSIM.Latency_Model.PE_latency import PE_latency_analysis
 
 
 class tile_latency_analysis(PE_latency_analysis):
-    def __init__(self, SimConfig_path, read_row=0, read_column=0, indata=0, rdata=0, inprecision = 8, PE_num=0):
+    def __init__(self, SimConfig_path, read_row=0, read_column=0, indata=0, rdata=0, inprecision = 8, PE_num=0, default_buf_size = 16):
         # read_row: activated WL number in crossbar
         # read_column: activated BL number in crossbar
         # indata: volume of input data (for PE) (Byte)
@@ -21,7 +21,7 @@ class tile_latency_analysis(PE_latency_analysis):
         # inprecision: input data precision of each Xbar
         # PE_num: used PE_number in one tile
         PE_latency_analysis.__init__(self, SimConfig_path, read_row=read_row, read_column=read_column,
-                                     indata=indata, rdata=rdata, inprecision=inprecision)
+                                     indata=indata, rdata=rdata, inprecision=inprecision, default_buf_size = default_buf_size)
         tilel_config = cp.ConfigParser()
         tilel_config.read(SimConfig_path, encoding='UTF-8')
         self.intra_tile_bandwidth = float(tilel_config.get('Tile level', 'Intra_Tile_Bandwidth'))

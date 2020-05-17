@@ -77,7 +77,7 @@ class Model_energy():
         self.calculate_model_energy()
 
     def calculate_model_energy(self):
-        print(self.model_latency.total_buffer_r_latency)
+        #print(self.model_latency.total_buffer_r_latency)
         for i in range(self.total_layer_num):
             tile_num = self.graph.layer_tileinfo[i]['tilenum']
             self.arch_xbar_energy[i] = self.model_power.arch_xbar_power[i]*self.model_latency.total_xbar_latency[i]

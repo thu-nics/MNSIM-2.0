@@ -13,7 +13,7 @@ from MNSIM.Interface.interface import *
 
 
 class PE_latency_analysis():
-    def __init__(self, SimConfig_path, read_row=0, read_column=0, indata=0, rdata=0, inprecision = 8):
+    def __init__(self, SimConfig_path, read_row=0, read_column=0, indata=0, rdata=0, inprecision = 8, default_buf_size = 16):
         # read_row: activated WL number in crossbar
         # read_column: activated BL number in crossbar
         # indata: volume of input data (for PE) (Byte)
@@ -22,7 +22,7 @@ class PE_latency_analysis():
         # inprecision: input data precision of each Xbar
         PEl_config = cp.ConfigParser()
         PEl_config.read(SimConfig_path, encoding='UTF-8')
-        self.buf = buffer(SimConfig_path)
+        self.buf = buffer(SimConfig_path,default_buf_size)
         self.PE = ProcessElement(SimConfig_path)
         self.buf.calculate_buf_write_latency(indata)
         self.buf_wlatency = self.buf.buf_wlatency

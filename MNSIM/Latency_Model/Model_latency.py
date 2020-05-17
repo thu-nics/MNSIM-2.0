@@ -77,7 +77,6 @@ class Model_latency():
             self.Noc_latency = interconnect_estimation()
         else:
             self.Noc_latency = [0] * len(self.NetStruct)
-        # print(self.Noc_latency)
         self.SimConfig_path = SimConfig_path
         self.compute_interval = []
         self.occupancy = []
@@ -129,7 +128,6 @@ class Model_latency():
 
     def Judge(self, last_layer_pos, current_layer_id):
         layer_dict = self.NetStruct[current_layer_id][0][0]
-        # print(current_layer_id)
         if layer_dict['type'] is not 'pooling':
             assert layer_dict['type'] == 'conv', "fc no need to be judged"
         kernelsize = int(layer_dict['Kernelsize'])
@@ -282,7 +280,8 @@ class Model_latency():
                                                           read_row=self.graph.layer_tileinfo[layer_id]['max_row'],
                                                           read_column=self.graph.layer_tileinfo[layer_id]['max_column'],
                                                           indata=0, rdata=0, inprecision=inputbit,
-                                                          PE_num=self.graph.layer_tileinfo[layer_id]['max_PE']
+                                                          PE_num=self.graph.layer_tileinfo[layer_id]['max_PE'],
+                                                          default_buf_size=self.graph.max_buf_size
                                                           )
                 # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
                 #                                                          self.graph.layer_tileinfo[layer_id][
@@ -312,35 +311,6 @@ class Model_latency():
                             begin_time = 0
                             self.pipe_result_update('conv', begin_time, compute_time, layer_id, temp_tile_latency,
                                                     merge_time, transfer_time)
-                            # self.begin_time[0].append(0)
-                            # self.finish_time[0].append(compute_time)
-                            # self.compute_interval[0].append([0, compute_time])
-                            #
-                            # self.buffer_latency[layer_id].append(
-                            #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                            # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                            # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                            # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                            # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                            # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                            # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                            # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                            # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                            # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                            # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                            # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                            # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                            #
-                            # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                            #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                            #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                            #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                            # self.pooling_latency[layer_id].append(0)
-                            # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                            # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                            # self.tile_merge_latency[layer_id].append(merge_time)
-                            # self.tile_transfer_latency[layer_id].append(transfer_time)
-                            # print(self.finish_time[0])
                         elif j == 0:
                             indata = input_channel_PE * stride * max(kernelsize - padding, 0) * inputbit / 8
                             # line feed in line buffer
@@ -352,35 +322,6 @@ class Model_latency():
                                            begin_time
                             self.pipe_result_update('conv', begin_time, compute_time, layer_id, temp_tile_latency,
                                                     merge_time, transfer_time)
-                            # self.begin_time[0].append(begin_time)
-                            # self.finish_time[0].append(compute_time)
-                            # self.compute_interval[0].append([begin_time, compute_time])
-                            #
-                            # self.buffer_latency[layer_id].append(
-                            #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                            # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                            # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                            # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                            # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                            # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                            # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                            # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                            # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                            # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                            # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                            # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                            # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                            #
-                            # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                            #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                            #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                            #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                            # self.pooling_latency[layer_id].append(0)
-                            # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                            # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                            # self.tile_merge_latency[layer_id].append(merge_time)
-                            # self.tile_transfer_latency[layer_id].append(transfer_time)
-                            # print(self.finish_time[0])
                         else:
                             indata = input_channel_PE * stride ** 2 * inputbit / 8
                             # write new input data to line buffer
@@ -391,37 +332,6 @@ class Model_latency():
                                            begin_time
                             self.pipe_result_update('conv', begin_time, compute_time, layer_id, temp_tile_latency,
                                                     merge_time, transfer_time)
-                            # self.begin_time[0].append(begin_time)
-                            # self.finish_time[0].append(compute_time)
-                            # self.compute_interval[0].append([begin_time, compute_time])
-                            #
-                            # self.buffer_latency[layer_id].append(
-                            #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                            # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                            # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                            # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                            # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                            # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                            # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                            # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                            # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                            # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                            # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                            # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                            # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                            #
-                            # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                            #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                            #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                            #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                            # self.pooling_latency[layer_id].append(0)
-                            # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                            # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                            # self.tile_merge_latency[layer_id].append(merge_time)
-                            # self.tile_transfer_latency[layer_id].append(transfer_time)
-                # print("start time: ", self.begin_time[0])
-                # print("finish time:", self.finish_time[0])
-                # print('==============================')
             else:
                 if layer_dict['type'] == 'conv':
                     self.begin_time.append([])
@@ -464,7 +374,8 @@ class Model_latency():
                                                               read_column=self.graph.layer_tileinfo[layer_id][
                                                                   'max_column'],
                                                               indata=0, rdata=0, inprecision=inputbit,
-                                                              PE_num=self.graph.layer_tileinfo[layer_id]['max_PE']
+                                                              PE_num=self.graph.layer_tileinfo[layer_id]['max_PE'],
+                                                              default_buf_size=self.graph.max_buf_size
                                                               )
                     # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
                     #                                                          self.graph.layer_tileinfo[layer_id]['max_column'] *
@@ -508,35 +419,6 @@ class Model_latency():
                                 # consider the input data generation time
                                 self.pipe_result_update('conv', begin_time, compute_time, layer_id, temp_tile_latency,
                                                         merge_time, transfer_time)
-                                # self.begin_time[layer_id].append(begin_time)
-                                # self.finish_time[layer_id].append(compute_time)
-                                # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                #
-                                # self.buffer_latency[layer_id].append(
-                                #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                                # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                                # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                                # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                                # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                                # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                                # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                                # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                                # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                                # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                                # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                                # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                                # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                                #
-                                # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                                #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                                #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                                #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                                # self.pooling_latency[layer_id].append(0)
-                                # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                                # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                # self.tile_merge_latency[layer_id].append(merge_time)
-                                # self.tile_transfer_latency[layer_id].append(transfer_time)
-                                # print(self.finish_time[layer_id])
                             elif j == 0:
                                 indata = input_channel_PE * stride * max(kernelsize - padding, 0) * inputbit / 8
                                 # line feed in line buffer
@@ -549,35 +431,6 @@ class Model_latency():
                                                begin_time
                                 self.pipe_result_update('conv', begin_time, compute_time, layer_id, temp_tile_latency,
                                                         merge_time, transfer_time)
-                                # self.begin_time[layer_id].append(begin_time)
-                                # self.finish_time[layer_id].append(compute_time)
-                                # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                #
-                                # self.buffer_latency[layer_id].append(
-                                #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                                # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                                # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                                # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                                # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                                # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                                # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                                # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                                # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                                # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                                # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                                # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                                # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                                #
-                                # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                                #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                                #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                                #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                                # self.pooling_latency[layer_id].append(0)
-                                # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                                # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                # self.tile_merge_latency[layer_id].append(merge_time)
-                                # self.tile_transfer_latency[layer_id].append(transfer_time)
-                                # print(self.finish_time[layer_id])
                             else:
                                 indata = input_channel_PE * stride ** 2 * inputbit / 8
                                 # write new input data to line buffer
@@ -589,37 +442,6 @@ class Model_latency():
                                                begin_time
                                 self.pipe_result_update('conv', begin_time, compute_time, layer_id, temp_tile_latency,
                                                         merge_time, transfer_time)
-                                # self.begin_time[layer_id].append(begin_time)
-                                # self.finish_time[layer_id].append(compute_time)
-                                # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                #
-                                # self.buffer_latency[layer_id].append(
-                                #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                                # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                                # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                                # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                                # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                                # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                                # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                                # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                                # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                                # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                                # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                                # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                                # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                                #
-                                # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                                #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                                #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                                #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                                # self.pooling_latency[layer_id].append(0)
-                                # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                                # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                # self.tile_merge_latency[layer_id].append(merge_time)
-                                # self.tile_transfer_latency[layer_id].append(transfer_time)
-                    # print("start time: ",self.begin_time[layer_id])
-                    # print("finish time:",self.finish_time[layer_id])
-                    # print('==============================')
                 elif layer_dict['type'] == 'fc':
                     output_size = int(layer_dict['Outfeature'])
                     input_size = int(layer_dict['Infeature'])
@@ -655,7 +477,8 @@ class Model_latency():
                                                               read_column=self.graph.layer_tileinfo[layer_id][
                                                                   'max_column'],
                                                               indata=indata, rdata=rdata, inprecision=inputbit,
-                                                              PE_num=self.graph.layer_tileinfo[layer_id]['max_PE']
+                                                              PE_num=self.graph.layer_tileinfo[layer_id]['max_PE'],
+                                                              default_buf_size=self.graph.max_buf_size
                                                               )
                     # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
                     #                                                          self.graph.layer_tileinfo[layer_id]['max_column'] *
@@ -677,37 +500,6 @@ class Model_latency():
                     compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
                     self.pipe_result_update('fc', begin_time, compute_time, layer_id, temp_tile_latency,
                                             merge_time, transfer_time, output_size)
-                    # self.begin_time[layer_id] = output_size * [begin_time]
-                    # self.finish_time[layer_id] = output_size * [compute_time]
-                    # self.compute_interval[layer_id].append([begin_time, compute_time])
-                    #
-                    # self.buffer_latency[layer_id].append(
-                    #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                    # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                    # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                    # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                    # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                    # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                    # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                    # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                    # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                    # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                    # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                    # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                    # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                    #
-                    # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                    #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                    #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                    #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                    # self.pooling_latency[layer_id].append(0)
-                    # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                    # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                    # self.tile_merge_latency[layer_id].append(merge_time)
-                    # self.tile_transfer_latency[layer_id].append(transfer_time)
-                    # print("start time: ",self.begin_time[layer_id])
-                    # print("finish time:",self.finish_time[layer_id])
-                    # print('==============================')
                 else:
                     assert layer_dict['type'] == 'pooling', "Layer type can only be conv/fc/pooling"
                     self.begin_time.append([])
@@ -772,34 +564,6 @@ class Model_latency():
                                                begin_time
                                 self.pipe_result_update('pooling', begin_time, compute_time, layer_id, temp_pooling_latency,
                                                         merge_time, transfer_time)
-                                # consider the input data generation time
-                                # self.begin_time[layer_id].append(begin_time)
-                                # self.finish_time[layer_id].append(compute_time)
-                                # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                #
-                                # self.buffer_latency[layer_id].append(
-                                #     temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
-                                # self.computing_latency[layer_id].append(0)
-                                # self.DAC_latency[layer_id].append(0)
-                                # self.xbar_latency[layer_id].append(0)
-                                # self.ADC_latency[layer_id].append(0)
-                                # self.pooling_latency[layer_id].append(temp_pooling_latency.digital_period)
-                                # self.buffer_r_latency[layer_id].append(temp_pooling_latency.buf_rlatency)
-                                # self.buffer_w_latency[layer_id].append(temp_pooling_latency.buf_wlatency)
-                                # self.iReg_latency[layer_id].append(0)
-                                # self.input_demux_latency[layer_id].append(0)
-                                # self.output_mux_latency[layer_id].append(0)
-                                # self.shiftreg_latency[layer_id].append(0)
-                                # self.adder_latency[layer_id].append(0)
-                                # self.jointmodule_latency[layer_id].append(0)
-                                #
-                                # self.digital_latency[layer_id].append(0)
-                                # # TODO: update pooling latency analysis
-                                # self.intra_tile_latency[layer_id].append(0)
-                                # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                # self.tile_merge_latency[layer_id].append(merge_time)
-                                # self.tile_transfer_latency[layer_id].append(transfer_time)
-                                # print(self.finish_time[layer_id])
                             elif j == 0:
                                 indata = inputchannel * stride * max(kernelsize - padding, 0) * inputbit / 8
                                 # line feed in line buffer
@@ -814,33 +578,6 @@ class Model_latency():
                                                begin_time
                                 self.pipe_result_update('pooling', begin_time, compute_time, layer_id,
                                                         temp_pooling_latency,merge_time, transfer_time)
-                                # self.begin_time[layer_id].append(begin_time)
-                                # self.finish_time[layer_id].append(compute_time)
-                                # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                #
-                                # self.buffer_latency[layer_id].append(
-                                #     temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
-                                # self.computing_latency[layer_id].append(0)
-                                # self.DAC_latency[layer_id].append(0)
-                                # self.xbar_latency[layer_id].append(0)
-                                # self.ADC_latency[layer_id].append(0)
-                                # self.pooling_latency[layer_id].append(temp_pooling_latency.digital_period)
-                                # self.buffer_r_latency[layer_id].append(temp_pooling_latency.buf_rlatency)
-                                # self.buffer_w_latency[layer_id].append(temp_pooling_latency.buf_wlatency)
-                                # self.iReg_latency[layer_id].append(0)
-                                # self.input_demux_latency[layer_id].append(0)
-                                # self.output_mux_latency[layer_id].append(0)
-                                # self.shiftreg_latency[layer_id].append(0)
-                                # self.adder_latency[layer_id].append(0)
-                                # self.jointmodule_latency[layer_id].append(0)
-                                #
-                                # self.digital_latency[layer_id].append(0)
-                                # # TODO: update pooling latency analysis
-                                # self.intra_tile_latency[layer_id].append(0)
-                                # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                # self.tile_merge_latency[layer_id].append(merge_time)
-                                # self.tile_transfer_latency[layer_id].append(transfer_time)
-                                # print(self.finish_time[layer_id])
                             else:
                                 indata = inputchannel * stride ** 2 * inputbit / 8
                                 # write new input data to line buffer
@@ -854,35 +591,6 @@ class Model_latency():
                                                begin_time
                                 self.pipe_result_update('pooling', begin_time, compute_time, layer_id,
                                                         temp_pooling_latency, merge_time, transfer_time)
-                                # self.begin_time[layer_id].append(begin_time)
-                                # self.finish_time[layer_id].append(compute_time)
-                                # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                #
-                                # self.buffer_latency[layer_id].append(
-                                #     temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
-                                # self.computing_latency[layer_id].append(0)
-                                # self.DAC_latency[layer_id].append(0)
-                                # self.xbar_latency[layer_id].append(0)
-                                # self.ADC_latency[layer_id].append(0)
-                                # self.pooling_latency[layer_id].append(temp_pooling_latency.digital_period)
-                                # self.buffer_r_latency[layer_id].append(temp_pooling_latency.buf_rlatency)
-                                # self.buffer_w_latency[layer_id].append(temp_pooling_latency.buf_wlatency)
-                                # self.iReg_latency[layer_id].append(0)
-                                # self.input_demux_latency[layer_id].append(0)
-                                # self.output_mux_latency[layer_id].append(0)
-                                # self.shiftreg_latency[layer_id].append(0)
-                                # self.adder_latency[layer_id].append(0)
-                                # self.jointmodule_latency[layer_id].append(0)
-                                #
-                                # self.digital_latency[layer_id].append(0)
-                                # # TODO: update pooling latency analysis
-                                # self.intra_tile_latency[layer_id].append(0)
-                                # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                # self.tile_merge_latency[layer_id].append(merge_time)
-                                # self.tile_transfer_latency[layer_id].append(transfer_time)
-                    # print("start time: ",self.begin_time[layer_id])
-                    # print("finish time:",self.finish_time[layer_id])
-                    # print('==============================')
             self.compute_interval[layer_id] = merge_interval(self.compute_interval[layer_id])
             temp_runtime = 0
             for l in range(len(self.compute_interval[layer_id])):
@@ -1110,7 +818,8 @@ class Model_latency():
                                                           read_row=self.graph.layer_tileinfo[layer_id]['max_row'],
                                                           read_column=self.graph.layer_tileinfo[layer_id]['max_column'],
                                                           indata=0, rdata=0, inprecision=inputbit,
-                                                          PE_num=self.graph.layer_tileinfo[layer_id]['max_PE']
+                                                          PE_num=self.graph.layer_tileinfo[layer_id]['max_PE'],
+                                                          default_buf_size=self.graph.max_buf_size
                                                           )
                 # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
                 #                                                          self.graph.layer_tileinfo[layer_id][
@@ -1149,36 +858,6 @@ class Model_latency():
                                 begin_time = 0
                                 self.pipe_result_update('conv', begin_time, compute_time, layer_id, temp_tile_latency,
                                                         merge_time, transfer_time)
-
-                                # self.begin_time[0].append(0)
-                                # self.finish_time[0].append(compute_time)
-                                # self.compute_interval[0].append([0, compute_time])
-                                #
-                                # self.buffer_latency[layer_id].append(
-                                #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                                # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                                # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                                # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                                # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                                #
-                                # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                                # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                                # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                                # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                                # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                                # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                                # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                                # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                                #
-                                # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                                #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                                #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                                #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                                # self.pooling_latency[layer_id].append(0)
-                                # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                                # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                # self.tile_merge_latency[layer_id].append(merge_time)
-                                # self.tile_transfer_latency[layer_id].append(transfer_time)
                             elif j == 0:
                                 if mode is 0:
                                     indata = inputbit / 8 * input_channel_PE * (
@@ -1202,34 +881,6 @@ class Model_latency():
                                 compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
                                 self.pipe_result_update('conv', begin_time, compute_time, layer_id, temp_tile_latency,
                                                         merge_time, transfer_time)
-                                # self.begin_time[0].append(begin_time)
-                                # self.finish_time[0].append(compute_time)
-                                # self.compute_interval[0].append([begin_time, compute_time])
-                                #
-                                # self.buffer_latency[layer_id].append(
-                                #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                                # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                                # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                                # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                                # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                                # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                                # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                                # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                                # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                                # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                                # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                                # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                                # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                                #
-                                # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                                #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                                #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                                #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                                # self.pooling_latency[layer_id].append(0)
-                                # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                                # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                # self.tile_merge_latency[layer_id].append(merge_time)
-                                # self.tile_transfer_latency[layer_id].append(transfer_time)
                             else:
                                 rdata = stride * kernelsize * input_channel_PE * inputbit / 8
                                 if mode is 0:
@@ -1246,35 +897,6 @@ class Model_latency():
                                 compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
                                 self.pipe_result_update('conv', begin_time, compute_time, layer_id, temp_tile_latency,
                                                         merge_time, transfer_time)
-                                # self.begin_time[0].append(begin_time)
-                                # self.finish_time[0].append(compute_time)
-                                # self.compute_interval[0].append([begin_time, compute_time])
-                                #
-                                # self.buffer_latency[layer_id].append(
-                                #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                                # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                                # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                                # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                                # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                                # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                                # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                                # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                                # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                                # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                                # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                                # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                                # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                                #
-                                # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                                #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                                #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                                #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                                # self.pooling_latency[layer_id].append(0)
-                                # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                                # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                # self.tile_merge_latency[layer_id].append(merge_time)
-                                # self.tile_transfer_latency[layer_id].append(transfer_time)
-
                                 if j == split_size[m] - 1:
                                     if max_time < self.finish_time[0][-1]:
                                         max_time = self.finish_time[0][-1]
@@ -1318,7 +940,8 @@ class Model_latency():
                                                               read_column=self.graph.layer_tileinfo[layer_id][
                                                                   'max_column'],
                                                               indata=0, rdata=0, inprecision=inputbit,
-                                                              PE_num=self.graph.layer_tileinfo[layer_id]['max_PE']
+                                                              PE_num=self.graph.layer_tileinfo[layer_id]['max_PE'],
+                                                              default_buf_size=self.graph.max_buf_size
                                                               )
                     # merge_time = (self.graph.layer_tileinfo[layer_id][
                     #                   'tilenum'] - 1) * temp_tile_latency.digital_period + \
@@ -1362,36 +985,6 @@ class Model_latency():
                                     compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
                                     self.pipe_result_update('conv', begin_time, compute_time, layer_id,
                                                             temp_tile_latency, merge_time, transfer_time)
-
-                                    # self.begin_time[layer_id].append(begin_time)
-                                    # self.finish_time[layer_id].append(compute_time)
-                                    # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                    #
-                                    # self.buffer_latency[layer_id].append(
-                                    #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                                    # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                                    # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                                    # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                                    # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                                    # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                                    # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                                    # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                                    # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                                    # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                                    # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                                    # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                                    # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                                    #
-                                    # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                                    #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                                    #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                                    #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                                    # self.pooling_latency[layer_id].append(0)
-                                    # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                                    # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                    # self.tile_merge_latency[layer_id].append(merge_time)
-                                    # self.tile_transfer_latency[layer_id].append(transfer_time)
-
                                 elif j == 0:
                                     rdata = self.graph.layer_tileinfo[layer_id]['max_row'] * inputbit / 8
                                     if mode == 0:
@@ -1417,33 +1010,6 @@ class Model_latency():
                                     compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
                                     self.pipe_result_update('conv', begin_time, compute_time, layer_id,
                                                             temp_tile_latency, merge_time, transfer_time)
-                                    # self.begin_time[layer_id].append(begin_time)
-                                    # self.finish_time[layer_id].append(compute_time)
-                                    # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                    # self.buffer_latency[layer_id].append(
-                                    #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                                    # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                                    # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                                    # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                                    # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                                    # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                                    # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                                    # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                                    # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                                    # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                                    # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                                    # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                                    # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                                    #
-                                    # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                                    #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                                    #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                                    #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                                    # self.pooling_latency[layer_id].append(0)
-                                    # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                                    # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                    # self.tile_merge_latency[layer_id].append(merge_time)
-                                    # self.tile_transfer_latency[layer_id].append(transfer_time)
                                 else:
                                     rdata = stride * kernelsize * input_channel_PE * inputbit / 8
                                     if mode == 0:
@@ -1460,35 +1026,6 @@ class Model_latency():
                                     compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
                                     self.pipe_result_update('conv', begin_time, compute_time, layer_id,
                                                             temp_tile_latency, merge_time, transfer_time)
-                                    # self.begin_time[layer_id].append(begin_time)
-                                    # self.finish_time[layer_id].append(compute_time)
-                                    # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                    #
-                                    # self.buffer_latency[layer_id].append(
-                                    #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                                    # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                                    # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                                    # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                                    # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                                    # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                                    # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                                    # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                                    # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                                    # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                                    # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                                    # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                                    # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                                    #
-                                    # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                                    #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                                    #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                                    #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                                    # self.pooling_latency[layer_id].append(0)
-                                    # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                                    # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                    # self.tile_merge_latency[layer_id].append(merge_time)
-                                    # self.tile_transfer_latency[layer_id].append(transfer_time)
-
                                     if j == split_size[m] - 1:
                                         if max_time < self.finish_time[layer_id][-1]:
                                             max_time = self.finish_time[layer_id][-1]
@@ -1535,7 +1072,8 @@ class Model_latency():
                                                                   read_column=self.graph.layer_tileinfo[layer_id][
                                                                       'max_column'],
                                                                   indata=indata, rdata=rdata, inprecision=inputbit,
-                                                                  PE_num=self.graph.layer_tileinfo[layer_id]['max_PE']
+                                                                  PE_num=self.graph.layer_tileinfo[layer_id]['max_PE'],
+                                                                  default_buf_size=self.graph.max_buf_size
                                                                   )
                         # merge_time = (self.graph.layer_tileinfo[layer_id][
                         #                   'tilenum'] - 1) * temp_tile_latency.digital_period + \
@@ -1550,34 +1088,6 @@ class Model_latency():
                         compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
                         self.pipe_result_update('fc', begin_time, compute_time, layer_id,
                                                 temp_tile_latency, merge_time, transfer_time, output_size)
-                        # self.begin_time[layer_id] = output_size * [begin_time]
-                        # self.finish_time[layer_id] = output_size * [compute_time]
-                        # self.compute_interval[layer_id].append([begin_time, compute_time])
-                        #
-                        # self.buffer_latency[layer_id].append(
-                        #     temp_tile_latency.buf_wlatency + temp_tile_latency.buf_rlatency)
-                        # self.computing_latency[layer_id].append(temp_tile_latency.computing_latency)
-                        # self.DAC_latency[layer_id].append(temp_tile_latency.DAC_latency)
-                        # self.xbar_latency[layer_id].append(temp_tile_latency.xbar_latency)
-                        # self.ADC_latency[layer_id].append(temp_tile_latency.ADC_latency)
-                        # self.buffer_r_latency[layer_id].append(temp_tile_latency.buf_rlatency)
-                        # self.buffer_w_latency[layer_id].append(temp_tile_latency.buf_wlatency)
-                        # self.iReg_latency[layer_id].append(temp_tile_latency.iReg_latency)
-                        # self.input_demux_latency[layer_id].append(temp_tile_latency.input_demux_latency)
-                        # self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
-                        # self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
-                        # self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-                        # self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
-                        #
-                        # self.digital_latency[layer_id].append(temp_tile_latency.inPE_add_latency +
-                        #                                       temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
-                        #                                       temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                        #                                       temp_tile_latency.adder_latency + temp_tile_latency.jointmodule_latency)
-                        # self.pooling_latency[layer_id].append(0)
-                        # self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
-                        # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                        # self.tile_merge_latency[layer_id].append(merge_time)
-                        # self.tile_transfer_latency[layer_id].append(transfer_time)
                     else:
                         assert layer_dict['type'] == 'pooling', "Layer type can only be conv/fc/pooling"
                         self.begin_time.append([])
@@ -1658,32 +1168,6 @@ class Model_latency():
                                         compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + begin_time
                                         self.pipe_result_update('pooling', begin_time, compute_time, layer_id,
                                                                 temp_pooling_latency, merge_time, transfer_time)
-                                        # self.begin_time[layer_id].append(begin_time)
-                                        # self.finish_time[layer_id].append(compute_time)
-                                        # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                        #
-                                        # self.buffer_latency[layer_id].append(
-                                        #     temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
-                                        # self.computing_latency[layer_id].append(0)
-                                        # self.DAC_latency[layer_id].append(0)
-                                        # self.xbar_latency[layer_id].append(0)
-                                        # self.ADC_latency[layer_id].append(0)
-                                        # self.pooling_latency[layer_id].append(temp_pooling_latency.digital_period)
-                                        # self.buffer_r_latency[layer_id].append(temp_pooling_latency.buf_rlatency)
-                                        # self.buffer_w_latency[layer_id].append(temp_pooling_latency.buf_wlatency)
-                                        # self.iReg_latency[layer_id].append(0)
-                                        # self.input_demux_latency[layer_id].append(0)
-                                        # self.output_mux_latency[layer_id].append(0)
-                                        # self.shiftreg_latency[layer_id].append(0)
-                                        # self.adder_latency[layer_id].append(0)
-                                        # self.jointmodule_latency[layer_id].append(0)
-                                        #
-                                        # self.digital_latency[layer_id].append(0)
-                                        # # TODO: update pooling latency analysis
-                                        # self.intra_tile_latency[layer_id].append(0)
-                                        # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                        # self.tile_merge_latency[layer_id].append(merge_time)
-                                        # self.tile_transfer_latency[layer_id].append(transfer_time)
                                     elif j == 0:
                                         if mode == 0:
                                             indata = inputbit / 8 * inputchannel * (input_size[1] * (stride - 1) +
@@ -1717,32 +1201,6 @@ class Model_latency():
                                                        begin_time
                                         self.pipe_result_update('pooling', begin_time, compute_time, layer_id,
                                                                 temp_pooling_latency, merge_time, transfer_time)
-                                        # self.begin_time[layer_id].append(begin_time)
-                                        # self.finish_time[layer_id].append(compute_time)
-                                        # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                        #
-                                        # self.buffer_latency[layer_id].append(
-                                        #     temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
-                                        # self.computing_latency[layer_id].append(0)
-                                        # self.DAC_latency[layer_id].append(0)
-                                        # self.xbar_latency[layer_id].append(0)
-                                        # self.ADC_latency[layer_id].append(0)
-                                        # self.pooling_latency[layer_id].append(temp_pooling_latency.digital_period)
-                                        # self.buffer_r_latency[layer_id].append(temp_pooling_latency.buf_rlatency)
-                                        # self.buffer_w_latency[layer_id].append(temp_pooling_latency.buf_wlatency)
-                                        # self.iReg_latency[layer_id].append(0)
-                                        # self.input_demux_latency[layer_id].append(0)
-                                        # self.output_mux_latency[layer_id].append(0)
-                                        # self.shiftreg_latency[layer_id].append(0)
-                                        # self.adder_latency[layer_id].append(0)
-                                        # self.jointmodule_latency[layer_id].append(0)
-                                        #
-                                        # self.digital_latency[layer_id].append(0)
-                                        # # TODO: update pooling latency analysis
-                                        # self.intra_tile_latency[layer_id].append(0)
-                                        # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                        # self.tile_merge_latency[layer_id].append(merge_time)
-                                        # self.tile_transfer_latency[layer_id].append(transfer_time)
                                     else:
                                         if mode == 0:
                                             indata = inputchannel * stride * inputbit / 8
@@ -1761,33 +1219,6 @@ class Model_latency():
                                                        begin_time
                                         self.pipe_result_update('pooling', begin_time, compute_time, layer_id,
                                                                 temp_pooling_latency, merge_time, transfer_time)
-                                        # self.begin_time[layer_id].append(begin_time)
-                                        # self.finish_time[layer_id].append(compute_time)
-                                        # self.compute_interval[layer_id].append([begin_time, compute_time])
-                                        #
-                                        # self.buffer_latency[layer_id].append(
-                                        #     temp_pooling_latency.buf_wlatency + temp_pooling_latency.buf_rlatency)
-                                        # self.computing_latency[layer_id].append(0)
-                                        # self.DAC_latency[layer_id].append(0)
-                                        # self.xbar_latency[layer_id].append(0)
-                                        # self.ADC_latency[layer_id].append(0)
-                                        # self.pooling_latency[layer_id].append(temp_pooling_latency.digital_period)
-                                        # self.buffer_r_latency[layer_id].append(temp_pooling_latency.buf_rlatency)
-                                        # self.buffer_w_latency[layer_id].append(temp_pooling_latency.buf_wlatency)
-                                        # self.iReg_latency[layer_id].append(0)
-                                        # self.input_demux_latency[layer_id].append(0)
-                                        # self.output_mux_latency[layer_id].append(0)
-                                        # self.shiftreg_latency[layer_id].append(0)
-                                        # self.adder_latency[layer_id].append(0)
-                                        # self.jointmodule_latency[layer_id].append(0)
-                                        #
-                                        # self.digital_latency[layer_id].append(0)
-                                        # # TODO: update pooling latency analysis
-                                        # self.intra_tile_latency[layer_id].append(0)
-                                        # self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
-                                        # self.tile_merge_latency[layer_id].append(merge_time)
-                                        # self.tile_transfer_latency[layer_id].append(transfer_time)
-
                                         if j == split_size[m] - 1:
                                             if max_time < self.finish_time[layer_id][-1]:
                                                 max_time = self.finish_time[layer_id][-1]

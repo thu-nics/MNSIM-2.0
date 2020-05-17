@@ -162,6 +162,9 @@ class tile(ProcessElement):
 		self.tile_shiftreg_num = temp_num
 		self.tile_jointmodule_num = temp_num
 
+	def update_tile_buf_size(self, SimConfig_path, default_buf_size = 16):
+		self.tile_buffer = buffer(SimConfig_path=SimConfig_path, default_buf_size=default_buf_size)
+
 	def calculate_tile_area(self):
 		# unit: um^2
 		self.tile_area = 0

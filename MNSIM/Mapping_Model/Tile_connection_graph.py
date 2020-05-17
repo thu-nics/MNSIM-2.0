@@ -232,7 +232,8 @@ class TCG():
         start_tileid = 0
         # the start PEid
         self.trans_time = np.ones([1, self.layer_num])
-
+        self.max_buf_size = 0
+          # the maximum buffer size of each tile, unit: kb
         num = []
         data = []
         for layer_id in range(self.layer_num):
@@ -264,6 +265,7 @@ class TCG():
                 input_size_list = list(map(int, layer_dict['Inputsize']))
                 input_size = input_size_list[0] * input_size_list[1]
                 inputchannel = int(layer_dict['Inputchannel'])
+                data_inbuf = input_size_list[1]*int(layer_dict['Kernelsize'])*inputchannel*int(layer_dict['Inputbit'])
 
             elif layer_type == 'fc':
                 tmp_tileinfo['type'] = 'fc'
@@ -281,6 +283,7 @@ class TCG():
 
                 input_size = int(layer_dict['Infeature'])
                 inputchannel = 1
+                data_inbuf = input_size*inputchannel*int(layer_dict['Inputbit'])
             else:
                 tmp_tileinfo['type'] = 'pooling'
                 tmp_tileinfo['mx'] = 1
@@ -291,6 +294,8 @@ class TCG():
                 input_size_list = list(map(int, layer_dict['Inputsize']))
                 input_size = input_size_list[0] * input_size_list[1]
                 inputchannel = int(layer_dict['Inputchannel'])
+                data_inbuf = 0 #input_size_list[1]*int(layer_dict['Kernelsize'])*inputchannel*int(layer_dict['Inputbit'])
+                    # assume the buffer size depends on the conv/fc layers
             if layer_id < self.layer_num - 1:
                 next_layer_dict = self.net[layer_id + 1][0][0]
                 if next_layer_dict['type'] == 'conv' or next_layer_dict['type'] == 'pooling':
@@ -314,13 +319,19 @@ class TCG():
             self.layer_tileinfo.append(tmp_tileinfo)
 
             inputbit = int(layer_dict['Inputbit'])
+            if tmp_tileinfo['type'] == 'conv' or tmp_tileinfo['type'] == 'fc':
+                tmp_buf_size = math.pow(2,math.ceil(math.log(data_inbuf / tmp_tileinfo['tilenum'],2)))/1024
+            else:
+                tmp_buf_size = 0
+            # print(tmp_tileinfo['type'], input_size,inputchannel,inputbit,tmp_tileinfo['tilenum'],tmp_buf_size)
+            if tmp_buf_size > self.max_buf_size:
+                self.max_buf_size = tmp_buf_size
             data.append(input_size * inputchannel * inputbit)
-
         res = pd.DataFrame(num)
         res.to_csv('MNSIM/NoC/to_interconnect/num_tiles_per_layer.csv', index=False, header=False)
         demo = pd.DataFrame(data)
         demo.to_csv('MNSIM/NoC/to_interconnect/ip_activation.csv', index=False, header=False)
-
+        self.tile.update_tile_buf_size(SimConfig_path,self.max_buf_size)
         self.tile_num = start_tileid
         assert self.tile_num <= self.tile_total_num, "Tile number is not enough"
         self.inLayer_distance = np.ones([1, self.layer_num])
