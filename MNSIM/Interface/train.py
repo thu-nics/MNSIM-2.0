@@ -44,7 +44,9 @@ def train_net(net, train_loader, test_loader, device, prefix):
     # scale's lr and weight_decay set to 0
     standard_params = []
     individu_params = []
-    for param in net.parameters():
+    for name, param in net.named_parameters():
+        if not param.is_leaf:
+            raise Exception(f'no leaf tensor for {name}')
         if (param.size() == torch.Size([1])) or (param.size() == torch.Size([3, 2])):
             individu_params.append(param)
         else:
@@ -88,8 +90,8 @@ def eval_net(net, test_loader, epoch, device):
                 continue
             images = images.to(device)
             test_total += labels.size(0)
-            # outputs = net(images, 'FIX_TRAIN')
-            outputs = net(images, 'SINGLE_FIX_TEST')
+            outputs = net(images, 'FIX_TRAIN')
+            # outputs = net(images, 'SINGLE_FIX_TEST')
             # predicted
             labels = labels.to(device)
             _, predicted = torch.max(outputs, 1)

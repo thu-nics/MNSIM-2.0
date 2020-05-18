@@ -109,15 +109,15 @@ class QuantizeLayer(nn.Module):
             self.split_input = self.hardware_config['xbar_size']
         else:
             assert 0, f'not support {self.layer_config["type"]}'
-        self.last_value = nn.Parameter(torch.zeros(1))
-        self.last_value[0] = 1
-        self.bit_scale_list = nn.Parameter(torch.zeros(3, 2))
-        self.bit_scale_list[0, 0] = 9
-        self.bit_scale_list[0, 1] = 1
-        self.bit_scale_list[1, 0] = 9
-        self.bit_scale_list[1, 1] = 1
-        self.bit_scale_list[2, 0] = 9
-        self.bit_scale_list[2, 1] = 1
+        self.last_value = nn.Parameter(torch.ones(1))
+        # self.last_value[0] = 1
+        self.bit_scale_list = nn.Parameter(torch.FloatTensor([[9,1],[9,1],[9,1]]))
+        # self.bit_scale_list[0, 0] = 9
+        # self.bit_scale_list[0, 1] = 1
+        # self.bit_scale_list[1, 0] = 9
+        # self.bit_scale_list[1, 1] = 1
+        # self.bit_scale_list[2, 0] = 9
+        # self.bit_scale_list[2, 1] = 1
         # layer information
         self.layer_info = None
     def structure_forward(self, input):
@@ -368,8 +368,8 @@ class StraightLayer(nn.Module):
             self.layer = EleSumLayer()
         else:
             assert 0, f'not support {self.layer_config["type"]}'
-        self.last_value = nn.Parameter(torch.zeros(1))
-        self.last_value[0] = 1
+        self.last_value = nn.Parameter(torch.ones(1))
+        # self.last_value[0] = 1
         self.layer_info = None
     def structure_forward(self, input):
         if self.layer_config['type'] != 'element_sum':

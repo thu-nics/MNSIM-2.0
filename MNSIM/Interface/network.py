@@ -164,8 +164,8 @@ class NetworkGraph(nn.Module):
 def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
     # initial config
     if hardware_config == None:
-        # hardware_config = {'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'quantize_bit': 10}
-        hardware_config = {'xbar_size': 256, 'input_bit': 1, 'weight_bit': 1, 'quantize_bit': 8}
+        hardware_config = {'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'quantize_bit': 10}
+        # hardware_config = {'xbar_size': 256, 'input_bit': 1, 'weight_bit': 1, 'quantize_bit': 8}
     # layer_config_list, quantize_config_list, and input_index_list
     layer_config_list = []
     quantize_config_list = []
