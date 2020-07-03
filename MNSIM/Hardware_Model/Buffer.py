@@ -11,7 +11,8 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 
 
 class buffer(object):
-    def __init__(self, SimConfig_path, default_buf_size = 16):
+    def __init__(self, SimConfig_path, buf_level = 1, default_buf_size = 16):
+        # buf_level: 1: PE input buffer, 2: tile output buffer, 3: DFU buffer
         buf_config = cp.ConfigParser()
         buf_config.read(SimConfig_path, encoding='UTF-8')
         self.buf_choice = int(buf_config.get('Architecture level', 'Buffer_Choice'))
@@ -20,8 +21,13 @@ class buffer(object):
         self.buf_Tech = int(buf_config.get('Architecture level', 'Buffer_Technology'))
         if self.buf_Tech == 0:
             self.buf_Tech = 65
-        # KB
-        self.buf_Size = float(buf_config.get('Architecture level', 'Buffer_Capacity'))
+        # buffer size unit: KB
+        if buf_level == 1:
+            self.buf_Size = float(buf_config.get('Process element level', 'PE_inBuf_Size'))
+        elif buf_level == 2:
+            self.buf_Size = float(buf_config.get('Process element level', 'Tile_outBuf_Size'))
+        else:
+            self.buf_Size = float(buf_config.get('Process element level', 'DFU_Buf_Size'))
         if self.buf_Size == 0:
             self.buf_Size = default_buf_size
         self.buf_bitwidth = int(buf_config.get('Architecture level', 'Buffer_Bitwidth'))
@@ -275,13 +281,18 @@ class buffer(object):
                 else:
                     self.index = 35+72
 
-        self.buf_area = float(buf_config.get('Architecture level', 'Buffer_Area'))
+        if buf_level == 1:
+            self.buf_area = float(buf_config.get('Process element level', 'PE_inBuf_Area'))
+        elif buf_level == 2:
+            self.buf_Size = float(buf_config.get('Process element level', 'Tile_outBuf_Area'))
+        else:
+            self.buf_Size = float(buf_config.get('Process element level', 'DFU_Buf_Area'))
         if self.buf_area == 0:
             self.calculate_buf_area()
         # TODO: 读取文件里的rpower和wpower是否合理
         self.buf_rpower = float(buf_config.get('Architecture level', 'Buffer_ReadPower'))
         self.buf_wpower = float(buf_config.get('Architecture level', 'Buffer_WritePower'))
-        self.buf_frequency = float(buf_config.get('Architecture level', 'Buffer_Frequency'))
+        #self.buf_frequency = float(buf_config.get('Architecture level', 'Buffer_Frequency'))
 
         self.buf_renergy = 0
         self.buf_rlatency = 0
@@ -402,11 +413,11 @@ class buffer(object):
 
 
     def calculate_buf_read_latency(self, rdata=0):
-        # unit: ns, Byte(dataa)
+        # unit: ns, Byte(data)
         self.buf_rlatency = math.ceil(rdata*8/self.buf_bitwidth)*self.buf_cycle
 
     def calculate_buf_write_latency(self, wdata=0):
-        # unit: ns
+        # unit: ns, Byte(data)
         self.buf_wlatency = math.ceil(wdata*8/self.buf_bitwidth)*self.buf_cycle
 
     def calculate_buf_read_energy(self, rdata=0):

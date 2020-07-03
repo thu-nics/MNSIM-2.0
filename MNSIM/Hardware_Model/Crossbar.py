@@ -163,7 +163,12 @@ class crossbar(device):
 		# unit: ns
 		self.calculate_wire_resistance()
 		self.calculate_wire_capacity()
-		wire_latency = 0
+		if self.cell_type == '0T1R':
+			size = self.xbar_row*self.xbar_column / 1024 / 8  # KB
+			wire_latency = 0.001 * (0.0002 * size ** 2 + 5 * 10 ** -6 * size + 4 * 10 ** -14)  # ns
+		else:
+			size = self.xbar_row * self.xbar_column / 1024 / 8  # KB
+			wire_latency = 0.001 * (0.0002 * size ** 2 + 5 * 10 ** -6 * size + 4 * 10 ** -14)  # ns
 		# wire_latency = 0.5 * self.wire_resistance * self.wire_capacity * self.xbar_row 1e3
 			#TODO: Update the calculation formula considering the branches
 		self.xbar_read_latency = self.device_read_latency + wire_latency

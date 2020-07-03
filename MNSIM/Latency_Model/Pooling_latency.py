@@ -8,35 +8,41 @@ import configparser as cp
 work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 from MNSIM.Hardware_Model.Buffer import buffer
+from MNSIM.Hardware_Model.Pooling import Pooling
 from MNSIM.Interface.interface import *
 
 class pooling_latency_analysis():
-    def __init__(self, SimConfig_path, indata=0, rdata=0):
+    def __init__(self, SimConfig_path, indata=0, rdata=0, outprecision = 8, default_inbuf_size = 16,
+                 default_outbuf_size = 4, default_inchannel = 64, default_size = 9):
         # indata: volume of input data (for pooling) (Byte)
         # rdata: volume of data from buffer to iReg (Byte)
-        Poolingl_config = cp.ConfigParser()
-        Poolingl_config.read(SimConfig_path, encoding='UTF-8')
-        self.buf = buffer(SimConfig_path)
-        self.buf.calculate_buf_write_latency(indata)
-        self.buf_wlatency = self.buf.buf_wlatency
+        # default_inbuf_size: the default PE-level input buffer size (unit: KB)
+        # default_outbuf_size: the default Tile-level output buffer size (unit: KB)
+        self.pooling = Pooling(SimConfig_path=SimConfig_path)
+        self.inbuf = buffer(SimConfig_path=SimConfig_path, buf_level=1, default_buf_size=default_inbuf_size)
+        self.inbuf.calculate_buf_write_latency(indata)
+        self.inbuf_wlatency = self.inbuf.buf_wlatency
           # unit: ns
-        self.buf.calculate_buf_read_latency(rdata)
-        self.buf_rlatency = self.buf.buf_rlatency
-        self.digital_period = 1/float(Poolingl_config.get('Digital module', 'Digital_Frequency'))*1e3
-        self.pooling_latency = self.buf_wlatency + self.digital_period + self.buf_wlatency
+        self.inbuf.calculate_buf_read_latency(rdata)
+        self.inbuf_rlatency = self.inbuf.buf_rlatency
+        self.pooling.calculate_Pooling_latency(inchannel=default_inchannel, insize=default_size)
+        self.digital_latency = self.pooling.Pooling_latency
+        self.outbuf = buffer(SimConfig_path=SimConfig_path, buf_level=2, default_buf_size=default_outbuf_size)
+        self.outbuf.calculate_buf_write_latency(wdata=(default_inchannel * outprecision / 8))
+        self.outbuf_rlatency = 0
+        self.outbuf_wlatency = self.outbuf.buf_wlatency
+        self.pooling_latency = self.inbuf_wlatency + self.inbuf_rlatency + self.digital_latency + self.outbuf_rlatency + self.outbuf_wlatency
         # Todo: Add the parameter into config file
-        self.pooling_size = 9
 
         # Todo: update pooling latency estimation
-    def update_pooling_latency(self, actual_num=128, layer_size=9, indata=0, rdata=0):
+    def update_pooling_latency(self,indata=0, rdata=0):
         # update the latency computing when indata and rdata change
-        self.buf.calculate_buf_write_latency(indata)
-        self.buf_wlatency = self.buf.buf_wlatency
-        self.buf.calculate_buf_read_latency(rdata)
-        self.buf_rlatency = self.buf.buf_rlatency
-        # self.pooling_latency = self.buf_wlatency + self.digital_period + self.buf_wlatency
-        pooling_times = math.ceil(actual_num / layer_size) * math.ceil(layer_size / self.pooling_size)
-        self.pooling_latency = self.buf_wlatency + self.buf_rlatency + pooling_times*self.digital_period
+        self.inbuf.calculate_buf_write_latency(indata)
+        self.inbuf_wlatency = self.inbuf.buf_wlatency
+        # unit: ns
+        self.inbuf.calculate_buf_read_latency(rdata)
+        self.inbuf_rlatency = self.inbuf.buf_rlatency
+        self.pooling_latency = self.inbuf_wlatency + self.inbuf_rlatency + self.digital_latency + self.outbuf_rlatency + self.outbuf_wlatency
 
 
 

@@ -42,9 +42,9 @@ class Pooling(object):
         if self.Pooling_Tech in [65]:
             if self.Pooling_size in [9]:
                 ''' 线性插值 '''
-                self.Pooling_area = Pooling_area_dict[self.Pooling_Tech][self.Pooling_size][self.Pooling_unit_num]
+                self.Pooling_area = Pooling_area_dict[self.Pooling_Tech][self.Pooling_size][self.Pooling_unit_num]*self.Pooling_unit_num/64
         else:
-            self.Pooling_area = Pooling_area_dict[65][9][64] * pow((self.Pooling_Tech/65),2)
+            self.Pooling_area = Pooling_area_dict[65][9][64] * pow((self.Pooling_Tech/65),2)*self.Pooling_unit_num/64
 
 
     def calculate_Pooling_power(self):
@@ -63,7 +63,7 @@ class Pooling(object):
         else:
             self.Pooling_power = Pooling_power_dict[65][9][64] * pow((self.Pooling_Tech/65),2)
 
-    def calculate_Pooling_latency(self):
+    def calculate_Pooling_latency(self, inchannel = 64, insize = 9):
         # Unit: ns
         Pooling_latency_dict = {
             65: {
@@ -72,10 +72,11 @@ class Pooling(object):
                 }
             }
         }
-        if self.Pooling_Tech in [65]:
-            if self.Pooling_size in [9]:
-                ''' 线性插值 '''
-                self.Pooling_latency = Pooling_latency_dict[self.Pooling_Tech][self.Pooling_size][self.Pooling_unit_num]
+        self.Pooling_latency = 10*math.ceil(inchannel/self.Pooling_unit_num)*math.ceil(insize/self.Pooling_size)
+        # if self.Pooling_Tech in [65]:
+        #     if self.Pooling_size in [9]:
+        #         ''' 线性插值 '''
+        #         self.Pooling_latency = Pooling_latency_dict[self.Pooling_Tech][self.Pooling_size][self.Pooling_unit_num]*math.ceil(inchannel/self.Pooling_unit_num)
 
     def calculate_Pooling_energy(self):
         #unit mW
