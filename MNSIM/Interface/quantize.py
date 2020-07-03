@@ -153,6 +153,11 @@ class QuantizeLayer(nn.Module):
         self.layer_info['outputbit'] = int(self.bit_scale_list[2,0].item())
         self.layer_info['row_split_num'] = len(self.layer_list)
         self.layer_info['weight_cycle'] = math.ceil((self.quantize_config['weight_bit'] - 1) / (self.hardware_config['weight_bit']))
+        if 'input_index' in self.layer_config:
+            self.layer_info['Inputindex'] = self.layer_config['input_index']
+        else:
+            self.layer_info['Inputindex'] = [-1]
+        self.layer_info['Outputindex'] = [1]
         return output
     def forward(self, input, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
         METHOD = method
@@ -408,6 +413,11 @@ class StraightLayer(nn.Module):
         self.layer_info['Inputbit'] = self.quantize_config['activation_bit']
         self.layer_info['Weightbit'] = self.quantize_config['weight_bit']
         self.layer_info['outputbit'] = self.quantize_config['activation_bit']
+        if 'input_index' in self.layer_config:
+            self.layer_info['Inputindex'] = self.layer_config['input_index']
+        else:
+            self.layer_info['Inputindex'] = [-1]
+        self.layer_info['Outputindex'] = [1]
         return output
 
     def forward(self, input, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
