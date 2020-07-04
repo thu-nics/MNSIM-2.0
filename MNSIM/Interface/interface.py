@@ -154,13 +154,14 @@ class TrainTestInterface(object):
             layer_structure_info['Layerindex'] = absolute_index[layer_num]
             def transfer_index(index):
                 if index == -1:
-                    return 'input'
+                    return -1
                 elif index >=0 and index < len(absolute_index):
                     return absolute_index[index]
                 else:
                     raise Exception('not support')
-            layer_structure_info['Inputindex'] = list(map(lambda x:transfer_index(layer_num + x), layer_structure_info['Inputindex']))
-            layer_structure_info['Outputindex'] = [absolute_index[layer_num] if absolute_index[layer_num] < max(absolute_index) else 'output']
+            layer_structure_info['Inputindex'] = list(map(lambda x:transfer_index(layer_num + x) - absolute_index[layer_num], layer_structure_info['Inputindex']))
+            # layer_structure_info['Outputindex'] = [absolute_index[layer_num] if absolute_index[layer_num] < max(absolute_index) else 'output']
+            layer_structure_info['Outputindex'] = [1]
             # add for element_sum and pooling
             if layer_bit_weights == None:
                 if layer_structure_info['type'] in ['element_sum', 'pooling']:
@@ -194,9 +195,9 @@ class TrainTestInterface(object):
                 total_array.append((layer_structure_info, tile_array))
             net_array.append(total_array)
         # test index
-        graph = map(lambda x: x[0][0],net_array)
-        graph = list(map(lambda x: f'l: {x["Layerindex"]}, t: {x["type"]}, i: {x["Inputindex"]}, o: {x["Outputindex"]}', graph))
-        graph = '\n'.join(graph)
+        # graph = map(lambda x: x[0][0],net_array)
+        # graph = list(map(lambda x: f'l: {x["Layerindex"]}, t: {x["type"]}, i: {x["Inputindex"]}, o: {x["Outputindex"]}', graph))
+        # graph = '\n'.join(graph)
         return net_array
 
 def mysplit(array, length):
