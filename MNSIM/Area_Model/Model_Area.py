@@ -47,6 +47,7 @@ class Model_area():
         self.arch_total_adder_area = 0
         self.arch_total_shiftreg_area = 0
         self.arch_total_iReg_area = 0
+        self.arch_total_oReg_area = 0
         self.arch_total_input_demux_area = 0
         self.arch_total_jointmodule_area = 0
         self.arch_total_buf_area = 0

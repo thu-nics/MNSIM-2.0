@@ -9,7 +9,8 @@ import numpy as np
 from MNSIM.Interface.interface import *
 from MNSIM.Mapping_Model.Tile_connection_graph import TCG
 from MNSIM.Hardware_Model.Tile import tile
-
+from MNSIM.Hardware_Model.Buffer import buffer
+from MNSIM.Hardware_Model.Adder import adder
 class Model_inference_power():
     def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None):
         self.NetStruct = NetStruct
@@ -28,6 +29,7 @@ class Model_inference_power():
         self.arch_adder_power = self.total_layer_num * [0]
         self.arch_shiftreg_power = self.total_layer_num * [0]
         self.arch_iReg_power = self.total_layer_num * [0]
+        self.arch_oReg_power = self.total_layer_num * [0]
         self.arch_input_demux_power = self.total_layer_num * [0]
         self.arch_output_mux_power = self.total_layer_num * [0]
         self.arch_jointmodule_power = self.total_layer_num * [0]
