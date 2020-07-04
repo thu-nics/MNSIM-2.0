@@ -10,7 +10,8 @@ from MNSIM.Interface.interface import *
 from MNSIM.Mapping_Model.Tile_connection_graph import TCG
 import pandas as pd
 from MNSIM.Hardware_Model.Tile import tile
-
+from MNSIM.Hardware_Model.Buffer import buffer
+from MNSIM.Hardware_Model.Adder import adder
 class Model_area():
     def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None):
         self.NetStruct = NetStruct
@@ -65,6 +66,10 @@ class Model_area():
         self.graph.tile.calculate_tile_area(SimConfig_path=self.SimConfig_path,
                                             default_inbuf_size = self.graph.max_inbuf_size,
                                             default_outbuf_size = self.graph.max_outbuf_size)
+        self.global_buf = buffer(SimConfig_path=self.SimConfig_path,buf_level=1,default_buf_size=self.graph.global_buf_size)
+        self.global_buf.calculate_buf_area()
+        self.global_add = adder(SimConfig_path=self.SimConfig_path,bitwidth=self.graph.global_adder_bitwidth)
+        self.global_add.calculate_adder_area()
         for i in range(self.total_layer_num):
             tile_num = self.graph.layer_tileinfo[i]['tilenum']
             self.arch_area[i] = self.graph.tile.tile_area * tile_num
@@ -86,14 +91,14 @@ class Model_area():
         self.arch_total_ADC_area = sum(self.arch_ADC_area)
         self.arch_total_DAC_area = sum(self.arch_DAC_area)
         self.arch_total_digital_area = sum(self.arch_digital_area)
-        self.arch_total_adder_area = sum(self.arch_adder_area)
+        self.arch_total_adder_area = sum(self.arch_adder_area)+self.global_add.adder_area*self.graph.global_adder_num
         self.arch_total_shiftreg_area = sum(self.arch_shiftreg_area)
         self.arch_total_iReg_area = sum(self.arch_iReg_area)
         self.arch_total_oReg_area = sum(self.arch_oReg_area)
         self.arch_total_input_demux_area = sum(self.arch_input_demux_area)
         self.arch_total_output_mux_area = sum(self.arch_output_mux_area)
         self.arch_total_jointmodule_area = sum(self.arch_jointmodule_area)
-        self.arch_total_buf_area = sum(self.arch_buf_area)
+        self.arch_total_buf_area = sum(self.arch_buf_area)+self.global_buf.buf_area
         self.arch_total_pooling_area = sum(self.arch_pooling_area)
 
     def model_area_output(self, module_information = 1, layer_information = 1):
@@ -116,7 +121,11 @@ class Model_area():
         if layer_information:
             for i in range(self.total_layer_num):
                 print("Layer", i, ":")
-                print("     Hardware area:", self.arch_area[i], "um^2")
+                layer_dict = self.NetStruct[i][0][0]
+                if layer_dict['type'] == 'element_sum':
+                    print("     Hardware area (global accumulator):", self.global_add.adder_area*self.graph.global_adder_num+self.global_buf.buf_area, "um^2")
+                else:
+                    print("     Hardware area:", self.arch_area[i], "um^2")
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")

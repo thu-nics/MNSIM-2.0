@@ -238,6 +238,9 @@ class TCG():
         # the maximum output buffer size of each tile, unit: KB
         self.global_buf_size = 0
         # the global buffer size for accumulator
+        self.global_adder_num = 0
+        # the global adder number in accumulator
+        self.global_adder_bitwidth = 0
         num = []
         data = []
         for layer_id in range(self.layer_num):
@@ -389,14 +392,19 @@ class TCG():
                     tmp_tileinfo['is_branchin'] = -1
                 else:
                     tmp_tileinfo['is_branchin'] = 1
+                tmp_tileinfo['is_branchout'] = -1
                 # is_branchin: if this layer is the input layer of a branch
                 Inputindex_list = list(map(int, layer_dict['Inputindex']))
                 tmp_tileinfo['Inputindex'] = Inputindex_list
                 assert len(Inputindex_list)>1, "the number of element_sum's previous layers must > 1"
+                idx = 0
                 previous_layer_dict = self.net[layer_id + Inputindex_list[0]][0][0]
+                while previous_layer_dict['type'] == 'element_sum':
+                    idx = idx+1
+                    previous_layer_dict = self.net[layer_id + Inputindex_list[idx]][0][0]
                 previous_output_size = list(map(int, previous_layer_dict['Outputsize']))
-                tmp_tileinfo['datanum_branchout'] = previous_output_size[0]*previous_output_size[1]*\
-                                           previous_layer_dict['Outputchannel']
+                tmp_tileinfo['datanum_branchout'] = previous_layer_dict['Outputchannel'] #*\
+                    # previous_output_size[0]*previous_output_size[1]
                 # the data number of each branch output
                 tmp_tileinfo['bit_branchout'] = previous_layer_dict['outputbit']
                 # the data precision of each branch output (bit)
@@ -404,6 +412,9 @@ class TCG():
                 # unit: Byte
                 self.global_buf_size = self.global_buf_size + math.pow(2,math.ceil(math.log(data_size,2)))/1024
                 # unit: KB
+                self.global_adder_num = self.global_adder_num + previous_layer_dict['Outputchannel']*len(Inputindex_list)//2
+                if tmp_tileinfo['bit_branchout']>self.global_adder_bitwidth:
+                    self.global_adder_bitwidth = tmp_tileinfo['bit_branchout']
             # self.trans_time[0][layer_id] = 0
 
             # if layer_id < self.layer_num - 1:

@@ -1259,16 +1259,21 @@ class Model_latency():
                                                             temp_pooling_latency=temp_pooling_latency, merge_time=merge_time, transfer_time=transfer_time)
                     elif layer_dict['type'] == 'element_sum':
                         self.layer_latency_initial()
-                        output_size = list(map(int, layer_dict['Outputsize']))
-                        input_size = list(map(int, layer_dict['Inputsize']))
+                        Inputindex_list = list(map(int, layer_dict['Inputindex']))
+                        assert len(Inputindex_list) > 1, "the number of element_sum's previous layers must > 1"
+                        idx = 0
+                        previous_layer_dict = self.NetStruct[layer_id + Inputindex_list[0]][0][0]
+                        while previous_layer_dict['type'] == 'element_sum':
+                            idx = idx + 1
+                            previous_layer_dict = self.NetStruct[layer_id + Inputindex_list[idx]][0][0]
+                        output_size = list(map(int, previous_layer_dict['Outputsize']))
+                        input_size = list(map(int, previous_layer_dict['Outputsize']))
                         self.layer_split.append([input_size[1]])
-                        kernelsize = int(layer_dict['Kernelsize'])
-                        stride = int(layer_dict['Stride'])
-                        inputchannel = int(layer_dict['Inputchannel'])
-                        outputchannel = int(layer_dict['Outputchannel'])
-                        padding = int(layer_dict['Padding'])
-                        inputbit = int(layer_dict['Inputbit'])
-                        outputbit = int(layer_dict['outputbit'])
+                        kernelsize = int(previous_layer_dict['Kernelsize'])
+                        inputchannel = int(previous_layer_dict['Outputchannel'])
+                        outputchannel = int(previous_layer_dict['Outputchannel'])
+                        inputbit = int(previous_layer_dict['outputbit'])
+                        outputbit = int(previous_layer_dict['outputbit'])
                         merge_time = 0
                         transfer_time = self.graph.transLayer_distance[0][layer_id]*(outputchannel*outputbit/self.inter_tile_bandwidth)
                         global_buf = buffer(SimConfig_path=self.SimConfig_path,buf_level=2,default_buf_size=self.graph.global_buf_size)

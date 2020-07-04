@@ -118,19 +118,20 @@ def main():
             # __latency.calculate_model_latency_nopipe()
         else:
             __latency.calculate_model_latency_nopipe()
+        print("========================Latency Results=================================")
+        __latency.model_latency_output(not (args.disable_module_output), not (args.disable_layer_output))
 
         __area = Model_area(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
+        print("========================Area Results=================================")
+        __area.model_area_output(not (args.disable_module_output), not (args.disable_layer_output))
         __power = Model_inference_power(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                         TCG_mapping=TCG_mapping)
         __energy = Model_energy(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                 TCG_mapping=TCG_mapping,
                                 model_latency=__latency, model_power=__power)
-        print("========================Area Results=================================")
-        __area.model_area_output(not (args.disable_module_output), not (args.disable_layer_output))
+
         print("========================Power Results=================================")
         __power.model_power_output(not (args.disable_module_output), not (args.disable_layer_output))
-        print("========================Latency Results=================================")
-        __latency.model_latency_output(not (args.disable_module_output), not (args.disable_layer_output))
         print("========================Energy Results=================================")
         __energy.model_energy_output(not (args.disable_module_output), not (args.disable_layer_output))
 
