@@ -109,7 +109,8 @@ def main():
     # print(__TestInterface.origin_evaluate(method = 'FIX_TRAIN', adc_action = 'SCALE'))
     # print(__TestInterface.set_net_bits_evaluate(weight, adc_action = 'SCALE'))
     TCG_mapping = TCG(structure_file, args.hardware_description)
-    #print(TCG_mapping.max_inbuf_size)
+    print(TCG_mapping.max_inbuf_size)
+    print(TCG_mapping.max_outbuf_size)
     if not (args.disable_hardware_modeling):
         __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                   TCG_mapping=TCG_mapping)
@@ -126,12 +127,11 @@ def main():
         __area.model_area_output(not (args.disable_module_output), not (args.disable_layer_output))
         __power = Model_inference_power(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                         TCG_mapping=TCG_mapping)
+        print("========================Power Results=================================")
+        __power.model_power_output(not (args.disable_module_output), not (args.disable_layer_output))
         __energy = Model_energy(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                 TCG_mapping=TCG_mapping,
                                 model_latency=__latency, model_power=__power)
-
-        print("========================Power Results=================================")
-        __power.model_power_output(not (args.disable_module_output), not (args.disable_layer_output))
         print("========================Energy Results=================================")
         __energy.model_energy_output(not (args.disable_module_output), not (args.disable_layer_output))
 
