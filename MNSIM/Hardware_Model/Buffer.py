@@ -284,9 +284,9 @@ class buffer(object):
         if buf_level == 1:
             self.buf_area = float(buf_config.get('Process element level', 'PE_inBuf_Area'))
         elif buf_level == 2:
-            self.buf_Size = float(buf_config.get('Process element level', 'Tile_outBuf_Area'))
+            self.buf_area = float(buf_config.get('Process element level', 'Tile_outBuf_Area'))
         else:
-            self.buf_Size = float(buf_config.get('Process element level', 'DFU_Buf_Area'))
+            self.buf_area = float(buf_config.get('Process element level', 'DFU_Buf_Area'))
         if self.buf_area == 0:
             self.calculate_buf_area()
         # TODO: 读取文件里的rpower和wpower是否合理

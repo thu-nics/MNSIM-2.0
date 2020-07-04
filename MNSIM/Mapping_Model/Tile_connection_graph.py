@@ -271,25 +271,26 @@ class TCG():
                 # max_row: maximum used row in one crossbar of this layer
                 tmp_tileinfo['max_column'] = min(int(layer_dict['Outputchannel']), self.tile.xbar_column)
                 # max_column: maximum used column in one crossbar of this layer
-                if 'input_index' not in layer_dict.keys():
-                    tmp_tileinfo['input_index'] = [-1]
+                if 'Inputindex' not in layer_dict.keys():
+                    tmp_tileinfo['Inputindex'] = [-1]
                 else:
-                    tmp_tileinfo['input_index'] = list(map(int, layer_dict['input_index']))
-                # input_index: the relative index of the input layers of this layer
-                if 'output_index' not in layer_dict.keys():
-                    tmp_tileinfo['output_index'] = [1]
+                    tmp_tileinfo['Inputindex'] = list(map(int, layer_dict['Inputindex']))
+                # Inputindex: the relative index of the input layers of this layer
+                if 'Outputindex' not in layer_dict.keys():
+                    tmp_tileinfo['Outputindex'] = [1]
                 else:
-                    tmp_tileinfo['output_index'] = list(map(int, layer_dict['output_index']))
-                # output_index: the relative index of the output layers of this layer
-                if len(tmp_tileinfo['output_index']) == 1:
+                    tmp_tileinfo['Outputindex'] = list(map(int, layer_dict['Outputindex']))
+                # Outputindex: the relative index of the output layers of this layer
+                if len(tmp_tileinfo['Outputindex']) == 1:
                     tmp_tileinfo['is_branchin'] = -1
                 else:
                     tmp_tileinfo['is_branchin'] = 1
                 # is_branchin: if this layer is the input layer of a branch
                 tmp_tileinfo['is_branchout'] = 1
                 # is_branchout: if this layer is the output layer of a branch (the next layer is element_sum)
-                for i in tmp_tileinfo['output_index']:
-                    if self.layer_tileinfo[i+layer_id]['type'] != 'element_sum':
+                for i in tmp_tileinfo['Outputindex']:
+                    tmp_layer = self.net[i+layer_id][0][0]
+                    if tmp_layer['type'] != 'element_sum':
                         tmp_tileinfo['is_branchout'] = -1
                 input_size_list = list(map(int, layer_dict['Inputsize']))
                 input_size = input_size_list[0] * input_size_list[1]
@@ -311,25 +312,27 @@ class TCG():
                 # max_row: maximum used row in one crossbar of this layer
                 tmp_tileinfo['max_column'] = min(int(layer_dict['Outfeature']), self.tile.xbar_column)
                 # max_row: maximum used column in one crossbar of this layer
-                if 'input_index' not in layer_dict.keys():
-                    tmp_tileinfo['input_index'] = [-1]
+                if 'Inputindex' not in layer_dict.keys():
+                    tmp_tileinfo['Inputindex'] = [-1]
                 else:
-                    tmp_tileinfo['input_index'] = list(map(int, layer_dict['input_index']))
-                # input_index: the relative index of the input layers of this layer
-                if 'output_index' not in layer_dict.keys():
-                    tmp_tileinfo['output_index'] = [1]
+                    tmp_tileinfo['Inputindex'] = list(map(int, layer_dict['Inputindex']))
+                # Inputindex: the relative index of the input layers of this layer
+                if 'Outputindex' not in layer_dict.keys():
+                    tmp_tileinfo['Outputindex'] = [1]
                 else:
-                    tmp_tileinfo['output_index'] = list(map(int, layer_dict['output_index']))
-                # output_index: the relative index of the output layers of this layer
-                if len(tmp_tileinfo['output_index']) == 1:
+                    tmp_tileinfo['Outputindex'] = list(map(int, layer_dict['Outputindex']))
+                # Outputindex: the relative index of the output layers of this layer
+                if len(tmp_tileinfo['Outputindex']) == 1:
                     tmp_tileinfo['is_branchin'] = -1
                 else:
                     tmp_tileinfo['is_branchin'] = 1
                 tmp_tileinfo['is_branchout'] = 1
                 # is_branchout: if this layer is the output layer of a branch (the next layer is element_sum)
-                for i in tmp_tileinfo['output_index']:
-                    if self.layer_tileinfo[i + layer_id]['type'] != 'element_sum':
-                        tmp_tileinfo['is_branchout'] = -1
+                for i in tmp_tileinfo['Outputindex']:
+                    if (i+layer_id) < self.layer_num:
+                        tmp_layer = self.net[i + layer_id][0][0]
+                        if tmp_layer['type'] != 'element_sum':
+                            tmp_tileinfo['is_branchout'] = -1
                 # is_branchin: if this layer is the input layer of a branch
                 input_size = int(layer_dict['Infeature'])
                 inputchannel = 1
@@ -343,25 +346,26 @@ class TCG():
                 tmp_tileinfo['max_row'] = 0
                 tmp_tileinfo['max_column'] = 0
                 tmp_tileinfo['max_group'] = 0
-                if 'input_index' not in layer_dict.keys():
-                    tmp_tileinfo['input_index'] = [-1]
+                if 'Inputindex' not in layer_dict.keys():
+                    tmp_tileinfo['Inputindex'] = [-1]
                 else:
-                    tmp_tileinfo['input_index'] = list(map(int, layer_dict['input_index']))
-                # input_index: the relative index of the input layers of this layer
-                if 'output_index' not in layer_dict.keys():
-                    tmp_tileinfo['output_index'] = [1]
+                    tmp_tileinfo['Inputindex'] = list(map(int, layer_dict['Inputindex']))
+                # Inputindex: the relative index of the input layers of this layer
+                if 'Outputindex' not in layer_dict.keys():
+                    tmp_tileinfo['Outputindex'] = [1]
                 else:
-                    tmp_tileinfo['output_index'] = list(map(int, layer_dict['output_index']))
-                # output_index: the relative index of the output layers of this layer
-                if len(tmp_tileinfo['output_index']) == 1:
+                    tmp_tileinfo['Outputindex'] = list(map(int, layer_dict['Outputindex']))
+                # Outputindex: the relative index of the output layers of this layer
+                if len(tmp_tileinfo['Outputindex']) == 1:
                     tmp_tileinfo['is_branchin'] = -1
                 else:
                     tmp_tileinfo['is_branchin'] = 1
                 # is_branchin: if this layer is the input layer of a branch
                 tmp_tileinfo['is_branchout'] = 1
                 # is_branchout: if this layer is the output layer of a branch (the next layer is element_sum)
-                for i in tmp_tileinfo['output_index']:
-                    if self.layer_tileinfo[i + layer_id]['type'] != 'element_sum':
+                for i in tmp_tileinfo['Outputindex']:
+                    tmp_layer = self.net[i + layer_id][0][0]
+                    if tmp_layer['type'] != 'element_sum':
                         tmp_tileinfo['is_branchout'] = -1
                 input_size_list = list(map(int, layer_dict['Inputsize']))
                 input_size = input_size_list[0] * input_size_list[1]
@@ -376,34 +380,34 @@ class TCG():
                 tmp_tileinfo['max_row'] = 0
                 tmp_tileinfo['max_column'] = 0
                 tmp_tileinfo['max_group'] = 0
-                if 'output_index' not in layer_dict.keys():
-                    tmp_tileinfo['output_index'] = [1]
+                if 'Outputindex' not in layer_dict.keys():
+                    tmp_tileinfo['Outputindex'] = [1]
                 else:
-                    tmp_tileinfo['output_index'] = list(map(int, layer_dict['output_index']))
-                # output_index: the relative index of the output layers of this layer
-                if len(tmp_tileinfo['output_index']) == 1:
+                    tmp_tileinfo['Outputindex'] = list(map(int, layer_dict['Outputindex']))
+                # Outputindex: the relative index of the output layers of this layer
+                if len(tmp_tileinfo['Outputindex']) == 1:
                     tmp_tileinfo['is_branchin'] = -1
                 else:
                     tmp_tileinfo['is_branchin'] = 1
                 # is_branchin: if this layer is the input layer of a branch
-                input_index_list = list(map(int, layer_dict['input_index']))
-                tmp_tileinfo['input_index'] = input_index_list
-                assert len(input_index_list)>1, "the number of element_sum's previous layers must > 1"
-                previous_layer_dict = self.net[layer_id + input_index_list[0]][0][0]
+                Inputindex_list = list(map(int, layer_dict['Inputindex']))
+                tmp_tileinfo['Inputindex'] = Inputindex_list
+                assert len(Inputindex_list)>1, "the number of element_sum's previous layers must > 1"
+                previous_layer_dict = self.net[layer_id + Inputindex_list[0]][0][0]
                 previous_output_size = list(map(int, previous_layer_dict['Outputsize']))
                 tmp_tileinfo['datanum_branchout'] = previous_output_size[0]*previous_output_size[1]*\
                                            previous_layer_dict['Outputchannel']
                 # the data number of each branch output
                 tmp_tileinfo['bit_branchout'] = previous_layer_dict['outputbit']
                 # the data precision of each branch output (bit)
-                data_size = tmp_tileinfo['datanum_branchout']*tmp_tileinfo['bit_branchout']*len(input_index_list)/8
+                data_size = tmp_tileinfo['datanum_branchout']*tmp_tileinfo['bit_branchout']*len(Inputindex_list)/8
                 # unit: Byte
                 self.global_buf_size = self.global_buf_size + math.pow(2,math.ceil(math.log(data_size,2)))/1024
                 # unit: KB
             # self.trans_time[0][layer_id] = 0
 
             # if layer_id < self.layer_num - 1:
-            #     for next_id in tmp_tileinfo['output_index']:
+            #     for next_id in tmp_tileinfo['Outputindex']:
             #         next_layer_dict = self.net[layer_id + next_id][0][0]
             #         if next_layer_dict['type'] == 'conv' or next_layer_dict['type'] == 'pooling':
             #             self.trans_time[0][layer_id] = int(layer_dict['Outputsize'][1]) * \
@@ -441,7 +445,7 @@ class TCG():
         # res.to_csv('MNSIM/NoC/to_interconnect/num_tiles_per_layer.csv', index=False, header=False)
         # demo = pd.DataFrame(data)
         # demo.to_csv('MNSIM/NoC/to_interconnect/ip_activation.csv', index=False, header=False)
-        self.tile.update_tile_buf_size(SimConfig_path, self.max_inbuf_size)
+        # self.tile.update_tile_buf_size(SimConfig_path, self.max_inbuf_size)
         self.used_tile_num = start_tileid
         assert self.used_tile_num <= self.tile_total_num, "Tile number is not enough"
         self.inLayer_distance = np.zeros([1, self.layer_num])
@@ -506,7 +510,7 @@ class TCG():
                         self.inLayer_distance[0][layer_id] = 0
                         self.aggregate_arg[layer_id] = src_pos[0]
                         maxdis = 0
-                        for idx in self.layer_tileinfo[layer_id]['output_index']:
+                        for idx in self.layer_tileinfo[layer_id]['Outputindex']:
                             dst_pos = np.argwhere(self.mapping_result == (layer_id + idx))
                             for i in range(len(dst_pos)):
                                 dis = abs(src_pos[0][0] - dst_pos[i][0]) + abs(src_pos[0][1] - dst_pos[i][1])
@@ -523,7 +527,7 @@ class TCG():
                                     dis_in = abs(src_pos[A][0] - src_pos[i][0]) + abs(src_pos[A][1] - src_pos[i][1])
                                     if dis_in > maxdis_in:
                                         maxdis_in = dis_in
-                            for idx in self.layer_tileinfo[layer_id]['output_index']:
+                            for idx in self.layer_tileinfo[layer_id]['Outputindex']:
                                 dst_pos = np.argwhere(self.mapping_result == (layer_id + idx))
                                 for j in range(len(dst_pos)):
                                     dis_out = abs(src_pos[A][0] - dst_pos[j][0]) + abs(src_pos[A][1] - dst_pos[j][1])
@@ -537,7 +541,7 @@ class TCG():
                                 mindis_total = tempdis
                 elif self.layer_tileinfo[layer_id]['type'] == 'element_sum':
                     maxdis_out = 0
-                    for idx in self.layer_tileinfo[layer_id]['output_index']:
+                    for idx in self.layer_tileinfo[layer_id]['Outputindex']:
                         dst_pos = np.argwhere(self.mapping_result == (layer_id + idx))
                         for j in range(len(dst_pos)):
                             dis_out = abs(dst_pos[0][0]-1/2*self.tile_num[0]) + dst_pos[0][1]

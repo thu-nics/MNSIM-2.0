@@ -10,6 +10,7 @@ from MNSIM.Hardware_Model.DAC import DAC
 from MNSIM.Hardware_Model.ADC import ADC
 from MNSIM.Hardware_Model.Adder import adder
 from MNSIM.Hardware_Model.ShiftReg import shiftreg
+from MNSIM.Hardware_Model.Buffer import buffer
 test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"SimConfig.ini")
 # Default SimConfig file path: MNSIM_Python/SimConfig.ini
 
@@ -80,9 +81,11 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.PE_adder_area = 0
 		self.PE_shiftreg_area = 0
 		self.PE_iReg_area = 0
+		self.PE_oReg_area = 0
 		self.PE_input_demux_area = 0
 		self.PE_output_mux_area = 0
 		self.PE_digital_area = 0
+		self.PE_inbuf_area = 0
 
 		self.PE_read_power = 0
 		self.PE_xbar_read_power = 0
@@ -445,8 +448,10 @@ class ProcessElement(crossbar, DAC, ADC):
 								self.PE_xbar_enable[i][1] = 0
 		self.PE_utilization /= (self.group_num * self.PE_multiplex_xbar_num[1])
 
-	def calculate_PE_area(self):
+	def calculate_PE_area(self, SimConfig_path=None, default_inbuf_size = 16):
 		# unit: um^2
+		self.inbuf = buffer(SimConfig_path=SimConfig_path,buf_level=1,default_buf_size=default_inbuf_size)
+		self.inbuf.calculate_buf_area()
 		self.calculate_xbar_area()
 		self.calculate_demux_area()
 		self.calculate_mux_area()
@@ -461,10 +466,13 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.PE_adder_area = self.PE_group_ADC_num*self.PE_adder_num*self.PE_adder.adder_area
 		self.PE_shiftreg_area = self.PE_ADC_num*self.PE_shiftreg.shiftreg_area
 		self.PE_iReg_area = self.PE_DAC_num*self.PE_iReg.shiftreg_area
+		self.PE_oReg_area = self.PE_ADC_num*self.PE_iReg.shiftreg_area
 		self.PE_input_demux_area = self.input_demux_area*self.PE_DAC_num
 		self.PE_output_mux_area = self.output_mux_area*self.PE_ADC_num
-		self.PE_digital_area = self.PE_adder_area + self.PE_shiftreg_area + self.PE_input_demux_area + self.PE_output_mux_area
-		self.PE_area = self.PE_xbar_area + self.PE_ADC_area + self.PE_DAC_area + self.PE_digital_area
+		self.PE_digital_area = self.PE_adder_area + self.PE_shiftreg_area + self.PE_input_demux_area + \
+							   self.PE_output_mux_area + self.PE_iReg_area + self.PE_oReg_area
+		self.PE_inbuf_area = self.inbuf.buf_area
+		self.PE_area = self.PE_xbar_area + self.PE_ADC_area + self.PE_DAC_area + self.PE_digital_area + self.PE_inbuf_area
 
 	'''def calculate_PE_read_latency(self):
 		# Notice: before calculating latency, PE_read_config must be executed

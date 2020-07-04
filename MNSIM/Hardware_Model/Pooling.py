@@ -68,11 +68,11 @@ class Pooling(object):
         Pooling_latency_dict = {
             65: {
                 9: {
-                    64: 10
+                    64: 100
                 }
             }
         }
-        self.Pooling_latency = 10*math.ceil(inchannel/self.Pooling_unit_num)*math.ceil(insize/self.Pooling_size)
+        self.Pooling_latency = 100*math.ceil(inchannel/self.Pooling_unit_num)*math.ceil(insize/self.Pooling_size)
         # if self.Pooling_Tech in [65]:
         #     if self.Pooling_size in [9]:
         #         ''' 线性插值 '''

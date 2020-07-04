@@ -63,6 +63,7 @@ class tile(ProcessElement):
 		self.tile_adder_area = 0
 		self.tile_shiftreg_area = 0
 		self.tile_iReg_area = 0
+		self.tile_oReg_area = 0
 		self.tile_input_demux_area = 0
 		self.tile_output_mux_area = 0
 		self.tile_jointmodule_area = 0
@@ -165,23 +166,31 @@ class tile(ProcessElement):
 	def update_tile_buf_size(self, SimConfig_path, default_buf_size = 16):
 		self.tile_buffer = buffer(SimConfig_path=SimConfig_path, default_buf_size=default_buf_size)
 
-	def calculate_tile_area(self):
+	def calculate_tile_area(self, SimConfig_path=None, default_inbuf_size = 16, default_outbuf_size = 4):
 		# unit: um^2
 		self.tile_area = 0
 		self.tile_xbar_area = 0
 		self.tile_ADC_area = 0
 		self.tile_DAC_area = 0
+		self.tile_input_demux_area = 0
+		self.tile_output_mux_area = 0
+		self.tile_shiftreg_area = 0
+		self.tile_iReg_area = 0
+		self.tile_oReg_area = 0
+		self.tile_adder_area = 0
+		self.tile_buffer_area = 0
 		self.tile_digital_area = 0
 		self.tile_adder.calculate_adder_area()
 		self.tile_shiftreg.calculate_shiftreg_area()
 		self.tile_iReg.calculate_shiftreg_area()
 		self.tile_jointmodule.calculate_jointmodule_area()
+		self.tile_buffer = buffer(SimConfig_path=SimConfig_path,buf_level=2,default_buf_size=default_outbuf_size)
 		self.tile_buffer.calculate_buf_area()
 		self.tile_pooling.calculate_Pooling_area()
 
 		for i in range(self.tile_PE_num[0]):
 			for j in range(self.tile_PE_num[1]):
-				self.tile_PE_list[i][j].calculate_PE_area()
+				self.tile_PE_list[i][j].calculate_PE_area(SimConfig_path=SimConfig_path, default_inbuf_size = default_inbuf_size)
 				self.tile_xbar_area += self.tile_PE_list[i][j].PE_xbar_area
 				self.tile_ADC_area += self.tile_PE_list[i][j].PE_ADC_area
 				self.tile_DAC_area += self.tile_PE_list[i][j].PE_DAC_area
@@ -190,14 +199,16 @@ class tile(ProcessElement):
 				self.tile_output_mux_area += self.tile_PE_list[i][j].PE_output_mux_area
 				self.tile_shiftreg_area += self.tile_PE_list[i][j].PE_shiftreg_area
 				self.tile_iReg_area += self.tile_PE_list[i][j].PE_iReg_area
+				self.tile_oReg_area += self.tile_PE_list[i][j].PE_oReg_area
 				self.tile_adder_area += self.tile_PE_list[i][j].PE_adder_area
+				self.tile_buffer_area += self.tile_PE_list[i][j].PE_inbuf_area
 		# self.tile_adder_area += self.tile_adder_num * self.tile_adder.adder_area
 		# self.tile_shiftreg_area += self.tile_shiftreg_num * self.tile_shiftreg.shiftreg_area
 		self.tile_jointmodule_area = self.tile_jointmodule_num * self.tile_jointmodule.jointmodule_area
 		self.tile_digital_area = self.tile_input_demux_area + self.tile_output_mux_area + self.tile_adder_area \
-								 + self.tile_shiftreg_area + self.tile_jointmodule_area + self.tile_iReg_area
+								 + self.tile_shiftreg_area + self.tile_jointmodule_area + self.tile_iReg_area + self.tile_oReg_area
 		self.tile_pooling_area = self.tile_pooling.Pooling_area
-		self.tile_buffer_area = self.tile_buffer.buf_area
+		self.tile_buffer_area += self.tile_buffer.buf_area
 		self.tile_area = self.tile_xbar_area + self.tile_ADC_area + self.tile_DAC_area + self.tile_digital_area + self.tile_buffer_area+self.tile_pooling_area
 
 	def calculate_tile_read_power_fast(self, max_column=0, max_row=0, max_PE=0, max_group=0, layer_type=None):

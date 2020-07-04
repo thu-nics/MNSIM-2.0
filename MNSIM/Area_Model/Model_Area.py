@@ -15,9 +15,9 @@ class Model_area():
     def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None):
         self.NetStruct = NetStruct
         self.SimConfig_path = SimConfig_path
-        modelL_config = cp.ConfigParser()
-        modelL_config.read(self.SimConfig_path, encoding='UTF-8')
-        NoC_Compute = int(modelL_config.get('Algorithm Configuration', 'NoC_enable'))
+        # modelL_config = cp.ConfigParser()
+        # modelL_config.read(self.SimConfig_path, encoding='UTF-8')
+        # NoC_Compute = int(modelL_config.get('Algorithm Configuration', 'NoC_enable'))
         if multiple is None:
             multiple = [1] * len(self.NetStruct)
         if TCG_mapping is None:
@@ -32,6 +32,7 @@ class Model_area():
         self.arch_adder_area = self.total_layer_num * [0]
         self.arch_shiftreg_area = self.total_layer_num * [0]
         self.arch_iReg_area = self.total_layer_num * [0]
+        self.arch_oReg_area = self.total_layer_num * [0]
         self.arch_input_demux_area = self.total_layer_num * [0]
         self.arch_output_mux_area = self.total_layer_num * [0]
         self.arch_jointmodule_area = self.total_layer_num * [0]
@@ -51,17 +52,19 @@ class Model_area():
         self.arch_total_output_mux_area = 0
         self.arch_total_pooling_area = 0
         # print(data.columns)
-        if NoC_Compute == 1:
-            path = os.getcwd() + '/Final_Results/'
-            data = pd.read_csv(path + 'area.csv')
-            self.arch_Noc_area = float(data.columns[0].split(' ')[-2])
-        else:
-            self.arch_Noc_area = 0
+        # if NoC_Compute == 1:
+        #     path = os.getcwd() + '/Final_Results/'
+        #     data = pd.read_csv(path + 'area.csv')
+        #     self.arch_Noc_area = float(data.columns[0].split(' ')[-2])
+        # else:
+        #     self.arch_Noc_area = 0
         self.calculate_model_area()
 
     def calculate_model_area(self): #Todo: Noc area
 
-        self.graph.tile.calculate_tile_area()
+        self.graph.tile.calculate_tile_area(SimConfig_path=self.SimConfig_path,
+                                            default_inbuf_size = self.graph.max_inbuf_size,
+                                            default_outbuf_size = self.graph.max_outbuf_size)
         for i in range(self.total_layer_num):
             tile_num = self.graph.layer_tileinfo[i]['tilenum']
             self.arch_area[i] = self.graph.tile.tile_area * tile_num
@@ -72,12 +75,13 @@ class Model_area():
             self.arch_adder_area[i] = self.graph.tile.tile_adder_area * tile_num
             self.arch_shiftreg_area[i] = self.graph.tile.tile_shiftreg_area * tile_num
             self.arch_iReg_area[i] = self.graph.tile.tile_iReg_area * tile_num
+            self.arch_oReg_area[i] = self.graph.tile.tile_oReg_area * tile_num
             self.arch_input_demux_area[i] = self.graph.tile.tile_input_demux_area * tile_num
             self.arch_output_mux_area[i] = self.graph.tile.tile_output_mux_area * tile_num
             self.arch_jointmodule_area[i] = self.graph.tile.tile_jointmodule_area * tile_num
             self.arch_buf_area[i] = self.graph.tile.tile_buffer_area * tile_num
             self.arch_pooling_area[i] = self.graph.tile.tile_pooling_area * tile_num
-        self.arch_total_area = sum(self.arch_area) + self.arch_Noc_area
+        self.arch_total_area = sum(self.arch_area)
         self.arch_total_xbar_area = sum(self.arch_xbar_area)
         self.arch_total_ADC_area = sum(self.arch_ADC_area)
         self.arch_total_DAC_area = sum(self.arch_DAC_area)
@@ -85,6 +89,7 @@ class Model_area():
         self.arch_total_adder_area = sum(self.arch_adder_area)
         self.arch_total_shiftreg_area = sum(self.arch_shiftreg_area)
         self.arch_total_iReg_area = sum(self.arch_iReg_area)
+        self.arch_total_oReg_area = sum(self.arch_oReg_area)
         self.arch_total_input_demux_area = sum(self.arch_input_demux_area)
         self.arch_total_output_mux_area = sum(self.arch_output_mux_area)
         self.arch_total_jointmodule_area = sum(self.arch_jointmodule_area)
@@ -103,10 +108,11 @@ class Model_area():
             print("			|---adder area:", self.arch_total_adder_area, "um^2")
             print("			|---output-shift-reg area:", self.arch_total_shiftreg_area, "um^2")
             print("			|---input-reg area:", self.arch_total_iReg_area, "um^2")
+            print("			|---output-reg area:", self.arch_total_oReg_area, "um^2")
             print("			|---input_demux area:", self.arch_total_input_demux_area, "um^2")
             print("			|---output_mux area:", self.arch_total_output_mux_area, "um^2")
             print("			|---joint_module area:", self.arch_total_jointmodule_area, "um^2")
-            print("		NoC part area:", self.arch_Noc_area, "um^2")
+            # print("		NoC part area:", self.arch_Noc_area, "um^2")
         if layer_information:
             for i in range(self.total_layer_num):
                 print("Layer", i, ":")

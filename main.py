@@ -63,7 +63,7 @@ def main():
                         help="Hardware description file location & name, default:/MNSIM_Python/SimConfig.ini")
     parser.add_argument("-Weights", "--weights", default=weights_file_path,
                         help="NN model weights file location & name, default:/MNSIM_Python/vgg8_params.pth")
-    parser.add_argument("-NN", "--NN", default='vgg8',
+    parser.add_argument("-NN", "--NN", default='resnet18',
                         help="NN model description (name), default: vgg8_128_9")
     parser.add_argument("-DisHW", "--disable_hardware_modeling", action='store_true', default=False,
                         help="Disable hardware modeling, default: false")
@@ -113,14 +113,15 @@ def main():
     if not (args.disable_hardware_modeling):
         __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                   TCG_mapping=TCG_mapping)
-        __area = Model_area(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
-        __power = Model_inference_power(NetStruct=structure_file, SimConfig_path=args.hardware_description,
-                                        TCG_mapping=TCG_mapping)
         if not (args.disable_inner_pipeline):
             __latency.calculate_model_latency(mode=1)
             # __latency.calculate_model_latency_nopipe()
         else:
             __latency.calculate_model_latency_nopipe()
+
+        __area = Model_area(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
+        __power = Model_inference_power(NetStruct=structure_file, SimConfig_path=args.hardware_description,
+                                        TCG_mapping=TCG_mapping)
         __energy = Model_energy(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                 TCG_mapping=TCG_mapping,
                                 model_latency=__latency, model_power=__power)
