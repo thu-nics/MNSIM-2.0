@@ -91,7 +91,7 @@ class Model_area():
         self.arch_total_xbar_area = sum(self.arch_xbar_area)
         self.arch_total_ADC_area = sum(self.arch_ADC_area)
         self.arch_total_DAC_area = sum(self.arch_DAC_area)
-        self.arch_total_digital_area = sum(self.arch_digital_area)
+        self.arch_total_digital_area = sum(self.arch_digital_area)+self.global_add.adder_area*self.graph.global_adder_num
         self.arch_total_adder_area = sum(self.arch_adder_area)+self.global_add.adder_area*self.graph.global_adder_num
         self.arch_total_shiftreg_area = sum(self.arch_shiftreg_area)
         self.arch_total_iReg_area = sum(self.arch_iReg_area)
