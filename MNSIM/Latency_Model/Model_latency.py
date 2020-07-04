@@ -1277,15 +1277,14 @@ class Model_latency():
                         merge_time = 0
                         transfer_time = self.graph.transLayer_distance[0][layer_id]*(outputchannel*outputbit/self.inter_tile_bandwidth)
                         global_buf = buffer(SimConfig_path=self.SimConfig_path,buf_level=2,default_buf_size=self.graph.global_buf_size)
-                        temp_Inputindex = self.graph.layer_tileinfo[layer_id]['Inputindex']
-                        global_buf.calculate_buf_read_latency(rdata=(len(temp_Inputindex)*inputbit*inputchannel/8))
-                        global_buf.calculate_buf_write_latency(wdata=(len(temp_Inputindex)*inputbit*inputchannel/8))
+                        global_buf.calculate_buf_read_latency(rdata=(len(Inputindex_list)*inputbit*inputchannel/8))
+                        global_buf.calculate_buf_write_latency(wdata=(len(Inputindex_list)*inputbit*inputchannel/8))
                         self.pre_max_time = 0
                         for i in range(output_size[0]):
                             for j in range(output_size[1]):
                                 max_prelayer_time = 0
                                 # the maximum time of the required input data (in all input layers)
-                                for idx in temp_Inputindex:
+                                for idx in Inputindex_list:
                                     tmp_time = self.finish_time[layer_id+idx][i*input_size[1]+j]
                                     if tmp_time > max_prelayer_time:
                                         max_prelayer_time = tmp_time

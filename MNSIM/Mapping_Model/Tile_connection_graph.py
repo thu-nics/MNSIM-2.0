@@ -238,9 +238,10 @@ class TCG():
         # the maximum output buffer size of each tile, unit: KB
         self.global_buf_size = 0
         # the global buffer size for accumulator
+        self.global_data_size = 0
         self.global_adder_num = 0
         # the global adder number in accumulator
-        self.global_adder_bitwidth = 0
+        self.global_adder_bitwidth = 8
         num = []
         data = []
         for layer_id in range(self.layer_num):
@@ -410,6 +411,7 @@ class TCG():
                 # the data precision of each branch output (bit)
                 data_size = tmp_tileinfo['datanum_branchout']*tmp_tileinfo['bit_branchout']*len(Inputindex_list)/8
                 # unit: Byte
+                self.global_data_size = self.global_data_size + data_size
                 self.global_buf_size = self.global_buf_size + math.pow(2,math.ceil(math.log(data_size,2)))/1024
                 # unit: KB
                 self.global_adder_num = self.global_adder_num + previous_layer_dict['Outputchannel']*len(Inputindex_list)//2

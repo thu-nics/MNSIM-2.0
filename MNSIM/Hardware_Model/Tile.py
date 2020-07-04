@@ -9,6 +9,7 @@ from MNSIM.Hardware_Model.PE import ProcessElement
 from MNSIM.Hardware_Model.Adder import adder
 from MNSIM.Hardware_Model.Buffer import buffer
 from MNSIM.Hardware_Model.ShiftReg import shiftreg
+from MNSIM.Hardware_Model.Reg import reg
 from MNSIM.Hardware_Model.JointModule import JointModule
 from MNSIM.Hardware_Model.Pooling import Pooling
 test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"SimConfig.ini")
@@ -47,7 +48,8 @@ class tile(ProcessElement):
 		self.tile_jointmodule_num = 0
 		self.tile_adder = adder(SimConfig_path)
 		self.tile_shiftreg = shiftreg(SimConfig_path)
-		self.tile_iReg = shiftreg(SimConfig_path)
+		self.tile_iReg = reg(SimConfig_path)
+		self.tile_oReg = reg(SimConfig_path)
 		self.tile_jointmodule = JointModule(SimConfig_path)
 		self.tile_buffer = buffer(SimConfig_path)
 		self.tile_pooling = Pooling(SimConfig_path)
@@ -78,6 +80,7 @@ class tile(ProcessElement):
 		self.tile_adder_read_power = 0
 		self.tile_shiftreg_read_power = 0
 		self.tile_iReg_read_power = 0
+		self.tile_oReg_read_power = 0
 		self.tile_input_demux_read_power = 0
 		self.tile_output_mux_read_power = 0
 		self.tile_jointmodule_read_power = 0
@@ -182,7 +185,8 @@ class tile(ProcessElement):
 		self.tile_digital_area = 0
 		self.tile_adder.calculate_adder_area()
 		self.tile_shiftreg.calculate_shiftreg_area()
-		self.tile_iReg.calculate_shiftreg_area()
+		self.tile_iReg.calculate_reg_area()
+		self.tile_oReg.calculate_reg_area()
 		self.tile_jointmodule.calculate_jointmodule_area()
 		self.tile_buffer = buffer(SimConfig_path=SimConfig_path,buf_level=2,default_buf_size=default_outbuf_size)
 		self.tile_buffer.calculate_buf_area()
@@ -211,7 +215,8 @@ class tile(ProcessElement):
 		self.tile_buffer_area += self.tile_buffer.buf_area
 		self.tile_area = self.tile_xbar_area + self.tile_ADC_area + self.tile_DAC_area + self.tile_digital_area + self.tile_buffer_area+self.tile_pooling_area
 
-	def calculate_tile_read_power_fast(self, max_column=0, max_row=0, max_PE=0, max_group=0, layer_type=None):
+	def calculate_tile_read_power_fast(self, max_column=0, max_row=0, max_PE=0, max_group=0, layer_type=None,
+									   SimConfig_path=None, default_inbuf_size = 16, default_outbuf_size = 4):
 		# max_column: maximum used column in one crossbar in this tile
 		# max_row: maximum used row in one crossbar in this tile
 		# max_PE: maximum used PE in this tile
@@ -226,6 +231,7 @@ class tile(ProcessElement):
 		self.tile_adder_read_power = 0
 		self.tile_shiftreg_read_power = 0
 		self.tile_iReg_read_power = 0
+		self.tile_oReg_read_power = 0
 		self.tile_input_demux_read_power = 0
 		self.tile_output_mux_read_power = 0
 		self.tile_jointmodule_read_power = 0
@@ -233,28 +239,33 @@ class tile(ProcessElement):
 		self.tile_buffer_read_power = 0
 		self.tile_buffer_r_read_power = 0
 		self.tile_buffer_w_read_power = 0
+		self.tile_buffer = buffer(SimConfig_path=SimConfig_path, buf_level=2, default_buf_size=default_outbuf_size)
 		if layer_type == 'pooling':
 			self.tile_pooling.calculate_Pooling_power()
 			self.tile_pooling_read_power = self.tile_pooling.Pooling_power
 		elif layer_type == 'conv' or layer_type  == 'fc':
-			self.calculate_PE_read_power_fast(max_column=max_column, max_row=max_row, max_group=max_group)
+			self.calculate_PE_read_power_fast(max_column=max_column, max_row=max_row, max_group=max_group,
+											  SimConfig_path=SimConfig_path, default_inbuf_size = default_inbuf_size)
 			self.tile_xbar_read_power = max_PE * self.PE_xbar_read_power
 			self.tile_ADC_read_power = max_PE * self.PE_ADC_read_power
 			self.tile_DAC_read_power = max_PE * self.PE_DAC_read_power
 			self.tile_adder_read_power = max_PE * self.PE_adder_read_power
 			self.tile_shiftreg_read_power = max_PE * self.PE_shiftreg_read_power
 			self.tile_iReg_read_power = max_PE * self.PE_iReg_read_power
+			self.tile_oReg_read_power = max_PE * self.PE_oReg_read_power
 			self.tile_input_demux_read_power = max_PE * self.input_demux_read_power
 			self.tile_output_mux_read_power = max_PE * self.output_mux_read_power
 			self.tile_jointmodule_read_power = (max_PE-1)*math.ceil(max_column/self.output_mux)*self.tile_jointmodule.jointmodule_power
 			self.tile_digital_read_power = self.tile_adder_read_power+self.tile_shiftreg_read_power+\
 											self.tile_input_demux_read_power+self.tile_output_mux_read_power+self.tile_jointmodule_read_power
+			self.tile_buffer_r_read_power = max_PE * self.PE_inbuf_read_rpower
+			self.tile_buffer_w_read_power = max_PE * self.PE_inbuf_read_wpower
 		self.tile_buffer.calculate_buf_read_power()
 		self.tile_buffer.calculate_buf_write_power()
-		self.tile_buffer_r_read_power = self.tile_buffer.buf_rpower*1e-3
-		self.tile_buffer_w_read_power = self.tile_buffer.buf_wpower * 1e-3
+		self.tile_buffer_r_read_power += self.tile_buffer.buf_rpower * 1e-3
+		self.tile_buffer_w_read_power += self.tile_buffer.buf_wpower * 1e-3
 		self.tile_buffer_read_power = self.tile_buffer_r_read_power + self.tile_buffer_w_read_power
-		self.tile_digital_read_power = self.tile_adder_read_power+self.tile_shiftreg_read_power+self.tile_iReg_read_power+\
+		self.tile_digital_read_power = self.tile_adder_read_power+self.tile_shiftreg_read_power+self.tile_iReg_read_power+self.tile_oReg_read_power+\
 									   self.tile_input_demux_read_power+self.tile_output_mux_read_power+self.tile_jointmodule_read_power
 		self.tile_read_power = self.tile_xbar_read_power+self.tile_ADC_read_power+self.tile_DAC_read_power+\
 							   self.tile_digital_read_power+self.tile_pooling_read_power+self.tile_buffer_read_power

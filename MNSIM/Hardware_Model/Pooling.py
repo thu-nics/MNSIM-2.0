@@ -35,7 +35,7 @@ class Pooling(object):
         Pooling_area_dict = {
             65: {
                 9: {
-                   64:  83834
+                   64:  91917.1562
                 }
             }
         }
@@ -52,7 +52,7 @@ class Pooling(object):
         Pooling_power_dict = {
             65: {
                 9: {
-                   64:  18.72*1e-3
+                   64:  3.082*1e-3
                 }
             }
         }

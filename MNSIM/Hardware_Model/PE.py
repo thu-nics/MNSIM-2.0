@@ -10,6 +10,7 @@ from MNSIM.Hardware_Model.DAC import DAC
 from MNSIM.Hardware_Model.ADC import ADC
 from MNSIM.Hardware_Model.Adder import adder
 from MNSIM.Hardware_Model.ShiftReg import shiftreg
+from MNSIM.Hardware_Model.Reg import reg
 from MNSIM.Hardware_Model.Buffer import buffer
 test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"SimConfig.ini")
 # Default SimConfig file path: MNSIM_Python/SimConfig.ini
@@ -69,7 +70,8 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.PE_adder = adder(SimConfig_path)
 		self.PE_adder_num = 0
 		self.PE_shiftreg = shiftreg(SimConfig_path)
-		self.PE_iReg = shiftreg(SimConfig_path)
+		self.PE_iReg = reg(SimConfig_path)
+		self.PE_oReg = reg(SimConfig_path)
 
 		self.PE_utilization = 0
 		self.PE_max_occupied_column = 0
@@ -94,9 +96,13 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.PE_adder_read_power = 0
 		self.PE_shiftreg_read_power = 0
 		self.PE_iReg_read_power = 0
+		self.PE_oReg_read_power = 0
 		self.input_demux_read_power = 0
 		self.output_mux_read_power = 0
 		self.PE_digital_read_power = 0
+		self.PE_inbuf_read_rpower = 0
+		self.PE_inbuf_read_wpower = 0
+		self.PE_inbuf_read_power = 0
 
 		self.PE_write_power = 0
 		self.PE_xbar_write_power = 0
@@ -459,14 +465,15 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.calculate_ADC_area()
 		self.PE_adder.calculate_adder_area()
 		self.PE_shiftreg.calculate_shiftreg_area()
-		self.PE_iReg.calculate_shiftreg_area()
+		self.PE_iReg.calculate_reg_area()
+		self.PE_oReg.calculate_reg_area()
 		self.PE_xbar_area = self.PE_xbar_num*self.xbar_area
 		self.PE_ADC_area = self.ADC_area*self.PE_ADC_num
 		self.PE_DAC_area = self.DAC_area*self.PE_DAC_num
 		self.PE_adder_area = self.PE_group_ADC_num*self.PE_adder_num*self.PE_adder.adder_area
 		self.PE_shiftreg_area = self.PE_ADC_num*self.PE_shiftreg.shiftreg_area
-		self.PE_iReg_area = self.PE_DAC_num*self.PE_iReg.shiftreg_area
-		self.PE_oReg_area = self.PE_ADC_num*self.PE_iReg.shiftreg_area
+		self.PE_iReg_area = self.PE_DAC_num*self.PE_iReg.reg_area
+		self.PE_oReg_area = self.PE_ADC_num*self.PE_oReg.reg_area
 		self.PE_input_demux_area = self.input_demux_area*self.PE_DAC_num
 		self.PE_output_mux_area = self.output_mux_area*self.PE_ADC_num
 		self.PE_digital_area = self.PE_adder_area + self.PE_shiftreg_area + self.PE_input_demux_area + \
@@ -579,18 +586,23 @@ class ProcessElement(crossbar, DAC, ADC):
 		else:
 			self.output_mux_power = mux_power_dict[64]
 
-	def calculate_PE_read_power_fast(self, max_column=0, max_row=0, max_group=0):
+	def calculate_PE_read_power_fast(self, max_column=0, max_row=0, max_group=0,
+									 SimConfig_path=None, default_inbuf_size = 16):
 		# unit: W
 		# coarse but fast estimation
 		# max_column: maximum used column in one crossbar in this tile
 		# max_row: maximum used row in one crossbar in this tile
 		# max_group: maximum used groups in one PE
+		self.inbuf = buffer(SimConfig_path=SimConfig_path, buf_level=1, default_buf_size=default_inbuf_size)
+		self.inbuf.calculate_buf_read_power()
+		self.inbuf.calculate_buf_write_power()
 		self.calculate_DAC_power()
 		self.calculate_ADC_power()
 		self.calculate_demux_power()
 		self.calculate_mux_power()
 		self.PE_shiftreg.calculate_shiftreg_power()
-		self.PE_iReg.calculate_shiftreg_power()
+		self.PE_iReg.calculate_reg_power()
+		self.PE_oReg.calculate_reg_power()
 		self.PE_adder.calculate_adder_power()
 		self.PE_read_power = 0
 		self.PE_xbar_read_power = 0
@@ -599,6 +611,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.PE_adder_read_power = 0
 		self.PE_shiftreg_read_power = 0
 		self.PE_iReg_read_power = 0
+		self.PE_oReg_read_power = 0
 		self.input_demux_read_power = 0
 		self.output_mux_read_power = 0
 		self.PE_digital_read_power = 0
@@ -611,9 +624,13 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.output_mux_read_power = max_group*math.ceil(max_column/self.output_mux) * self.output_mux_power
 		self.PE_adder_read_power = (max_group - 1) * math.ceil(max_column/self.output_mux) * self.PE_adder.adder_power
 		self.PE_shiftreg_read_power = max_group * math.ceil(max_column/self.output_mux) * self.PE_shiftreg.shiftreg_power
-		self.PE_iReg_read_power = max_group * math.ceil(max_row/self.input_demux) * self.PE_iReg.shiftreg_power
-		self.PE_digital_read_power = self.input_demux_read_power + self.output_mux_read_power + self.PE_adder_read_power + self.PE_shiftreg_read_power + self.PE_iReg_read_power
-		self.PE_read_power = self.PE_xbar_read_power + self.PE_DAC_read_power + self.PE_ADC_read_power + self.PE_digital_read_power
+		self.PE_iReg_read_power = max_group * math.ceil(max_row/self.input_demux) * self.PE_iReg.reg_power
+		self.PE_oReg_read_power = max_group * math.ceil(max_column / self.output_mux) * self.PE_oReg.reg_power
+		self.PE_digital_read_power = self.input_demux_read_power + self.output_mux_read_power + self.PE_adder_read_power + self.PE_shiftreg_read_power + self.PE_iReg_read_power + self.PE_oReg_read_power
+		self.PE_inbuf_read_rpower = self.inbuf.buf_rpower*1e-3
+		self.PE_inbuf_read_wpower = self.inbuf.buf_wpower * 1e-3
+		self.PE_inbuf_read_power = self.PE_inbuf_read_rpower + self.PE_inbuf_read_wpower
+		self.PE_read_power = self.PE_xbar_read_power + self.PE_DAC_read_power + self.PE_ADC_read_power + self.PE_digital_read_power + self.PE_inbuf_read_power
 
 	def calculate_PE_read_power(self):
 		# unit: W
@@ -623,7 +640,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.calculate_demux_power()
 		self.calculate_mux_power()
 		self.PE_shiftreg.calculate_shiftreg_power()
-		self.PE_iReg.calculate_shiftreg_power()
+		self.PE_iReg.calculate_reg_power()
 		self.PE_read_power = 0
 		self.PE_xbar_read_power = 0
 		self.PE_ADC_read_power = 0
