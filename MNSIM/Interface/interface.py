@@ -146,22 +146,32 @@ class TrainTestInterface(object):
                 if not len(net_structure_info[i]['Inputindex']) == 1:
                     raise Exception('duplicate input index')
                 absolute_index[i] = absolute_index[i + net_structure_info[i]['Inputindex'][0]]
+        graph = list()
+        for i in range(len(net_structure_info)):
+            if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'fc']:
+                # layer num, layer type
+                layer_num = absolute_index[i]
+                layer_type = net_structure_info[i]['type']
+                # layer input
+                layer_input = list(map(lambda x: (absolute_index[i + x] if i + x != -1 else -1), net_structure_info[i]['Inputindex']))
+                # layer output
+                layer_output = list()
+                for tmp_i in range(len(net_structure_info)):
+                    if net_structure_info[tmp_i]['type'] in ['conv', 'pooling', 'element_sum', 'fc']:
+                        tmp_layer_num = absolute_index[tmp_i]
+                        tmp_layer_input = list(map(lambda x: (absolute_index[tmp_i + x] if tmp_i + x != -1 else -1), net_structure_info[tmp_i]['Inputindex']))
+                        if layer_num in tmp_layer_input:
+                            layer_output.append(tmp_layer_num)
+                graph.append((layer_num, layer_type, layer_input, layer_output))
         # add to net array
         net_array = []
         for layer_num, (layer_bit_weights, layer_structure_info) in enumerate(zip(net_bit_weights, net_structure_info)):
             # change layer structure info
             layer_structure_info = copy.deepcopy(layer_structure_info)
-            layer_structure_info['Layerindex'] = absolute_index[layer_num]
-            def transfer_index(index):
-                if index == -1:
-                    return -1
-                elif index >=0 and index < len(absolute_index):
-                    return absolute_index[index]
-                else:
-                    raise Exception('not support')
-            layer_structure_info['Inputindex'] = list(map(lambda x:transfer_index(layer_num + x) - absolute_index[layer_num], layer_structure_info['Inputindex']))
-            # layer_structure_info['Outputindex'] = [absolute_index[layer_num] if absolute_index[layer_num] < max(absolute_index) else 'output']
-            layer_structure_info['Outputindex'] = [1]
+            layer_count = absolute_index[layer_num]
+            layer_structure_info['Layerindex'] = graph[layer_count][0]
+            layer_structure_info['Inputindex'] = list(map(lambda x: x - graph[layer_count][0], graph[layer_count][2]))
+            layer_structure_info['Outputindex'] = list(map(lambda x: x - graph[layer_count][0], graph[layer_count][3]))
             # add for element_sum and pooling
             if layer_bit_weights == None:
                 if layer_structure_info['type'] in ['element_sum', 'pooling']:
