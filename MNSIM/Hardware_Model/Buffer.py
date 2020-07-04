@@ -322,7 +322,7 @@ class buffer(object):
                       1.17245, 1.17245, 1.17245, 1.17245, 0.546324, 0.729275, 3.45785, 3.45784, 1.17245, 3.45784,
                       3.45784, 3.6791
                       ]  # uniit: ns
-        self.buf_cycle = sram_cycle[self.index]
+        self.buf_cycle = 20#sram_cycle[self.index]
         assert self.buf_cycle != -1, "Error: No available for 2KB SRAM buffer with 512-bit bus bitwidth"
         sram_leakage_power = [1.006428, 1.136656, 1.253224, -1, 1.95684, 2.15962, 2.28782, 2.62008, 4.1222, 4.18056,
                               4.3319, 4.55214,
@@ -394,7 +394,7 @@ class buffer(object):
             dynamic_read_energy = sram_dynamic_read_energy[self.index]
             assert dynamic_read_energy != -1, "Error: No available for 2KB SRAM buffer with 512-bit bus bitwidth"
             self.dynamic_buf_rpower = dynamic_read_energy/self.buf_cycle*1e3
-            self.dynamic_buf_rpower = 0
+            #self.dynamic_buf_rpower = 0
             self.buf_rpower = self.dynamic_buf_rpower + self.leakage_power
 
 
@@ -417,7 +417,7 @@ class buffer(object):
             dynamic_write_energy = sram_dynamic_write_energy[self.index]
             assert dynamic_write_energy != -1, "Error: No available for 2KB SRAM buffer with 512-bit bus bitwidth"
             self.dynamic_buf_wpower = dynamic_write_energy / self.buf_cycle * 1e3
-            self.dynamic_buf_wpower = 0
+            #self.dynamic_buf_wpower = 0
             self.buf_wpower = self.dynamic_buf_wpower + self.leakage_power
 
 
