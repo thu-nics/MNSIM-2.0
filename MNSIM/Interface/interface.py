@@ -4,6 +4,7 @@ import configparser
 import copy
 import math
 import os
+import copy
 from importlib import import_module
 
 import numpy as np
@@ -132,16 +133,40 @@ class TrainTestInterface(object):
         net_structure_info = self.net.get_structure()
         # print(net_structure_info)
         assert len(net_bit_weights) == len(net_structure_info)
+        # set relative index to absolute index
+        absolute_index = [None] * len(net_structure_info)
+        absolute_count = 0
+        for i in range(len(net_structure_info)):
+            if not (len(net_structure_info[i]['Outputindex']) == 1 and net_structure_info[i]['Outputindex'][0] == 1):
+                raise Exception('duplicate output')
+            if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'fc']:
+                absolute_index[i] = absolute_count
+                absolute_count = absolute_count + 1
+            else:
+                if not len(net_structure_info[i]['Inputindex']) == 1:
+                    raise Exception('duplicate input index')
+                absolute_index[i] = absolute_index[i + net_structure_info[i]['Inputindex'][0]]
+        # add to net array
         net_array = []
         for layer_num, (layer_bit_weights, layer_structure_info) in enumerate(zip(net_bit_weights, net_structure_info)):
-            total_array = []
+            # change layer structure info
+            layer_structure_info = copy.deepcopy(layer_structure_info)
+            layer_structure_info['Layerindex'] = absolute_index[layer_num]
+            def transfer_index(index):
+                if index == -1:
+                    return 'input'
+                elif index >=0 and index < len(absolute_index):
+                    return absolute_index[index]
+                else:
+                    raise Exception('not support')
+            layer_structure_info['Inputindex'] = list(map(lambda x:transfer_index(layer_num + x), layer_structure_info['Inputindex']))
+            layer_structure_info['Outputindex'] = [absolute_index[layer_num] if absolute_index[layer_num] < max(absolute_index) else 'output']
+            # add for element_sum and pooling
             if layer_bit_weights == None:
-                if layer_structure_info['type'] == 'pooling':
-                    total_array.append((layer_structure_info, None))
-                    net_array.append(total_array)
+                if layer_structure_info['type'] in ['element_sum', 'pooling']:
+                    net_array.append([(layer_structure_info, None)])
                 continue
             assert len(layer_bit_weights.keys()) == layer_structure_info['row_split_num'] * layer_structure_info['weight_cycle'] * 2
-            layer_structure_info['Layernum'] = layer_num
             # split
             for i in range(layer_structure_info['row_split_num']):
                 for j in range(layer_structure_info['weight_cycle']):
@@ -157,6 +182,7 @@ class TrainTestInterface(object):
                         pe_array.append([layer_bit_weights[f'split{i}_weight{s}_positive'][j].astype(np.uint8), layer_bit_weights[f'split{i}_weight{s}_negative'][j].astype(np.uint8)])
                     xbar_array.append(pe_array)
             # store in xbar_array
+            total_array = []
             L = math.ceil(len(xbar_array) / (self.tile_row * self.tile_column))
             for i in range(L):
                 tile_array = []
@@ -167,6 +193,10 @@ class TrainTestInterface(object):
                             tile_array.append(xbar_array[serial_number])
                 total_array.append((layer_structure_info, tile_array))
             net_array.append(total_array)
+        # test index
+        graph = map(lambda x: x[0][0],net_array)
+        graph = list(map(lambda x: f'l: {x["Layerindex"]}, t: {x["type"]}, i: {x["Inputindex"]}, o: {x["Outputindex"]}', graph))
+        graph = '\n'.join(graph)
         return net_array
 
 def mysplit(array, length):
@@ -182,8 +212,7 @@ def mysplit(array, length):
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "SimConfig.ini")
-    # test_weights_file_path = os.path.join(os.path.dirname(__file__), "zoo/lenet_6_9_params.pth")
-    __TestInterface = TrainTestInterface('resnet', 'MNSIM.Interface.cifar10', test_SimConfig_path, None, '1')
-    print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
-    print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
+    __TestInterface = TrainTestInterface('resnet18', 'MNSIM.Interface.cifar10', test_SimConfig_path, None, '2')
+    # print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
+    # print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
     structure_info = __TestInterface.get_structure()

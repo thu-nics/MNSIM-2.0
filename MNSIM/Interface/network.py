@@ -266,7 +266,7 @@ def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
         layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': 4096})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': num_classes})
-    elif cate.startswith('resnet'):
+    elif cate.startswith('resnet18'):
         layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 64, 'kernel_size': 3, 'padding': 1, 'stride': 1})
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'pooling', 'mode': 'MAX', 'kernel_size': 2, 'stride': 2})
