@@ -1,0 +1,21 @@
+# Created by .ignore support plugin (hsz.mobi)
+.idea/
+*.xml
+/.vscode
+__pycache__/
+*.pyc
+/MNSIM/Interface/zoo/
+/MNSIM/Interface/runs/
+/MNSIM/Interface/cifar10/
+/MNSIM/Interface/cifar100/
+/MNSIM/Latency_Model/exp_DAC20.py
+/MNSIM/Latency_Model/Buffer_test.py
+*.pth
+*.xlsx
+*.zip
+/MNSIM/Interface/datasets
+/MNSIM/Interface/debug
+/MNSIM/Interface/network_configs
+/MNSIM/Interface/solver_configs
+/MNSIM/Interface/outputs
+/MNSIM/Interface/nohup.out
