@@ -35,9 +35,9 @@ class shiftreg(object):
 		# unit: um^2
 		if self.shiftreg_area == 0:
 			shiftreg_area_dict = {
-				4: 228.96,
-				8: 217.44,
-				16:230.40
+				4: 1.42,#228.96,
+				8: 1.42,#217.44,
+				16:1.42#230.40
 			}
 			if self.max_shiftbase <= 4:
 				self.shiftreg_area = shiftreg_area_dict[4]*pow((self.shiftreg_tech/65),2)
@@ -51,9 +51,9 @@ class shiftreg(object):
 		# unit: W
 		if self.shiftreg_power == 0:
 			shiftreg_power_dict = {
-				4: 2.13e-4,
-				8: 1.97e-4,
-				16: 1.24e-4
+				4: 8.1e-7,#2.13e-4,
+				8: 8.1e-7,#1.97e-4,
+				16: 8.1e-7#1.24e-4
 			}
 			if self.max_shiftbase <= 4:
 				self.shiftreg_power = shiftreg_power_dict[4]*pow((self.shiftreg_tech/65),2)

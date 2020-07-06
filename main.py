@@ -63,7 +63,7 @@ def main():
                         help="Hardware description file location & name, default:/MNSIM_Python/SimConfig.ini")
     parser.add_argument("-Weights", "--weights", default=weights_file_path,
                         help="NN model weights file location & name, default:/MNSIM_Python/vgg8_params.pth")
-    parser.add_argument("-NN", "--NN", default='resnet18',
+    parser.add_argument("-NN", "--NN", default='vgg8',
                         help="NN model description (name), default: vgg8_128_9")
     parser.add_argument("-DisHW", "--disable_hardware_modeling", action='store_true', default=False,
                         help="Disable hardware modeling, default: false")

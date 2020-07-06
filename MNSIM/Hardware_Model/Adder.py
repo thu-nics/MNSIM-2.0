@@ -31,8 +31,8 @@ class adder(object):
 	def calculate_adder_area(self):
 		# unit: um^2
 		if self.adder_area == 0:
-			adder_area_dict = {130: 10*14*130*130/1e6, #ref: Implementation of an Efficient 14-Transistor Full Adder (.18μm technology) Using DTMOS
-							   65: 10*14*65*65/1e6,
+			adder_area_dict = {130: 10*14*130*130/1e6, #ref: Implementation of an Efficient 14-Transistor Full Adder (.18μm technology) Using DTMOS 2.5e-9
+							   65: 1.42,#10*14*65*65/1e6,
 							   55: 10*14*55*55/1e6,
 							   45: 10*14*45*45/1e6,
 							   28: 10*14*28*28/1e6
@@ -53,7 +53,7 @@ class adder(object):
 		# unit: W
 		if self.adder_power == 0:
 			adder_power_dict = {130: 2.5e-9,
-							   65: 2.5e-9,
+							   65: 3e-7,
 							   55: 2.5e-9,
 							   45: 2.5e-9,
 							   28: 2.5e-9

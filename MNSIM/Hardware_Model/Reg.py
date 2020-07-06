@@ -35,9 +35,9 @@ class reg(object):
 		# unit: um^2
 		if self.reg_area == 0:
 			reg_area_dict = {
-				4: 228.96,
-				8: 217.44,
-				16:230.40
+				4: 1.4256,
+				8: 1.4256,
+				16:1.4256
 			}
 			if self.bitwidth <= 4:
 				self.reg_area = reg_area_dict[4]*pow((self.reg_tech/65),2)
@@ -51,9 +51,9 @@ class reg(object):
 		# unit: W
 		if self.reg_power == 0:
 			reg_power_dict = {
-				4: 2.13e-4,
-				8: 1.97e-4,
-				16: 1.24e-4
+				4: 18.8e-9,
+				8: 18.8e-9,
+				16: 18.8e-9
 			}
 			if self.bitwidth <= 4:
 				self.reg_power = reg_power_dict[4]*pow((self.reg_tech/65),2)
