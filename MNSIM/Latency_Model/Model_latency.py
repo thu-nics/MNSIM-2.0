@@ -106,7 +106,7 @@ class Model_latency():
         self.output_mux_latency = []
         self.shiftreg_latency = []
         self.adder_latency = []
-        self.oreg_latency = []
+        self.oReg_latency = []
         self.jointmodule_latency = []
         self.pooling_latency = []
         self.intra_tile_latency = []
@@ -125,6 +125,7 @@ class Model_latency():
         self.total_tile_merge_latency = []
         self.total_tile_transfer_latency = []
         self.total_iReg_latency = []
+        self.total_oReg_latency = []
         self.total_input_demux_latency = []
         self.total_output_mux_latency = []
         self.total_shiftreg_latency = []
@@ -182,12 +183,12 @@ class Model_latency():
             self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
             self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
             self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-            self.oreg_latency[layer_id].append(temp_tile_latency.oreg_latency)
+            self.oReg_latency[layer_id].append(temp_tile_latency.oReg_latency)
             self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
 
             self.digital_latency[layer_id].append(temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
                                                   temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                                                  temp_tile_latency.adder_latency + temp_tile_latency.oreg_latency + temp_tile_latency.jointmodule_latency)
+                                                  temp_tile_latency.adder_latency + temp_tile_latency.oReg_latency + temp_tile_latency.jointmodule_latency)
             self.pooling_latency[layer_id].append(0)
             self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
             self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
@@ -211,12 +212,12 @@ class Model_latency():
             self.output_mux_latency[layer_id].append(temp_tile_latency.output_mux_latency)
             self.shiftreg_latency[layer_id].append(temp_tile_latency.shiftreg_latency)
             self.adder_latency[layer_id].append(temp_tile_latency.adder_latency)
-            self.oreg_latency[layer_id].append(temp_tile_latency.oreg_latency)
+            self.oReg_latency[layer_id].append(temp_tile_latency.oReg_latency)
             self.jointmodule_latency[layer_id].append(temp_tile_latency.jointmodule_latency)
 
             self.digital_latency[layer_id].append(temp_tile_latency.iReg_latency + temp_tile_latency.input_demux_latency +
                                                   temp_tile_latency.output_mux_latency + temp_tile_latency.shiftreg_latency +
-                                                  temp_tile_latency.adder_latency + temp_tile_latency.oreg_latency + temp_tile_latency.jointmodule_latency)
+                                                  temp_tile_latency.adder_latency + temp_tile_latency.oReg_latency + temp_tile_latency.jointmodule_latency)
             self.pooling_latency[layer_id].append(0)
             self.intra_tile_latency[layer_id].append(temp_tile_latency.transfer_latency)
             self.inter_tile_latency[layer_id].append(merge_time + transfer_time)
@@ -239,7 +240,7 @@ class Model_latency():
             self.output_mux_latency[layer_id].append(0)
             self.shiftreg_latency[layer_id].append(0)
             self.adder_latency[layer_id].append(0)
-            self.oreg_latency[layer_id].append(0)
+            self.oReg_latency[layer_id].append(0)
             self.jointmodule_latency[layer_id].append(0)
 
             self.digital_latency[layer_id].append(0)
@@ -264,7 +265,7 @@ class Model_latency():
             self.output_mux_latency[layer_id].append(0)
             self.shiftreg_latency[layer_id].append(0)
             self.adder_latency[layer_id].append(0)
-            self.oreg_latency[layer_id].append(0)
+            self.oReg_latency[layer_id].append(0)
             self.jointmodule_latency[layer_id].append(0)
 
             self.digital_latency[layer_id].append(10)
@@ -645,6 +646,7 @@ class Model_latency():
             self.total_tile_merge_latency.append(sum(self.tile_merge_latency[layer_id]))
             self.total_tile_transfer_latency.append(sum(self.tile_transfer_latency[layer_id]))
             self.total_iReg_latency.append(sum(self.iReg_latency[layer_id]))
+            self.total_oReg_latency.append(sum(self.oReg_latency[layer_id]))
             self.total_input_demux_latency.append(sum(self.input_demux_latency[layer_id]))
             self.total_output_mux_latency.append(sum(self.output_mux_latency[layer_id]))
             self.total_shiftreg_latency.append(sum(self.shiftreg_latency[layer_id]))
@@ -784,6 +786,8 @@ class Model_latency():
                           "%.2f" % (100 * self.total_digital_latency[i] / total_latency), '%)')
                     print("     iReg latency of layer", i, ":", self.total_iReg_latency[i], '(',
                           "%.2f" % (100 * self.total_iReg_latency[i] / total_latency), '%)')
+                    print("     oReg latency of layer", i, ":", self.total_oReg_latency[i], '(',
+                          "%.2f" % (100 * self.total_oReg_latency[i] / total_latency), '%)')
                     print("     input demux latency of layer", i, ":", self.total_input_demux_latency[i], '(',
                           "%.2f" % (100 * self.total_input_demux_latency[i] / total_latency), '%)')
                     print("     output mux latency of layer", i, ":", self.total_output_mux_latency[i], '(',
@@ -826,7 +830,7 @@ class Model_latency():
         self.output_mux_latency.append([])
         self.shiftreg_latency.append([])
         self.adder_latency.append([])
-        self.oreg_latency.append([])
+        self.oReg_latency.append([])
         self.jointmodule_latency.append([])
         self.pooling_latency.append([])
         self.digital_latency.append([])
@@ -1310,6 +1314,7 @@ class Model_latency():
             self.total_tile_merge_latency.append(sum(self.tile_merge_latency[layer_id]))
             self.total_tile_transfer_latency.append(sum(self.tile_transfer_latency[layer_id]))
             self.total_iReg_latency.append(sum(self.iReg_latency[layer_id]))
+            self.total_oReg_latency.append(sum(self.oReg_latency[layer_id]))
             self.total_input_demux_latency.append(sum(self.input_demux_latency[layer_id]))
             self.total_output_mux_latency.append(sum(self.output_mux_latency[layer_id]))
             self.total_shiftreg_latency.append(sum(self.shiftreg_latency[layer_id]))
