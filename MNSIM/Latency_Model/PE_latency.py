@@ -79,9 +79,9 @@ class PE_latency_analysis():
         self.adder_latency = math.ceil(read_column/self.PE.PE_group_ADC_num)*math.ceil(math.log2(self.PE.group_num))*self.digital_period
         self.output_mux_latency = multiple_time*self.muxLatency
         self.computing_latency = self.DAC_latency+self.xbar_latency+self.ADC_latency
-        self.oreg_latency = math.ceil(read_column/self.PE.PE_group_ADC_num)*self.digital_period
+        self.oReg_latency = math.ceil(read_column/self.PE.PE_group_ADC_num)*self.digital_period
         self.PE_digital_latency = self.iReg_latency + self.shiftreg_latency + self.input_demux_latency + \
-                                  self.adder_latency + self.output_mux_latency + self.oreg_latency
+                                  self.adder_latency + self.output_mux_latency + self.oReg_latency
         self.PE_latency = self.PE_buf_wlatency + self.PE_buf_rlatency + self.computing_latency + self.PE_digital_latency
     def update_PE_latency(self, indata=0, rdata=0):
         # update the latency computing when indata and rdata change
