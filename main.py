@@ -52,7 +52,7 @@ def main():
     home_path = os.getcwd()
     # print(home_path)
     SimConfig_path = os.path.join(home_path, "SimConfig.ini")
-    weights_file_path = os.path.join(home_path, "vgg8_params.pth")
+    weights_file_path = os.path.join(home_path, "vgg16_params.pth")
     # print(SimConfig_path)
     parser = argparse.ArgumentParser(description='MNSIM example')
     parser.add_argument("-AutoDelete", "--file_auto_delete", default=True,
@@ -63,7 +63,7 @@ def main():
                         help="Hardware description file location & name, default:/MNSIM_Python/SimConfig.ini")
     parser.add_argument("-Weights", "--weights", default=weights_file_path,
                         help="NN model weights file location & name, default:/MNSIM_Python/vgg8_params.pth")
-    parser.add_argument("-NN", "--NN", default='resnet18',
+    parser.add_argument("-NN", "--NN", default='vgg16',
                         help="NN model description (name), default: vgg8_128_9")
     parser.add_argument("-DisHW", "--disable_hardware_modeling", action='store_true', default=False,
                         help="Disable hardware modeling, default: false")
@@ -109,8 +109,8 @@ def main():
     # print(__TestInterface.origin_evaluate(method = 'FIX_TRAIN', adc_action = 'SCALE'))
     # print(__TestInterface.set_net_bits_evaluate(weight, adc_action = 'SCALE'))
     TCG_mapping = TCG(structure_file, args.hardware_description)
-    print(TCG_mapping.max_inbuf_size)
-    print(TCG_mapping.max_outbuf_size)
+    #print(TCG_mapping.max_inbuf_size)
+    #print(TCG_mapping.max_outbuf_size)
     if not (args.disable_hardware_modeling):
         __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description,
                                   TCG_mapping=TCG_mapping)
