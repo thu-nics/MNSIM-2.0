@@ -43,6 +43,7 @@ net = net_module.get_net(cate = args.net, num_classes = num_classes)
 # train
 train_module = import_module(args.train)
 device = torch.device(f'cuda:{args.gpu}' if torch.cuda.is_available() else 'cpu')
+print(f'run on device {device}')
 # weights
 if args.weight is not None:
     print(f'load weights, {args.weight}')
