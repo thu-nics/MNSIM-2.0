@@ -223,7 +223,7 @@ def mysplit(array, length):
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "SimConfig.ini")
-    __TestInterface = TrainTestInterface('lenet', 'MNSIM.Interface.cifar10', test_SimConfig_path, None, '0')
-    print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
-    print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
+    __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, './MNSIM/Interface/zoo/cifar10_vgg8_params.pth', '2')
+    # print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
+    # print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
     structure_info = __TestInterface.get_structure()

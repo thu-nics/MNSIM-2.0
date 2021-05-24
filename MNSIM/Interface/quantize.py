@@ -118,7 +118,7 @@ class QuantizeLayer(nn.Module):
         # self.last_value[0] = 1
         # self.bit_scale_list = nn.Parameter(torch.FloatTensor([[9,1],[9,1],[9,1]]))
         self.register_buffer('bit_scale_list', torch.FloatTensor([
-            [-1, -1],
+            [quantize_config['activation_bit'], -1],
             [quantize_config['weight_bit'], -1],
             [quantize_config['activation_bit'], -1]
         ]))
