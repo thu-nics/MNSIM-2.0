@@ -142,7 +142,7 @@ def main():
         print("Accuracy simulation will take a few minutes on GPU")
         weight = __TestInterface.get_net_bits()
         weight_2 = weight_update(args.hardware_description, weight,
-                                 is_Variation=args.enable_variation, is_SAF=args.enable_SAF, is_Rratio=args.enable_R_ration)
+                                 is_Variation=args.enable_variation, is_SAF=args.enable_SAF, is_Rratio=args.enable_R_ratio)
         if not (args.enable_fixed_Qrange):
             print("Original accuracy:", __TestInterface.origin_evaluate(method='FIX_TRAIN', adc_action='SCALE'))
             print("PIM-based computing accuracy:", __TestInterface.set_net_bits_evaluate(weight_2, adc_action='SCALE'))
