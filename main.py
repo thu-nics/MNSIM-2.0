@@ -73,6 +73,8 @@ def main():
                         help="Enable simulate SAF, default: false")
     parser.add_argument("-Var", "--enable_variation", action='store_true', default=False,
                         help="Enable simulate variation, default: false")
+    parser.add_argument("-Rratio", "--enable_R_ratio", action='store_true', default=False,
+                        help="Enable simulate the effect of R ratio, default: false")
     parser.add_argument("-FixRange", "--enable_fixed_Qrange", action='store_true', default=False,
                         help="Enable fixed quantization range (max value), default: false")
     parser.add_argument("-DisPipe", "--disable_inner_pipeline", action='store_true', default=False,
@@ -140,7 +142,7 @@ def main():
         print("Accuracy simulation will take a few minutes on GPU")
         weight = __TestInterface.get_net_bits()
         weight_2 = weight_update(args.hardware_description, weight,
-                                 is_Variation=args.enable_variation, is_SAF=args.enable_SAF)
+                                 is_Variation=args.enable_variation, is_SAF=args.enable_SAF, is_Rratio=args.enable_R_ration)
         if not (args.enable_fixed_Qrange):
             print("Original accuracy:", __TestInterface.origin_evaluate(method='FIX_TRAIN', adc_action='SCALE'))
             print("PIM-based computing accuracy:", __TestInterface.set_net_bits_evaluate(weight_2, adc_action='SCALE'))
