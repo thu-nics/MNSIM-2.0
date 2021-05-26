@@ -217,12 +217,11 @@ def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'conv', 'in_channels': 512, 'out_channels': 512, 'kernel_size': 3, 'padding': 1})
         layer_config_list.append({'type': 'relu'})
-        layer_config_list.append({'type': 'pooling', 'mode': 'MAX', 'kernel_size': 2, 'stride': 2})
         layer_config_list.append({'type': 'view'})
-        layer_config_list.append({'type': 'fc', 'in_features': 512, 'out_features': 512})
-        layer_config_list.append({'type': 'dropout'})
-        layer_config_list.append({'type': 'relu'})
-        layer_config_list.append({'type': 'fc', 'in_features': 512, 'out_features': num_classes})
+        layer_config_list.append({'type': 'fc', 'in_features': 2048, 'out_features': num_classes})
+        # layer_config_list.append({'type': 'dropout'})
+        # layer_config_list.append({'type': 'relu'})
+        # layer_config_list.append({'type': 'fc', 'in_features': 512, 'out_features': num_classes})
         # layer_config_list.append({'type': 'dropout'})
         # layer_config_list.append({'type': 'relu'})
         # layer_config_list.append({'type': 'fc', 'in_features': 4096, 'out_features': num_classes})
@@ -337,17 +336,17 @@ def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
             input_index_list.append([-1])
     input_params = {'activation_scale': 1. / 255., 'activation_bit': 9, 'input_shape': (1, 3, 32, 32)}
     # add bn for every conv
-    # L = len(layer_config_list)
-    # for i in range(L-1, -1, -1):
-    #     if layer_config_list[i]['type'] == 'conv':
-    #         # continue
-    #         layer_config_list.insert(i+1, {'type': 'bn', 'features': layer_config_list[i]['out_channels']})
-    #         quantize_config_list.insert(i+1, {'weight_bit': 9, 'activation_bit': 9, 'point_shift': -2})
-    #         input_index_list.insert(i+1, [-1])
-    #         for j in range(i + 2, len(layer_config_list), 1):
-    #             for relative_input_index in range(len(input_index_list[j])):
-    #                 if j + input_index_list[j][relative_input_index] < i + 1:
-    #                     input_index_list[j][relative_input_index] -= 1
+    L = len(layer_config_list)
+    for i in range(L-1, -1, -1):
+        if layer_config_list[i]['type'] == 'conv':
+            # continue
+            layer_config_list.insert(i+1, {'type': 'bn', 'features': layer_config_list[i]['out_channels']})
+            quantize_config_list.insert(i+1, {'weight_bit': 9, 'activation_bit': 9, 'point_shift': -2})
+            input_index_list.insert(i+1, [-1])
+            for j in range(i + 2, len(layer_config_list), 1):
+                for relative_input_index in range(len(input_index_list[j])):
+                    if j + input_index_list[j][relative_input_index] < i + 1:
+                        input_index_list[j][relative_input_index] -= 1
     # print(layer_config_list)
     # print(quantize_config_list)
     # print(input_index_list)

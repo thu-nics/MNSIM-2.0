@@ -98,7 +98,6 @@ class QuantizeLayer(nn.Module):
                 )
                 for i in in_channels_list])
             self.split_input = channel_N
-            self.extra_bn = nn.BatchNorm2d(self.layer_config['out_channels'])
         elif self.layer_config['type'] == 'fc':
             assert 'in_features' in self.layer_config.keys()
             complete_bar_num = self.layer_config['in_features'] // self.hardware_config['xbar_size']
@@ -180,8 +179,6 @@ class QuantizeLayer(nn.Module):
                     output = self.layer_list[i](input_list[i])
                 else:
                     output.add_(self.layer_list[i](input_list[i]))
-            if self.layer_config['type'] == 'conv':
-                output = self.extra_bn(output)
             return output
         # fix training
         if METHOD == 'FIX_TRAIN':
@@ -203,7 +200,6 @@ class QuantizeLayer(nn.Module):
                     input, weight, None, \
                     self.layer_config['stride'], self.layer_config['padding'], 1, 1
                 )
-                output = self.extra_bn(output)
             elif self.layer_config['type'] == 'fc':
                 output = F.linear(input, weight, None)
             else:
@@ -290,7 +286,6 @@ class QuantizeLayer(nn.Module):
                             activation_in_container[i], weight_container[j], None, \
                             self.layer_config['stride'], self.layer_config['padding'], 1, 1
                         )
-                        tmp = self.extra_bn(tmp)
                     elif self.layer_config['type'] == 'fc':
                         tmp = F.linear(activation_in_container[i], weight_container[j], None)
                     else:
