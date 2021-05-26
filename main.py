@@ -137,7 +137,7 @@ def main():
         print("========================Energy Results=================================")
         __energy.model_energy_output(not (args.disable_module_output), not (args.disable_layer_output))
 
-    if (args.disable_accuracy_simulation):
+    if not (args.disable_accuracy_simulation):
         print("======================================")
         print("Accuracy simulation will take a few minutes on GPU")
         weight = __TestInterface.get_net_bits()
