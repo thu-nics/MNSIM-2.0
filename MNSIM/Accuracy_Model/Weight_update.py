@@ -24,7 +24,7 @@ def weight_update(SimConfig_path, weight, is_SAF=0, is_Variation=0, is_Rratio=0)
     for i in range(len(device_resistance) - 1):
         interval += 1 / device_resistance[i + 1] - 1 / device_resistance[i]
     interval /= len(device_resistance) - 1
-    unit_conduntance = 1/device_resistance[-1]/max_value
+    unit_conduntance = max_value/(1/device_resistance[-1])
     weight = weight
     for i in range(len(weight)):
         if weight[i] is not None:
@@ -36,7 +36,7 @@ def weight_update(SimConfig_path, weight, is_SAF=0, is_Variation=0, is_Rratio=0)
                         if(is_Variation):
                             temp_resistance = np.random.normal(loc=device_resistance[j],
                                                     scale=device_resistance[j] * variation / 100)
-                        value = np.where(value == j, 1/(device_resistance[j]+temp_resistance)/unit_conduntance, value)
+                        value = np.where(value == j, 1/(device_resistance[j]+temp_resistance)*unit_conduntance, value)
                 if (is_SAF):
                     SAF = np.random.random_sample(value.shape)
                     value = np.where(SAF < float(SAF_dist[0] / 100), 0, value)
