@@ -104,9 +104,9 @@ def main():
     # __TestInterface = TrainTestInterface(args.NN, 'MNSIM.Interface.cifar10', args.hardware_description,
     #                                      args.weights, args.device)
     __TestInterface = TrainTestInterface(network_module=args.NN, dataset_module='MNSIM.Interface.cifar10', SimConfig_path=args.hardware_description,
-                                         device=args.device)
+                                         weights_file=args.weights, device=args.device)
     structure_file = __TestInterface.get_structure()
-    weight = __TestInterface.get_net_bits()
+    # weight = __TestInterface.get_net_bits()
     # print(structure_file)
     # print(__TestInterface.origin_evaluate(method = 'FIX_TRAIN', adc_action = 'SCALE'))
     # print(__TestInterface.set_net_bits_evaluate(weight, adc_action = 'SCALE'))
