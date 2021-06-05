@@ -28,7 +28,7 @@ else:
 
 print(f'args is {args}')
 # dataloader
-dataset_module = import_module(args.dataset)
+dataset_module = import_module(f'MNSIM.Interface.{args.dataset}')
 train_loader, test_loader = dataset_module.get_dataloader()
 # net
 net_module = import_module('MNSIM.Interface.network')
@@ -41,8 +41,9 @@ else:
 
 net = net_module.get_net(cate = args.net, num_classes = num_classes)
 # train
-train_module = import_module(args.train)
+train_module = import_module(f'MNSIM.Interface.{args.train}')
 device = torch.device(f'cuda:{args.gpu}' if torch.cuda.is_available() else 'cpu')
+print(f'run on device {device}')
 # weights
 if args.weight is not None:
     print(f'load weights, {args.weight}')

@@ -20,7 +20,7 @@ class TrainTestInterface(object):
         self.network_module = network_module
         self.dataset_module = dataset_module
         self.weights_file = weights_file
-        self.test_loader = import_module(dataset_module).get_dataloader()[1]
+        self.test_loader = None
         # load simconfig
         ## xbar_size, input_bit, weight_bit, quantize_bit
         xbar_config = configparser.ConfigParser()
@@ -74,6 +74,7 @@ class TrainTestInterface(object):
             self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
         else:
             self.device = torch.device('cpu')
+        print(f'run on device {self.device}')
         if dataset_module.endswith('cifar10'):
             num_classes = 10
         elif dataset_module.endswith('cifar100'):
@@ -86,12 +87,11 @@ class TrainTestInterface(object):
             self.hardware_config['xbar_size'] = extra_define['xbar_size']
         self.net = import_module('MNSIM.Interface.network').get_net(self.hardware_config, cate = self.network_module, num_classes = num_classes)
         if weights_file is not None:
+            print(f'load weights from {weights_file}')
             self.net.load_change_weights(torch.load(weights_file, map_location=self.device))
-        # if device != None:
-        #     self.device = torch.device(f'cuda:{device}' if torch.cuda.is_available() else 'cpu')
-        # else:
-        #     self.device = torch.device('cpu')
     def origin_evaluate(self, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
+        if self.test_loader == None:
+            self.test_loader = import_module(self.dataset_module).get_dataloader()[1]
         self.net.to(self.device)
         self.net.eval()
         test_correct = 0
@@ -112,6 +112,8 @@ class TrainTestInterface(object):
         net_bit_weights = self.net.get_weights()
         return net_bit_weights
     def set_net_bits_evaluate(self, net_bit_weights, adc_action = 'SCALE'):
+        if self.test_loader == None:
+            self.test_loader = import_module(self.dataset_module).get_dataloader()[1]
         self.net.to(self.device)
         self.net.eval()
         test_correct = 0
@@ -223,7 +225,7 @@ def mysplit(array, length):
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "SimConfig.ini")
-    __TestInterface = TrainTestInterface('resnet18', 'MNSIM.Interface.cifar10', test_SimConfig_path, None, '2')
-    # print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
-    # print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
+    __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, './MNSIM/Interface/zoo/cifar10_vgg8_params.pth', '7')
+    print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
+    print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
     structure_info = __TestInterface.get_structure()

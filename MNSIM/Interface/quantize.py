@@ -32,9 +32,12 @@ class QuantizeFunction(Function):
             if training:
                 ratio = 0.707
                 tmp = last_value.item()
-                # tmp = ratio * tmp + (1 - ratio) * torch.max(torch.abs(input)).item()
-                tmp = ratio * tmp + (1 - ratio) * \
-                    (3 * torch.std(input).item() + torch.abs(torch.mean(input)).item())
+                if tmp <= 0:
+                    tmp = 3 * torch.std(input).item() + torch.abs(torch.mean(input)).item()
+                else:
+                    # tmp = ratio * tmp + (1 - ratio) * torch.max(torch.abs(input)).item()
+                    tmp = ratio * tmp + (1 - ratio) * \
+                        (3 * torch.std(input).item() + torch.abs(torch.mean(input)).item())
                 last_value.data[0] = tmp
             scale = last_value.data[0]
         else:
@@ -109,9 +112,15 @@ class QuantizeLayer(nn.Module):
             self.split_input = self.hardware_config['xbar_size']
         else:
             assert 0, f'not support {self.layer_config["type"]}'
-        self.last_value = nn.Parameter(torch.ones(1))
+        # self.last_value = nn.Parameter(torch.ones(1))
+        self.register_buffer('last_value', (-1) * torch.ones(1))
         # self.last_value[0] = 1
-        self.bit_scale_list = nn.Parameter(torch.FloatTensor([[9,1],[9,1],[9,1]]))
+        # self.bit_scale_list = nn.Parameter(torch.FloatTensor([[9,1],[9,1],[9,1]]))
+        self.register_buffer('bit_scale_list', torch.FloatTensor([
+            [quantize_config['activation_bit'], -1],
+            [quantize_config['weight_bit'], -1],
+            [quantize_config['activation_bit'], -1]
+        ]))
         # self.bit_scale_list[0, 0] = 9
         # self.bit_scale_list[0, 1] = 1
         # self.bit_scale_list[1, 0] = 9
@@ -150,7 +159,7 @@ class QuantizeLayer(nn.Module):
             assert 0, f'not support {self.layer_config["type"]}'
         self.layer_info['Inputbit'] = int(self.bit_scale_list[0,0].item())
         self.layer_info['Weightbit'] = int(self.quantize_config['weight_bit'])
-        self.layer_info['outputbit'] = int(self.bit_scale_list[2,0].item())
+        self.layer_info['outputbit'] = int(self.quantize_config['activation_bit'])
         self.layer_info['row_split_num'] = len(self.layer_list)
         self.layer_info['weight_cycle'] = math.ceil((self.quantize_config['weight_bit'] - 1) / (self.hardware_config['weight_bit']))
         if 'input_index' in self.layer_config:
@@ -267,7 +276,7 @@ class QuantizeLayer(nn.Module):
                 activation_in_container.append(torch.mul(sign_activation_in, tmp) / base)
                 base = base * step
             # calculation and add
-            point_shift = self.quantize_config['point_shift']
+            point_shift = math.floor(self.quantize_config['point_shift'] + 0.5 * math.log2(len(self.layer_list)))
             Q = self.hardware_config['quantize_bit']
             for i in range(activation_in_cycle):
                 for j in range(weight_cycle):
@@ -373,7 +382,8 @@ class StraightLayer(nn.Module):
             self.layer = EleSumLayer()
         else:
             assert 0, f'not support {self.layer_config["type"]}'
-        self.last_value = nn.Parameter(torch.ones(1))
+        # self.last_value = nn.Parameter(torch.ones(1))
+        self.register_buffer('last_value', torch.ones(1))
         # self.last_value[0] = 1
         self.layer_info = None
     def structure_forward(self, input):

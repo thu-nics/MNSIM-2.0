@@ -12,8 +12,8 @@ tensorboard_writer = None
 
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
-GAMMA = 0.1
-lr = 0.01
+GAMMA = 0.01
+lr = 0.1
 MILESTONES = [30, 60]
 EPOCHS = 90
 
@@ -42,20 +42,7 @@ def train_net(net, train_loader, test_loader, device, prefix):
     # loss and optimizer
     criterion = nn.CrossEntropyLoss()
     # scale's lr and weight_decay set to 0
-    standard_params = []
-    individu_params = []
-    for name, param in net.named_parameters():
-        if not param.is_leaf:
-            raise Exception(f'no leaf tensor for {name}')
-        if (param.size() == torch.Size([1])) or (param.size() == torch.Size([3, 2])):
-            individu_params.append(param)
-        else:
-            standard_params.append(param)
-    optimizer = optim.SGD([
-        {'params': individu_params, 'lr': 0., 'weight_decay': 0.},
-        {'params': standard_params, 'lr': lr, 'weight_decay': WEIGHT_DECAY},
-        ], momentum = MOMENTUM
-    )
+    optimizer = optim.SGD([{'params': net.parameters(), 'lr': lr, 'weight_decay': WEIGHT_DECAY}], momentum = MOMENTUM)
     # optimizer = optim.SGD(net.parameters(), lr = lr, weight_decay = WEIGHT_DECAY, momentum = MOMENTUM)
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones = MILESTONES, gamma = GAMMA)
     # test init
@@ -86,8 +73,6 @@ def eval_net(net, test_loader, epoch, device):
     test_total = 0
     with torch.no_grad():
         for i, (images, labels) in enumerate(test_loader):
-            if i > 10:
-                continue
             images = images.to(device)
             test_total += labels.size(0)
             outputs = net(images, 'FIX_TRAIN')
