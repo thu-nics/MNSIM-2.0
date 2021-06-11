@@ -34,7 +34,7 @@ def weight_update(SimConfig_path, weight, is_SAF=0, is_Variation=0, is_Rratio=0)
                     for j in range(len(device_resistance)):
                         temp_resistance = 0
                         if(is_Variation):
-                            temp_resistance = np.random.normal(loc=device_resistance[j],
+                            temp_resistance = np.random.normal(loc=0,
                                                     scale=device_resistance[j] * variation / 100)
                         value = np.where(value == j, 1/(device_resistance[j]+temp_resistance)*unit_conduntance, value)
                 if (is_SAF):
