@@ -47,7 +47,7 @@ print(f'run on device {device}')
 # weights
 if args.weight is not None:
     print(f'load weights, {args.weight}')
-    net.load_change_weights(torch.load(args.weight))
+    net.load_change_weights(torch.load(args.weight, map_location=device))
     # net.load_state_dict(torch.load(args.weight))
 if args.mode == 'train':
     train_module.train_net(net, train_loader, test_loader, device, args.prefix)
