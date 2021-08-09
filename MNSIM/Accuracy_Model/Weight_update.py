@@ -30,7 +30,7 @@ def weight_update(SimConfig_path, weight, is_SAF=0, is_Variation=0, is_Rratio=0)
         if weight[i] is not None:
             for label, value in weight[i].items():
                 # print(value.shape)
-                if (is_Rratio):
+                if (is_Rratio|is_Variation):
                     for j in range(len(device_resistance)):
                         temp_resistance = 0
                         if(is_Variation):
