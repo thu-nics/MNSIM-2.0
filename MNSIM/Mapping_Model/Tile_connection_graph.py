@@ -208,7 +208,7 @@ def generate_zigzag_matrix(row, column):
 
 
 class TCG():
-    def __init__(self, NetStruct, SimConfig_path, multiple=None):
+    def __init__(self, NetStruct, SimConfig_path, disable_pipeline = False, multiple=None):
         # NetStruct: layer structure, SimConfig_path: Hardware config path, multiple: allocate more resources for some layers
         TCG_config = cp.ConfigParser()
         TCG_config.read(SimConfig_path, encoding='UTF-8')
@@ -230,7 +230,7 @@ class TCG():
         self.mapping_order = -1 * np.ones(self.tile_num)
         self.mapping_result = -1 * np.ones(self.tile_num)
         start_tileid = 0
-        # the start PEid
+        # the start tile id
         # self.trans_time = np.ones([1, self.layer_num])
         self.max_inbuf_size = 0
         # the maximum input buffer size of each PE, unit: KB
@@ -243,7 +243,6 @@ class TCG():
         # the global adder number in accumulator
         self.global_adder_bitwidth = 8
         num = []
-        data = []
         for layer_id in range(self.layer_num):
             layer_dict = self.net[layer_id][0][0]
             tmp_tileinfo = collections.OrderedDict()
@@ -299,7 +298,11 @@ class TCG():
                 input_size_list = list(map(int, layer_dict['Inputsize']))
                 input_size = input_size_list[0] * input_size_list[1]
                 inputchannel = int(layer_dict['Inputchannel'])
-                data_inbuf = input_size_list[1]*int(layer_dict['Kernelsize'])*inputchannel*int(layer_dict['Inputbit'])/8
+                if not disable_pipeline:
+                    data_inbuf = input_size_list[1]*int(layer_dict['Kernelsize'])*inputchannel*int(layer_dict['Inputbit'])/8
+                else:
+                    data_inbuf = input_size*inputchannel*int(layer_dict['Inputbit'])/8
+                # TODO: non-square convolution
                 outputchannel = int(layer_dict['Outputchannel'])
                 data_outbuf = outputchannel*int(layer_dict['outputbit'])/8
                 # buffer_size: unit Byte
@@ -374,7 +377,7 @@ class TCG():
                 input_size_list = list(map(int, layer_dict['Inputsize']))
                 input_size = input_size_list[0] * input_size_list[1]
                 inputchannel = int(layer_dict['Inputchannel'])
-                data_inbuf = 0 #input_size_list[1]*int(layer_dict['Kernelsize'])*inputchannel*int(layer_dict['Inputbit'])
+                data_inbuf = 0 
                 data_outbuf = 0
                     # assume the buffer size depends on the conv/fc layers
             elif layer_type == 'element_sum':
@@ -403,10 +406,8 @@ class TCG():
                 while previous_layer_dict['type'] == 'element_sum':
                     idx = idx+1
                     previous_layer_dict = self.net[layer_id + Inputindex_list[idx]][0][0]
-                previous_output_size = list(map(int, previous_layer_dict['Outputsize']))
                 tmp_tileinfo['datanum_branchout'] = previous_layer_dict['Outputchannel'] #*\
-                    # previous_output_size[0]*previous_output_size[1]
-                # the data number of each branch output
+                # the data number of each branch output, assume the output of each branch contains one output point
                 tmp_tileinfo['bit_branchout'] = previous_layer_dict['outputbit']
                 # the data precision of each branch output (bit)
                 data_size = tmp_tileinfo['datanum_branchout']*tmp_tileinfo['bit_branchout']*len(Inputindex_list)/8
@@ -501,6 +502,7 @@ class TCG():
                         self.inLayer_distance[0][layer_id] = 0
                         self.aggregate_arg[layer_id] = src_pos[0]
                         self.transLayer_distance[0][layer_id] = abs(src_pos[0][0]-1/2*self.tile_num[0]) + src_pos[0][1]
+                        # TODO: transfer distance update between computing array and element sum array
                     else:
                         mindis_total = 1000
                         for A in range(len(src_pos)):

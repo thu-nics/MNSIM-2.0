@@ -110,7 +110,7 @@ def main():
     # print(structure_file)
     # print(__TestInterface.origin_evaluate(method = 'FIX_TRAIN', adc_action = 'SCALE'))
     # print(__TestInterface.set_net_bits_evaluate(weight, adc_action = 'SCALE'))
-    TCG_mapping = TCG(structure_file, args.hardware_description)
+    TCG_mapping = TCG(structure_file, args.hardware_description, args.disable_inner_pipeline)
     # print(TCG_mapping.max_inbuf_size)
     # print(TCG_mapping.max_outbuf_size)
     if not (args.disable_hardware_modeling):

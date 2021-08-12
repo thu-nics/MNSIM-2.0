@@ -138,6 +138,33 @@ class Model_latency():
         self.layer_type = []
         self.layer_split = []
         self.pre_max_time = 0
+    
+    def layer_latency_initial(self):
+        self.begin_time.append([])
+        self.finish_time.append([])
+        self.compute_interval.append([])
+        self.buffer_latency.append([])
+        self.computing_latency.append([])
+        self.DAC_latency.append([])
+        self.xbar_latency.append([])
+        self.ADC_latency.append([])
+        self.buffer_r_latency.append([])
+        self.buffer_w_latency.append([])
+        self.inbuffer_latency.append([])
+        self.outbuffer_latency.append([])
+        self.iReg_latency.append([])
+        self.input_demux_latency.append([])
+        self.output_mux_latency.append([])
+        self.shiftreg_latency.append([])
+        self.adder_latency.append([])
+        self.oReg_latency.append([])
+        self.jointmodule_latency.append([])
+        self.pooling_latency.append([])
+        self.digital_latency.append([])
+        self.intra_tile_latency.append([])
+        self.inter_tile_latency.append([])
+        self.tile_merge_latency.append([])
+        self.tile_transfer_latency.append([])
 
     def Judge(self, last_layer_id ,last_layer_pos, current_layer_id):
         # calculate the position of the most time consuming output of the input layer (used in replicate mode)
@@ -280,29 +307,7 @@ class Model_latency():
             layer_dict = self.NetStruct[layer_id][0][0]
             if layer_id == 0:
                 # for the first layer, first layer must be conv layer
-                self.begin_time.append([])
-                self.finish_time.append([])
-                self.compute_interval.append([])
-
-                self.buffer_latency.append([])
-                self.computing_latency.append([])
-                self.DAC_latency.append([])
-                self.xbar_latency.append([])
-                self.ADC_latency.append([])
-                self.digital_latency.append([])
-                self.iReg_latency.append([])
-                self.input_demux_latency.append([])
-                self.output_mux_latency.append([])
-                self.shiftreg_latency.append([])
-                self.adder_latency.append([])
-                self.jointmodule_latency.append([])
-                self.buffer_r_latency.append([])
-                self.buffer_w_latency.append([])
-                self.pooling_latency.append([])
-                self.intra_tile_latency.append([])
-                self.inter_tile_latency.append([])
-                self.tile_merge_latency.append([])
-                self.tile_transfer_latency.append([])
+                self.layer_latency_initial()
                 output_size = list(map(int, layer_dict['Outputsize']))
                 input_size = list(map(int, layer_dict['Inputsize']))
                 kernelsize = int(layer_dict['Kernelsize'])
@@ -320,19 +325,18 @@ class Model_latency():
                                                           read_column=self.graph.layer_tileinfo[layer_id]['max_column'],
                                                           indata=0, rdata=0, inprecision=inputbit,
                                                           PE_num=self.graph.layer_tileinfo[layer_id]['max_PE'],
-                                                          default_buf_size=self.graph.max_inbuf_size
+                                                          default_inbuf_size=self.graph.max_inbuf_size,
+                                                          default_outbuf_size=self.graph.max_outbuf_size
                                                           )
-                # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
-                #                                                          self.graph.layer_tileinfo[layer_id][
-                #                                                              'max_column'] * outputbit / self.inter_tile_bandwidth)
-                # merge_time = (self.graph.layer_tileinfo[layer_id]['tilenum'] - 1) * temp_tile_latency.digital_period + \
-                #              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id]['max_column'] * \
-                #              outputbit / self.inter_tile_bandwidth
-                merge_time = 0
+                temp_tile_latency.outbuf.calculate_buf_read_latency(rdata = (self.graph.layer_tileinfo[layer_id]['max_column']*
+                                                                             outputbit*self.graph.layer_tileinfo[layer_id]['max_PE']/8))
+                temp_tile_latency.tile_buf_rlatency = temp_tile_latency.outbuf.buf_rlatency
+                merge_time = temp_tile_latency.tile_buf_rlatency+self.graph.inLayer_distance[0][layer_id] * \
+                             (temp_tile_latency.digital_period +self.graph.layer_tileinfo[layer_id]['max_column'] *
+                              self.graph.layer_tileinfo[layer_id]['max_PE'] * outputbit / self.inter_tile_bandwidth)
                 # Todo: update merge time (adder tree) and transfer data volume
-                # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                #             outputchannel * outputbit / self.inter_tile_bandwidth)
-                transfer_time = 0
+                transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                        outputchannel * outputbit / self.inter_tile_bandwidth)
 
                 # Todo: update transfer data volume
                 for i in range(output_size[0]):
@@ -373,29 +377,7 @@ class Model_latency():
                                                     merge_time, transfer_time)
             else:
                 if layer_dict['type'] == 'conv':
-                    self.begin_time.append([])
-                    self.finish_time.append([])
-                    self.compute_interval.append([])
-
-                    self.buffer_latency.append([])
-                    self.computing_latency.append([])
-                    self.DAC_latency.append([])
-                    self.xbar_latency.append([])
-                    self.ADC_latency.append([])
-                    self.digital_latency.append([])
-                    self.iReg_latency.append([])
-                    self.input_demux_latency.append([])
-                    self.output_mux_latency.append([])
-                    self.shiftreg_latency.append([])
-                    self.adder_latency.append([])
-                    self.jointmodule_latency.append([])
-                    self.buffer_r_latency.append([])
-                    self.buffer_w_latency.append([])
-                    self.pooling_latency.append([])
-                    self.intra_tile_latency.append([])
-                    self.inter_tile_latency.append([])
-                    self.tile_merge_latency.append([])
-                    self.tile_transfer_latency.append([])
+                    self.layer_latency_initial()
                     output_size = list(map(int, layer_dict['Outputsize']))
                     input_size = list(map(int, layer_dict['Inputsize']))
                     kernelsize = int(layer_dict['Kernelsize'])
@@ -414,34 +396,25 @@ class Model_latency():
                                                                   'max_column'],
                                                               indata=0, rdata=0, inprecision=inputbit,
                                                               PE_num=self.graph.layer_tileinfo[layer_id]['max_PE'],
-                                                              default_buf_size=self.graph.max_inbuf_size
+                                                              default_inbuf_size=self.graph.max_inbuf_size,
+                                                              default_outbuf_size=self.graph.max_outbuf_size
                                                               )
-                    # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
-                    #                                                          self.graph.layer_tileinfo[layer_id]['max_column'] *
-                    #                                                          outputbit / self.inter_tile_bandwidth)
-                    # merge_time = (self.graph.layer_tileinfo[layer_id][
-                    #                   'tilenum'] - 1) * temp_tile_latency.digital_period + \
-                    #              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
-                    #                  'max_column'] * outputbit / self.inter_tile_bandwidth
-                    merge_time = 0
+                    temp_tile_latency.outbuf.calculate_buf_read_latency(rdata=(self.graph.layer_tileinfo[layer_id]['max_column'] *
+                               outputbit * self.graph.layer_tileinfo[layer_id]['max_PE'] / 8))
+                    temp_tile_latency.tile_buf_rlatency = temp_tile_latency.outbuf.buf_rlatency
+                    merge_time = temp_tile_latency.tile_buf_rlatency + self.graph.inLayer_distance[0][layer_id] * \
+                                 (temp_tile_latency.digital_period + self.graph.layer_tileinfo[layer_id]['max_column'] *
+                                  self.graph.layer_tileinfo[layer_id]['max_PE'] * outputbit / self.inter_tile_bandwidth)
                     # Todo: update merge time (adder tree) and transfer data volume
-                    # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                    #         outputchannel * outputbit / self.inter_tile_bandwidth)
-                    transfer_time = self.Noc_latency[layer_id - 1] / (input_size[0] * input_size[1] * inputbit * inputchannel)
-                    # if layer_id != 0:
-                    #     transfer_time = self.Noc_latency[layer_id - 1] / (
-                    #                 input_size[0] * input_size[1] * inputbit * inputchannel)
-                    # else:
-                    #     transfer_time = 0
+                    transfer_time = self.graph.transLayer_distance[0][layer_id] * (outputchannel * outputbit / self.inter_tile_bandwidth)
                     # Todo: update transfer data volume
-                    last_layer_finish_time = self.finish_time[layer_id - 1][-1]
                     for i in range(output_size[0]):
                         for j in range(output_size[1]):
-                            last_layer_pos = (min(kernelsize + stride * i - padding, input_size[0]) - 1) * input_size[
-                                1] + \
-                                             min(kernelsize + stride * j - padding, input_size[1]) - 1
-                            # last_layer_pos = min((kernelsize + stride * i - padding - 1) * input_size[1] + \
-                            #                  kernelsize + stride * j - padding - 1, len(self.finish_time[layer_id-1])-1)
+                            if kernelsize > 1:
+                                last_layer_pos = (min(max(kernelsize-padding,1) + stride * i, input_size[0]) - 1) * \
+                                                 input_size[1] + min(max(kernelsize-padding,1) + stride * j, input_size[1]) - 1
+                            else:
+                                last_layer_pos = i*stride*input_size[1]+j*stride
                             if last_layer_pos > len(self.finish_time[layer_id - 1]) - 1:
                                 print("pos error", i, j)
                             if (i == 0) & (j == 0):
@@ -452,6 +425,13 @@ class Model_latency():
                                 rdata = self.graph.layer_tileinfo[layer_id]['max_row'] * inputbit / 8
                                 # from the line buffer to the input reg
                                 temp_tile_latency.update_tile_latency(indata=indata, rdata=rdata)
+                                temp_Inputindex = self.graph.layer_tileinfo[layer_id]['Inputindex']
+                                last_layer_finish_time = 0
+                                # the finish time of all the required input data (in all input layers)
+                                for idx in temp_Inputindex:
+                                    tmp_time = self.finish_time[layer_id + idx][-1]
+                                    if tmp_time > last_layer_finish_time:
+                                        last_layer_finish_time = tmp_time
                                 begin_time = last_layer_finish_time
                                 compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + \
                                                begin_time
@@ -486,84 +466,38 @@ class Model_latency():
                     input_size = int(layer_dict['Infeature'])
                     inputbit = int(layer_dict['Inputbit'])
                     outputbit = int(layer_dict['outputbit'])
-                    self.begin_time.append([])
-                    self.finish_time.append([])
-                    self.compute_interval.append([])
-
-                    self.buffer_latency.append([])
-                    self.computing_latency.append([])
-                    self.DAC_latency.append([])
-                    self.xbar_latency.append([])
-                    self.ADC_latency.append([])
-                    self.digital_latency.append([])
-                    self.iReg_latency.append([])
-                    self.input_demux_latency.append([])
-                    self.output_mux_latency.append([])
-                    self.shiftreg_latency.append([])
-                    self.adder_latency.append([])
-                    self.jointmodule_latency.append([])
-                    self.buffer_r_latency.append([])
-                    self.buffer_w_latency.append([])
-                    self.pooling_latency.append([])
-                    self.intra_tile_latency.append([])
-                    self.inter_tile_latency.append([])
-                    self.tile_merge_latency.append([])
-                    self.tile_transfer_latency.append([])
+                    self.layer_latency_initial()
                     indata = self.graph.layer_tileinfo[layer_id]['max_row'] * inputbit / 8
-                    rdata = indata * inputbit / 8
+                    rdata = indata
                     temp_tile_latency = tile_latency_analysis(SimConfig_path=self.SimConfig_path,
-                                                              read_row=self.graph.layer_tileinfo[layer_id]['max_row'],
-                                                              read_column=self.graph.layer_tileinfo[layer_id][
-                                                                  'max_column'],
-                                                              indata=indata, rdata=rdata, inprecision=inputbit,
-                                                              PE_num=self.graph.layer_tileinfo[layer_id]['max_PE'],
-                                                              default_buf_size=self.graph.max_inbuf_size
-                                                              )
-                    # merge_time = self.graph.inLayer_distance[0][layer_id] * (temp_tile_latency.digital_period +
-                    #                                                          self.graph.layer_tileinfo[layer_id]['max_column'] *
-                    #                                                          outputbit / self.inter_tile_bandwidth)
-                    # merge_time = (self.graph.layer_tileinfo[layer_id][
-                    #                   'tilenum'] - 1) * temp_tile_latency.digital_period + \
-                    #              self.graph.inLayer_distance[0][layer_id] * self.graph.layer_tileinfo[layer_id][
-                    #                  'max_column'] * outputbit / self.inter_tile_bandwidth
-                    merge_time = 0
+                                                                  read_row=self.graph.layer_tileinfo[layer_id]['max_row'],
+                                                                  read_column=self.graph.layer_tileinfo[layer_id]['max_column'],
+                                                                  indata=indata, rdata=rdata, inprecision=inputbit,
+                                                                  PE_num=self.graph.layer_tileinfo[layer_id]['max_PE'],
+                                                                  default_inbuf_size=self.graph.max_inbuf_size,
+                                                                  default_outbuf_size=self.graph.max_outbuf_size
+                                                                  )
+                    temp_tile_latency.outbuf.calculate_buf_read_latency(rdata=(self.graph.layer_tileinfo[layer_id]['max_column'] *
+                                   outputbit * self.graph.layer_tileinfo[layer_id]['max_PE'] / 8))
+                    temp_tile_latency.tile_buf_rlatency = temp_tile_latency.outbuf.buf_rlatency
+                    merge_time = temp_tile_latency.tile_buf_rlatency + self.graph.inLayer_distance[0][layer_id] * \
+                                     (temp_tile_latency.digital_period + self.graph.layer_tileinfo[layer_id]['max_column'] *
+                                      self.graph.layer_tileinfo[layer_id]['max_PE'] * outputbit / self.inter_tile_bandwidth)
                     # Todo: update merge time (adder tree) and transfer data volume
-                    # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                    #         output_size * outputbit / self.inter_tile_bandwidth)
-                    if layer_id != 0:
-                        transfer_time = self.Noc_latency[layer_id - 1] / (input_size * inputbit)
-                    else:
-                        transfer_time = 0
-
-                    begin_time = self.finish_time[layer_id - 1][-1]
+                    transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                                    output_size * outputbit / self.inter_tile_bandwidth)
+                    max_prelayer_time = 0
+                    temp_Inputindex = self.graph.layer_tileinfo[layer_id]['Inputindex']
+                    for idx in temp_Inputindex:
+                        tmp_time = self.finish_time[layer_id+idx][-1]
+                        if tmp_time > max_prelayer_time:
+                            max_prelayer_time = tmp_time
+                    begin_time = max_prelayer_time
                     compute_time = temp_tile_latency.tile_latency + merge_time + transfer_time + begin_time
-                    self.pipe_result_update('fc', begin_time, compute_time, layer_id, temp_tile_latency,
-                                            merge_time, transfer_time, output_size)
-                else:
-                    assert layer_dict['type'] == 'pooling', "Layer type can only be conv/fc/pooling"
-                    self.begin_time.append([])
-                    self.finish_time.append([])
-                    self.compute_interval.append([])
-
-                    self.buffer_latency.append([])
-                    self.computing_latency.append([])
-                    self.DAC_latency.append([])
-                    self.xbar_latency.append([])
-                    self.ADC_latency.append([])
-                    self.digital_latency.append([])
-                    self.iReg_latency.append([])
-                    self.input_demux_latency.append([])
-                    self.output_mux_latency.append([])
-                    self.shiftreg_latency.append([])
-                    self.adder_latency.append([])
-                    self.jointmodule_latency.append([])
-                    self.buffer_r_latency.append([])
-                    self.buffer_w_latency.append([])
-                    self.pooling_latency.append([])
-                    self.intra_tile_latency.append([])
-                    self.inter_tile_latency.append([])
-                    self.tile_merge_latency.append([])
-                    self.tile_transfer_latency.append([])
+                    self.pipe_result_update(layer_type='fc', begin_time=begin_time, compute_time=compute_time, layer_id=layer_id,
+                                                temp_tile_latency=temp_tile_latency, merge_time=merge_time, transfer_time=transfer_time, output_size=output_size)
+                elif layer_dict['type'] == 'pooling':
+                    self.layer_latency_initial()
                     output_size = list(map(int, layer_dict['Outputsize']))
                     input_size = list(map(int, layer_dict['Inputsize']))
                     kernelsize = int(layer_dict['Kernelsize'])
@@ -574,16 +508,16 @@ class Model_latency():
                     inputbit = int(layer_dict['Inputbit'])
                     outputbit = int(layer_dict['outputbit'])
                     temp_pooling_latency = pooling_latency_analysis(SimConfig_path=self.SimConfig_path,
-                                                                    indata=0, rdata=0)
-                    merge_time = 0
+                                                                        indata=0, rdata=0, outprecision = outputbit,
+                                                                        default_inbuf_size = self.graph.max_inbuf_size,
+                                                                        default_outbuf_size = self.graph.max_outbuf_size,
+                                                                        default_inchannel = inputchannel, default_size = (kernelsize**2))
+                    temp_pooling_latency.outbuf.calculate_buf_read_latency(rdata=(outputchannel*outputbit/8))
+                    temp_pooling_latency.outbuf_rlatency = temp_pooling_latency.outbuf.buf_rlatency
+                    merge_time = temp_pooling_latency.outbuf_rlatency
                     # Todo: update merge time of pooling tile
-                    # transfer_time = self.graph.transLayer_distance[0][layer_id] * (
-                    #         outputchannel * outputbit / self.inter_tile_bandwidth)
-                    if layer_id != 0:
-                        transfer_time = self.Noc_latency[layer_id - 1] / (
-                                input_size[0] * input_size[1] * inputbit * inputchannel)
-                    else:
-                        transfer_time = 0
+                    transfer_time = self.graph.transLayer_distance[0][layer_id] * (
+                            outputchannel * outputbit / self.inter_tile_bandwidth)
                     # Todo: update transfer data volume
                     for i in range(output_size[0]):
                         for j in range(output_size[1]):
@@ -594,42 +528,75 @@ class Model_latency():
                                 # fill the line buffer
                                 rdata = inputchannel * kernelsize ** 2 * inputbit / 8
                                 # from the line buffer to the input reg
-                                actual_num = indata / inputchannel / (inputbit / 8)
-                                temp_pooling_latency.update_pooling_latency(actual_num=actual_num,
-                                                                            layer_size=kernelsize,
-                                                                            indata=indata, rdata=rdata)
-                                begin_time = self.finish_time[layer_id - 1][-1]
+                                temp_pooling_latency.update_pooling_latency(indata=indata,rdata=rdata)
+                                temp_Inputindex = self.graph.layer_tileinfo[layer_id]['Inputindex']
+                                max_prelayer_time = 0
+                                    # the maximum time of the required input data (in all input layers)
+                                for idx in temp_Inputindex:
+                                    tmp_time = self.finish_time[layer_id + idx][-1]
+                                    if tmp_time > max_prelayer_time:
+                                        max_prelayer_time = tmp_time
+                                begin_time = max_prelayer_time
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
                                                begin_time
-                                self.pipe_result_update('pooling', begin_time, compute_time, layer_id, temp_pooling_latency,
-                                                        merge_time, transfer_time)
+                                self.pipe_result_update(layer_type='pooling', begin_time=begin_time, compute_time=compute_time, layer_id=layer_id,
+                                                        temp_pooling_latency=temp_pooling_latency,merge_time=merge_time,transfer_time=transfer_time)
                             elif j == 0:
                                 indata = inputchannel * stride * max(kernelsize - padding, 0) * inputbit / 8
                                 # line feed in line buffer
                                 rdata = inputchannel * kernelsize ** 2 * inputbit / 8
                                 # from the line buffer to the input reg
-                                actual_num = indata / inputchannel / (inputbit / 8)
-                                temp_pooling_latency.update_pooling_latency(actual_num=actual_num,
-                                                                            layer_size=kernelsize,
-                                                                            indata=indata, rdata=rdata)
+                                temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
                                 begin_time = self.finish_time[layer_id][(i - 1) * output_size[1] + output_size[1] - 1]
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
                                                begin_time
-                                self.pipe_result_update('pooling', begin_time, compute_time, layer_id,
-                                                        temp_pooling_latency,merge_time, transfer_time)
+                                self.pipe_result_update(layer_type='pooling', begin_time=begin_time, compute_time=compute_time, layer_id=layer_id,
+                                                        temp_pooling_latency=temp_pooling_latency,merge_time=merge_time,transfer_time=transfer_time)
                             else:
                                 indata = inputchannel * stride ** 2 * inputbit / 8
                                 # write new input data to line buffer
                                 rdata = stride * kernelsize * inputchannel * inputbit / 8
-                                actual_num = indata / inputchannel / (inputbit / 8)
-                                temp_pooling_latency.update_pooling_latency(actual_num=actual_num,
-                                                                            layer_size=kernelsize,
-                                                                            indata=indata, rdata=rdata)
+                                temp_pooling_latency.update_pooling_latency(indata=indata, rdata=rdata)
                                 begin_time = self.finish_time[layer_id][i * output_size[1] + j - 1]
                                 compute_time = temp_pooling_latency.pooling_latency + merge_time + transfer_time + \
                                                begin_time
-                                self.pipe_result_update('pooling', begin_time, compute_time, layer_id,
-                                                        temp_pooling_latency, merge_time, transfer_time)
+                                self.pipe_result_update(layer_type='pooling', begin_time=begin_time, compute_time=compute_time, layer_id=layer_id,
+                                                        temp_pooling_latency=temp_pooling_latency,merge_time=merge_time,transfer_time=transfer_time)
+                elif layer_dict['type'] == 'element_sum':
+                    self.layer_latency_initial()
+                    Inputindex_list = list(map(int, layer_dict['Inputindex']))
+                    assert len(Inputindex_list) > 1, "the number of element_sum's previous layers must > 1"
+                    idx = 0
+                    previous_layer_dict = self.NetStruct[layer_id + Inputindex_list[0]][0][0]
+                    while previous_layer_dict['type'] == 'element_sum':
+                        idx = idx + 1
+                        previous_layer_dict = self.NetStruct[layer_id + Inputindex_list[idx]][0][0]
+                    output_size = list(map(int, previous_layer_dict['Outputsize']))
+                    input_size = list(map(int, previous_layer_dict['Outputsize']))
+                    self.layer_split.append([input_size[1]])
+                    kernelsize = int(previous_layer_dict['Kernelsize'])
+                    inputchannel = int(previous_layer_dict['Outputchannel'])
+                    outputchannel = int(previous_layer_dict['Outputchannel'])
+                    inputbit = int(previous_layer_dict['outputbit'])
+                    outputbit = int(previous_layer_dict['outputbit'])
+                    merge_time = 0
+                    transfer_time = self.graph.transLayer_distance[0][layer_id]*(outputchannel*outputbit/self.inter_tile_bandwidth)
+                    global_buf = buffer(SimConfig_path=self.SimConfig_path,buf_level=2,default_buf_size=self.graph.global_buf_size)
+                    global_buf.calculate_buf_read_latency(rdata=(len(Inputindex_list)*inputbit*inputchannel/8))
+                    global_buf.calculate_buf_write_latency(wdata=(len(Inputindex_list)*inputbit*inputchannel/8))
+                    for i in range(output_size[0]):
+                        for j in range(output_size[1]):
+                            max_prelayer_time = 0
+                            # the maximum time of the required input data (in all input layers)
+                            for idx in Inputindex_list:
+                                tmp_time = self.finish_time[layer_id+idx][i*input_size[1]+j]
+                                if tmp_time > max_prelayer_time:
+                                    max_prelayer_time = tmp_time
+                            begin_time = max_prelayer_time
+                            compute_time = 10+merge_time+transfer_time+begin_time+global_buf.buf_rlatency+global_buf.buf_wlatency
+                            self.pre_max_time = compute_time
+                            self.pipe_result_update(layer_type='element_sum', begin_time=begin_time, compute_time=compute_time, layer_id=layer_id,
+                                                    global_buf=global_buf, merge_time=merge_time, transfer_time=transfer_time)
             self.compute_interval[layer_id] = merge_interval(self.compute_interval[layer_id])
             temp_runtime = 0
             for l in range(len(self.compute_interval[layer_id])):
@@ -812,32 +779,6 @@ class Model_latency():
         # print("Latency simulation finished!")
         print("Entire latency:", max(max(self.finish_time)), "ns")
 
-    def layer_latency_initial(self):
-        self.begin_time.append([])
-        self.finish_time.append([])
-        self.compute_interval.append([])
-        self.buffer_latency.append([])
-        self.computing_latency.append([])
-        self.DAC_latency.append([])
-        self.xbar_latency.append([])
-        self.ADC_latency.append([])
-        self.buffer_r_latency.append([])
-        self.buffer_w_latency.append([])
-        self.inbuffer_latency.append([])
-        self.outbuffer_latency.append([])
-        self.iReg_latency.append([])
-        self.input_demux_latency.append([])
-        self.output_mux_latency.append([])
-        self.shiftreg_latency.append([])
-        self.adder_latency.append([])
-        self.oReg_latency.append([])
-        self.jointmodule_latency.append([])
-        self.pooling_latency.append([])
-        self.digital_latency.append([])
-        self.intra_tile_latency.append([])
-        self.inter_tile_latency.append([])
-        self.tile_merge_latency.append([])
-        self.tile_transfer_latency.append([])
 
     def calculate_model_latency(self, mode=0):
         '''
