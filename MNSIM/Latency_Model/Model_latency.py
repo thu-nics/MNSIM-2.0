@@ -597,7 +597,6 @@ class Model_latency():
                             self.pre_max_time = compute_time
                             self.pipe_result_update(layer_type='element_sum', begin_time=begin_time, compute_time=compute_time, layer_id=layer_id,
                                                     global_buf=global_buf, merge_time=merge_time, transfer_time=transfer_time)
-            print(layer_id, layer_dict['type'])
             self.compute_interval[layer_id] = merge_interval(self.compute_interval[layer_id])
             temp_runtime = 0
             for l in range(len(self.compute_interval[layer_id])):
