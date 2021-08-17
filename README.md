@@ -1,4 +1,6 @@
 # MNSIM_Python
+**Citation Information**: Zhenhua Zhu, Hanbo Sun, Kaizhong Qiu, Lixue Xia, Gokul Krishnan, Guohao Dai, Dimin Niu, Xiaoming Chen, X. Sharon Hu, Yu Cao, Yuan Xie, Yu Wang, Huazhong Yang,  MNSIM 2.0: A Behavior-Level Modeling Tool for Memristor-based Neuromorphic Computing Systems, in Great Lakes Symposium on VLSI (GLSVLSI), 2020.
+
 Zhenhua Zhu<sup>1*</sup>, Hanbo Sun<sup>1</sup>, Kaizhong Qiu<sup>1</sup>, Lixue Xia<sup>2</sup>, Gokul Krishnan<sup>6</sup>, Dimin Niu<sup>2</sup>, Qiuwen Lou<sup>3</sup>,
 
 Xiaoming Chen<sup>4</sup>, Yuan Xie<sup>2, 5</sup>, Yu Cao<sup>6</sup>, X. Sharon Hu<sup>3</sup>, Yu Wang<sup>1*</sup>, and Huazhong Yang<sup>1</sup>

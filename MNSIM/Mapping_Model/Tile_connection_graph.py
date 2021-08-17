@@ -252,6 +252,7 @@ class TCG():
             else:
                 assert self.xbar_polarity == 2, "Crossbar polarity must be 1 or 2"
                 weight_precision = int(layer_dict['Weightbit']) - 1
+            tmp_tileinfo['weight_precision'] = weight_precision
             tmp_tileinfo['startid'] = start_tileid
             input_size = 0
             inputchannel = 0
@@ -264,9 +265,13 @@ class TCG():
                 tmp_tileinfo['mx'] = math.ceil(weight_precision / self.tile.group_num) * \
                                      math.ceil(int(layer_dict['Outputchannel']) / self.tile.xbar_column)
                 # mx: PE number in x-axis
+                tmp_tileinfo['x_width'] = int(layer_dict['Outputchannel']) * weight_precision
+                # width of kernels
                 tmp_tileinfo['my'] = math.ceil(int(layer_dict['Inputchannel']) /
                                                (self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)))
                 # my: PE number in y-axis
+                tmp_tileinfo['y_height'] = int(layer_dict['Inputchannel']) * (int(layer_dict['Kernelsize']) ** 2)
+                # height of kernels
                 tmp_tileinfo['max_group'] = min(weight_precision, self.tile.group_num)
                 # max_group: maximum used groups in one PE of this layer
                 tmp_tileinfo['max_row'] = min((self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)),
@@ -311,8 +316,12 @@ class TCG():
                 tmp_tileinfo['mx'] = math.ceil(weight_precision / self.tile.group_num) * \
                                      math.ceil(int(layer_dict['Outfeature']) / self.tile.xbar_column)
                 # mx: PE number in x-axis
+                tmp_tileinfo['x_width'] = int(layer_dict['Outfeature']) * weight_precision
+                # width of kernels
                 tmp_tileinfo['my'] = math.ceil(int(layer_dict['Infeature']) / self.tile.xbar_row)
                 # my: PE number in y-axis
+                tmp_tileinfo['y_height'] = int(layer_dict['Infeature'])
+                # height of kernels
                 tmp_tileinfo['max_group'] = min(weight_precision, self.tile.group_num)
                 # max_group: maximum used groups in one PE of this layer
                 tmp_tileinfo['max_row'] = min(int(layer_dict['Infeature']), self.tile.xbar_row)
@@ -350,6 +359,8 @@ class TCG():
                 tmp_tileinfo['type'] = 'pooling'
                 tmp_tileinfo['mx'] = 1
                 tmp_tileinfo['my'] = 1
+                tmp_tileinfo['x_width'] = 0
+                tmp_tileinfo['y_height'] = 0
                 tmp_tileinfo['max_row'] = 0
                 tmp_tileinfo['max_column'] = 0
                 tmp_tileinfo['max_group'] = 0
@@ -384,6 +395,8 @@ class TCG():
                 tmp_tileinfo['type'] = 'element_sum'
                 tmp_tileinfo['mx'] = 0
                 tmp_tileinfo['my'] = 0
+                tmp_tileinfo['x_width'] = 0
+                tmp_tileinfo['y_height'] = 0
                 tmp_tileinfo['max_row'] = 0
                 tmp_tileinfo['max_column'] = 0
                 tmp_tileinfo['max_group'] = 0
