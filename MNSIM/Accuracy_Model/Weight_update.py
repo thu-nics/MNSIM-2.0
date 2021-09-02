@@ -25,7 +25,6 @@ def weight_update(SimConfig_path, weight, is_SAF=0, is_Variation=0, is_Rratio=0)
         interval += 1 / device_resistance[i + 1] - 1 / device_resistance[i]
     interval /= len(device_resistance) - 1
     unit_conduntance = max_value/(1/device_resistance[-1])
-    weight = weight
     for i in range(len(weight)):
         if weight[i] is not None:
             for label, value in weight[i].items():
