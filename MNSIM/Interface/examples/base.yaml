@@ -1,0 +1,7 @@
+# dataset cfg
+dataset_type: cifar10
+dataset_cfg:
+  TRAIN_BATCH_SIZE: 128
+  TRAIN_NUM_WORKERS: 4
+  TEST_BATCH_SIZE: 100
+  TEST_NUM_WORKERS: 4
