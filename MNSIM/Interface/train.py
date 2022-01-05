@@ -13,7 +13,7 @@ tensorboard_writer = None
 MOMENTUM = 0.9
 WEIGHT_DECAY = 0.0005
 GAMMA = 0.01
-lr = 0.1
+lr = 0.05
 MILESTONES = [30, 60]
 EPOCHS = 90
 
@@ -51,7 +51,6 @@ def train_net(net, train_loader, test_loader, device, prefix):
     for epoch in range(EPOCHS):
         # train
         net.train()
-        scheduler.step()
         for i, (images, labels) in enumerate(train_loader):
             net.zero_grad()
             images = images.to(device)
@@ -64,6 +63,7 @@ def train_net(net, train_loader, test_loader, device, prefix):
             tensorboard_writer.add_scalars('train_loss', {'train_loss': loss.item()}, epoch * len(train_loader) + i)
         eval_net(net, test_loader, epoch + 1, device)
         torch.save(net.state_dict(), os.path.join(os.path.dirname(__file__), f'zoo/{prefix}_params.pth'))
+        scheduler.step()
 
 def eval_net(net, test_loader, epoch, device):
     # set net on gpu
