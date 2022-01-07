@@ -440,7 +440,7 @@ class StraightLayer(nn.Module):
         # fix training and single fix test
         if METHOD == 'FIX_TRAIN' or METHOD == 'SINGLE_FIX_TEST':
             output = self.layer(input)
-            if self.layer_config['type'] == 'bn':
+            if self.layer_config['type'] in ["bn", "element_sum"]:
                 output = Quantize(output, self.quantize_config['activation_bit'], 'activation', self.last_value, self.training)
             return output
         assert 0, f'not support {METHOD}'
