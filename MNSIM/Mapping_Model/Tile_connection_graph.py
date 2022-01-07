@@ -17,6 +17,7 @@ import pandas as pd
 
 
 class PE_node():
+    # Obsolete in the current version
     def __init__(self, PE_id=0, ltype='conv', lnum=0):
         # PE_id: the id of PE node, ltype: layer type of this PE, lnum: layer number of this PE
         self.id = PE_id
@@ -35,6 +36,7 @@ class PE_node():
 
 
 class Merge_node():
+    # Obsolete in the current version
     def __init__(self, Merge_id=0, mtype=0, lnum=0):
         # Merge_id: the id of Merge node, mtype: merge type (0: add, 1: concat, 2: pooling)
         self.id = Merge_id
