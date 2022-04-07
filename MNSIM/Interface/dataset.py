@@ -19,6 +19,20 @@ import torchvision
 import torchvision.transforms as Transforms
 from MNSIM.Interface.utils.component import Component
 
+def check_move_dataset(interface_path, dataset_path, name):
+    """
+    copy origin path in interface to target path in dataset
+    """
+    origin_path = os.path.join(interface_path, name)
+    target_path = os.path.join(dataset_path, name)
+    if name is None:
+        raise Exception("name should not be None")
+    if os.path.exists(target_path):
+        return target_path
+    if os.path.exists(origin_path):
+        # cp to target path
+        shutil.copytree(origin_path, target_path)
+    return target_path
 
 class ClassificationBaseDataset(Component):
     """
@@ -32,25 +46,10 @@ class ClassificationBaseDataset(Component):
         interface_path = os.path.dirname(__file__)
         dataset_path = os.path.join(interface_path, "dataset")
         self.target_path = \
-            self.__check_move_dataset(
+            check_move_dataset(
                 interface_path, dataset_path, getattr(self, "NAME", None)
             )
         self.dataset_ini = copy.deepcopy(dataset_ini)
-
-    def __check_move_dataset(self, interface_path, dataset_path, name):
-        """
-        copy origin path in interface to target path in dataset
-        """
-        origin_path = os.path.join(interface_path, name)
-        target_path = os.path.join(dataset_path, name)
-        if name is None:
-            pass
-        elif os.path.exists(target_path):
-            pass
-        elif os.path.exists(origin_path):
-            # cp to target path
-            shutil.copytree(origin_path, target_path)
-        return target_path
 
     def get_dataset(self, dataset_type, dataset_property, dataset_cls):
         """
