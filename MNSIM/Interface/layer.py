@@ -112,8 +112,10 @@ class BaseLayer(nn.Module, Component):
         Component.__init__(self)
         # copy layer_ini and set buffer_list, init layer info
         self.layer_ini = copy.deepcopy(layer_ini)
-        self.layer_info = None
+        self.layer_info = {}
         self.set_buffer_list()
+        # log
+        self.logger.info(f"init {self.__class__} layer by \n {layer_ini}")
 
     def set_buffer_list(self):
         """
@@ -142,10 +144,12 @@ class BaseLayer(nn.Module, Component):
         self.layer_info["Weightbit"] = int(self.bit_scale_list[1,0].item())
         self.layer_info["outputbit"] = int(self.bit_scale_list[2,0].item())
         self.layer_info["type"] = self.layer_ini["layer"]["type"]
-        self.layer_info["Inputindex"] = \
-            self.layer_ini["layer"].get("input)index", [-1])
-        self.layer_info["Outputindex"] = [-1]
+        self.layer_info["Inputindex"] = self.get_input_index()
+        self.layer_info["Outputindex"] = [1]
         return output
+
+    def get_input_index(self):
+        return self.layer_ini["layer"].get("input_index", [-1])
 
     @abc.abstractmethod
     def forward(self, inputs, method="SINGLE_FIX_TEST", input_config=None):
@@ -153,6 +157,14 @@ class BaseLayer(nn.Module, Component):
         forward function under method and input_config
         input_config is for the bit_scale list for the inputs
         """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_quantize_weight_bit_list(self):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def set_weights_forward(self, inputs, quantize_weight_bit_list, input_config=None):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -235,9 +247,8 @@ class BaseWeightLayer(BaseLayer):
         if method == "SINGLE_FIX_TEST":
             assert not self.training, "method is SINGLE_FIX_TEST, but now is training"
             assert input_config is not None, "method is SINGLE_FIX_TEST, but input_config is None"
-            self.bit_scale_list[0].copy_(input_config[0]) # for weight_layer, only be one input
             quantize_weight_bit_list = self.get_quantize_weight_bit_list()
-            quantize_output = self.set_weights_forward(inputs, quantize_weight_bit_list)
+            quantize_output = self.set_weights_forward(inputs, quantize_weight_bit_list, input_config)
             return quantize_output
         assert False, "method should be TRADITION, FIX_TRAIN or SINGLE_FIX_TEST"
 
@@ -254,11 +265,12 @@ class BaseWeightLayer(BaseLayer):
         ]
         return quantize_weight_bit_list
 
-    def set_weights_forward(self, inputs, quantize_weight_bit_list):
+    def set_weights_forward(self, inputs, quantize_weight_bit_list, input_config=None):
         """
         set weights forward
         """
         assert not self.training, "function is set_weights_forward, but training"
+        self.bit_scale_list[0].copy_(input_config[0]) # for weight_layer, only be one input
         input_list = torch.split(inputs, self.input_split_num, dim=1)
         # for weight info
         weight_cycle = _get_cycle(
@@ -444,6 +456,19 @@ class BaseTransferLayer(BaseLayer):
         self.bit_scale_list[2,1] = self.bit_scale_list[0,1]
         return output
 
+    def get_quantize_weight_bit_list(self):
+        """
+        get quantize weight bit list
+        """
+        return None
+
+    def set_weights_forward(self, inputs, quantize_weight_bit_list, input_config=None):
+        """
+        set weights forward
+        """
+        assert not self.training, "function is set_weights_forward, but training"
+        self.forward(self, inputs, "SINGLE_FIX_TEST", input_config)
+
 class QuantizeBN(BaseTransferLayer):
     """
     quantize bn layer
@@ -470,9 +495,15 @@ class QuantizeBN(BaseTransferLayer):
         self.layer_info["features"] = self.layer_ini["layer"]["num_features"]
 
 class EleSumLayer(nn.Module):
+    """
+    element sum layer
+    """
     def __init__(self):
         super(EleSumLayer, self).__init__()
     def forward(self, x):
+        """
+        forward for this layer
+        """
         return x[0] + x[1]
 
 class QuantizeEleSum(BaseTransferLayer):

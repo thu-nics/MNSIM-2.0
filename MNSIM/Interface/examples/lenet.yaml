@@ -1,0 +1,47 @@
+name: lenet
+hardware_config:
+  cell_bit: 1
+  dac_bit: 2
+  adc_bit: 10
+  xbar_row: 512
+  point_shift: -2
+quantize_config:
+  input: 9
+  weight: 9
+  output: 9
+layer_config:
+  conv_add_bn: true
+  input_index:
+    - -1
+model_config:
+  - type: conv
+    in_channels: 3
+    out_channels: 6
+    kernel_size: 5
+  - type: relu
+  - type: pooling
+    kernel_size: 2
+    stride: 2
+  - type: conv
+    in_channels: 6
+    out_channels: 16
+    kernel_size: 5
+  - type: relu
+  - type: pooling
+    kernel_size: 2
+    stride: 2
+  - type: conv
+    in_channels: 16
+    out_channels: 120
+    kernel_size: 5
+  - type: relu
+  - type: view
+  - type: fc
+    in_features: 120
+    out_features: 84
+  - type: dropout
+    p: 0.5
+  - type: relu
+  - type: fc
+    in_features: 84
+    out_features: 10
