@@ -114,10 +114,10 @@ class BaseWeightLayer(nn.Module, Component):
         self.layer_list = None
         self.partial_func = None
         # get module and buffer list
-        self.get_module_list()
-        self.get_buffer_list()
+        self.set_module_list()
+        self.set_buffer_list()
 
-    def get_module_list(self):
+    def set_module_list(self):
         """
         get module list for this layer
         """
@@ -128,7 +128,7 @@ class BaseWeightLayer(nn.Module, Component):
             layer_cls(**layer_config) for layer_config in layer_config_list
         ])
 
-    def get_buffer_list(self):
+    def set_buffer_list(self):
         """
         get buffer list for this layer
         """
