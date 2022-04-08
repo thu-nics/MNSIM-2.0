@@ -15,11 +15,22 @@ import functools
 import math
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from MNSIM.Interface.utils.component import Component
+from torch import nn
 from torch.autograd import Function
+from MNSIM.Interface.utils.component import Component
 
+def _get_thres(bit_width):
+    """
+    get threshold for quantize
+    """
+    return 2 ** (bit_width - 1) - 1
+
+def _get_cycle(bit_width, bit_split):
+    """
+    get bit cycle
+    """
+    return math.ceil((bit_width - 1) / bit_split)
 
 class QuantizeFunction(Function):
     """
@@ -27,7 +38,7 @@ class QuantizeFunction(Function):
     """
     RATIO = 0.707
     @staticmethod
-    def forward(ctx, input, quantize_cfg, last_bit_scale):
+    def forward(ctx, inputs, quantize_cfg, last_bit_scale):
         """
         forward function
         quantize_cfg: mode, phase, bit
@@ -35,11 +46,11 @@ class QuantizeFunction(Function):
         """
         # get scale
         if quantize_cfg["mode"] == "weight":
-            scale = torch.max(torch.abs(input)).item()
+            scale = torch.max(torch.abs(inputs)).item()
         elif quantize_cfg["mode"] == "activation":
-            r_scale = last_bit_scale[1].item() * (2**(last_bit_scale[0].item()-1)-1)
+            r_scale = last_bit_scale[1].item() * _get_thres(last_bit_scale[0].item())
             if quantize_cfg["phase"] == "train":
-                t_scale = (3*torch.std(input) + torch.abs(torch.mean(input))).item()
+                t_scale = (3*torch.std(inputs) + torch.abs(torch.mean(inputs))).item()
                 if r_scale <= 0:
                     scale = t_scale
                 else:
@@ -53,8 +64,8 @@ class QuantizeFunction(Function):
             assert False, "mode should be weight or activation"
         # quantize
         bit = quantize_cfg["bit"]
-        thres = 2 ** (bit - 1) - 1
-        output = input / (scale / thres)
+        thres = _get_thres(bit)
+        output = inputs / (scale / thres)
         output = torch.clamp(torch.round(output), min=-thres, max=thres)
         output = output / (thres / scale)
         # save bit and scale, output
@@ -71,12 +82,12 @@ def split_by_bit(tensor, scale, bit_width, bit_split):
     """
     split tensor with scale and bit_width to bit_split
     """
-    weight_cycle = math.ceil((bit_width - 1) / bit_split) # weight cycle
-    thres = 2 ** (bit_width - 1) - 1
-    quantize_tensor = torch.clamp(torch.round(tensor / scale), -thres, thres)
+    weight_cycle = _get_cycle(bit_width, bit_split) # weight cycle
+    thres = _get_thres(bit_width) # threshold
+    quantize_tensor = torch.clamp(torch.round(tensor / scale), min=-thres, max=thres)
     # split
-    sign_tensor = torch.sign(tensor)
-    abs_tensor = torch.abs(tensor)
+    sign_tensor = torch.sign(quantize_tensor)
+    abs_tensor = torch.abs(quantize_tensor)
     # traverse every bit_split
     t_weight = [0] + \
         [torch.fmod(abs_tensor, 2**(bit_split*(i+1))) for i in range(weight_cycle-1)] + \
@@ -96,11 +107,15 @@ class BaseWeightLayer(nn.Module, Component):
         nn.Module.__init__(self)
         Component.__init__(self)
         # super(BaseWeightLayer, self).__init__()
-        # copy layer_ini and get module and buffer list
+        # copy layer_ini
         self.layer_ini = copy.deepcopy(layer_ini)
+        # init attr
+        self.input_split_num = None
+        self.layer_list = None
+        self.partial_func = None
+        # get module and buffer list
         self.get_module_list()
         self.get_buffer_list()
-        self.input_config = None
 
     def get_module_list(self):
         """
@@ -131,14 +146,14 @@ class BaseWeightLayer(nn.Module, Component):
         """
         raise NotImplementedError
 
-    def forward(self, input, method="SINGLE_FIX_TEST", input_config=None):
+    def forward(self, inputs, method="SINGLE_FIX_TEST", input_config=None):
         """
         forward for this layer
         """
         # different pass for different method
         # for method is TRADITION, we use traditional forward
         if method == "TRADITION":
-            input_list = torch.split(input, self.input_split_num, dim=1)
+            input_list = torch.split(inputs, self.input_split_num, dim=1)
             output_list = [l(v) for l, v in zip(self.layer_list, input_list)]
             return torch.sum(torch.stack(output_list, dim=0), dim=0)
         # for method is FIX_TRAIN, we use fix train forward
@@ -149,7 +164,7 @@ class BaseWeightLayer(nn.Module, Component):
                 "phase": None,
                 "bit": self.bit_scale_list[1, 0].item()
             }, self.bit_scale_list[1])
-            output = self.partial_func(input, quantize_weight)
+            output = self.partial_func(inputs, quantize_weight)
             quantize_output = Quantize(output, {
                 "mode": "activation",
                 "phase": "train" if self.training else "test",
@@ -158,11 +173,11 @@ class BaseWeightLayer(nn.Module, Component):
             return quantize_output
         # for method is SINGLE_FIX_TEST, we get weight and set weight forward
         if method == "SINGLE_FIX_TEST":
-            assert not self.training, "method is SINGLE_FIX_TEST, but training"
+            assert not self.training, "method is SINGLE_FIX_TEST, but now is training"
             assert input_config is not None, "method is SINGLE_FIX_TEST, but input_config is None"
-            self.input_config = input_config
+            self.bit_scale_list[0].copy_(input_config[0]) # for weight_layer, only be one input
             quantize_weight_bit_list = self.get_quantize_weight_bit_list()
-            quantize_output = self.set_weights_forward(input, quantize_weight_bit_list)
+            quantize_output = self.set_weights_forward(inputs, quantize_weight_bit_list)
             return quantize_output
         assert False, "method should be TRADITION, FIX_TRAIN or SINGLE_FIX_TEST"
 
@@ -179,30 +194,39 @@ class BaseWeightLayer(nn.Module, Component):
         ]
         return quantize_weight_bit_list
 
-    def set_weights_forward(self, input, quantize_weight_bit_list):
+    def set_weights_forward(self, inputs, quantize_weight_bit_list):
         """
         set weights forward
         """
         assert not self.training, "function is set_weights_forward, but training"
-        input_list = torch.split(input, self.input_split_num, dim=1)
+        input_list = torch.split(inputs, self.input_split_num, dim=1)
         # for weight info
-        weight_cycle = math.ceil((self.bit_scale_list[1, 0].item()-1)/self.layer_ini["hardware"]["cell_bit"])
+        weight_cycle = _get_cycle(
+            self.bit_scale_list[1, 0].item(),
+            self.layer_ini["hardware"]["cell_bit"]
+        )
         # for input activation info
-        input_cycle = math.ceil((self.input_config[0][0].item()-1)/self.layer_ini["hardware"]["dac_bit"])
+        input_cycle = _get_cycle(
+            self.bit_scale_list[0, 0].item(),
+            self.layer_ini["hardware"]["dac_bit"]
+        )
         # for output activation info
         Q = self.layer_ini["hardware"]["adc_bit"]
         pf = self.layer_ini["hardware"]["point_shift"]
-        output_scale = self.bit_scale_list[2, 1].item() * (2**(self.bit_scale_list[2, 0]-1)-1)
-        mul_scale = self.bit_scale_list[2, 1].item() * self.input_config[0][1].item() * \
-            (2 ** ((weight_cycle-1)*self.layer_ini["hardware"]["cell_bit"]+(input_cycle-1)*self.layer_ini["hardware"]["dac_bit"]))
+        output_scale = self.bit_scale_list[2, 1].item() * \
+            _get_thres(self.bit_scale_list[2, 0].item())
+        mul_scale = self.bit_scale_list[1, 1].item() * self.bit_scale_list[0, 1].item() * \
+            (2 ** ((weight_cycle - 1)*self.layer_ini["hardware"]["cell_bit"])) * \
+            (2 ** ((input_cycle - 1)*self.layer_ini["hardware"]["dac_bit"]))
         transfer_scale = 2 ** (pf + Q - 1)
-        output_thres = 2 ** (Q - 1) - 1
+        output_thres = _get_thres(Q)
         # accumulate output for layer, weight_cycle and input_cycle
         output_list = []
         for layer_num, module_weight_bit_list in enumerate(quantize_weight_bit_list):
             # for every module
             input_activation_bit_list = split_by_bit(input_list[layer_num], \
-                self.input_config[0][0], self.input_config[0][1], self.layer_ini["hardware"]["dac_bit"],
+                self.bit_scale_list[0, 1].item(), self.bit_scale_list[0, 0].item(),
+                self.layer_ini["hardware"]["dac_bit"],
             )
             # for every weight cycle and input cycle
             for i in range(input_cycle):
@@ -219,7 +243,7 @@ class BaseWeightLayer(nn.Module, Component):
         # sum output
         output = torch.sum(torch.stack(output_list, dim=0), dim=0)
         # quantize output
-        output_thres = 2 ** (self.bit_scale_list[2, 0].item() - 1) - 1
+        output_thres = _get_thres(self.bit_scale_list[2, 0].item())
         output = torch.clamp(torch.round(output*output_thres), min=-output_thres, max=output_thres)
         return output / (output_thres / output_scale)
 
