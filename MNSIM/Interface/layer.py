@@ -330,8 +330,9 @@ class BaseWeightLayer(BaseLayer):
         target_weight = {}
         # scale list
         target_weight["bit_scale_list"] = origin_weight["bit_scale_list"]
-        target_weight["bit_scale_list"][2, 1] = origin_weight["last_value"] / \
-            _get_thres(origin_weight["bit_scale_list"][2,0].item())
+        if "last_value" in origin_weight.keys():
+            target_weight["bit_scale_list"][2, 1] = origin_weight["last_value"] / \
+                _get_thres(origin_weight["bit_scale_list"][2,0].item())
         # split weight
         total_weight = torch.cat([
             v for k, v in origin_weight.items()
@@ -387,9 +388,9 @@ class QuantizeConv(BaseWeightLayer):
         output_shape = output.shape
         self.layer_info["Inputchannel"] = int(input_shape[1])
         self.layer_info["Inputsize"] = list(input_shape[2:])
-        self.layer_info["Kernelsize"] = self.layer_ini["layer"]["kernel_size"]
-        self.layer_info["Stride"] = self.layer_ini["layer"].get("stride", 1)
-        self.layer_info["Padding"] = self.layer_ini["layer"].get("padding", 0)
+        self.layer_info["Kernelsize"] = self.layer_list[0].kernel_size[0]
+        self.layer_info["Stride"] = self.layer_list[0].stride[0]
+        self.layer_info["Padding"] = self.layer_list[0].padding[0]
         self.layer_info["Outputchannel"] = int(output_shape[1])
         self.layer_info["Outputsize"] = list(output_shape[2:])
 
@@ -490,7 +491,7 @@ class BaseTransferLayer(BaseLayer):
         set weights forward
         """
         assert not self.training, "function is set_weights_forward, but training"
-        self.forward(self, inputs, "SINGLE_FIX_TEST", input_config)
+        return self.forward(inputs, "SINGLE_FIX_TEST", input_config)
 
     def load_change_weights(self, origin_weight):
         target_weight = {}
@@ -500,8 +501,9 @@ class BaseTransferLayer(BaseLayer):
             [self.layer_ini["quantize"]["weight"], -1],
             [self.layer_ini["quantize"]["output"], -1],
         ])
-        target_weight["bit_scale_list"][2, 1] = origin_weight["last_value"] / \
-            _get_thres(self.layer_ini["quantize"]["output"])
+        if "last_value" in origin_weight.keys():
+            target_weight["bit_scale_list"][2, 1] = origin_weight["last_value"] / \
+                _get_thres(self.layer_ini["quantize"]["output"])
         # other
         for k, v in origin_weight.items():
             if k not in ["bit_scale_list", "last_value"]:
@@ -586,9 +588,9 @@ class QuantizePooling(BaseTransferLayer):
         output_shape = output.shape
         self.layer_info["Inputchannel"] = int(input_shape[1])
         self.layer_info["Inputsize"] = list(input_shape)[2:]
-        self.layer_info["Kernelsize"] = self.layer.kernel_size[0]
-        self.layer_info["Stride"] = self.layer.stride[0]
-        self.layer_info["Padding"] = self.layer.padding[0]
+        self.layer_info["Kernelsize"] = self.layer.kernel_size
+        self.layer_info["Stride"] = self.layer.stride
+        self.layer_info["Padding"] = self.layer.padding
         self.layer_info["Outputchannel"] = int(output_shape[1])
         self.layer_info["Outputsize"] = list(output_shape)[2:]
 

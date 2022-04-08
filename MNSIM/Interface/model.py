@@ -37,11 +37,12 @@ class BaseModel(nn.Module, Component):
     This class is used to define the base model
     """
     REGISTRY = "model"
-    def __init__(self, layer_ini_list, dataset_info):
+    def __init__(self, model_config_path, dataset_info):
         # Initialize the super class
         nn.Module.__init__(self)
         Component.__init__(self)
         # Initialize the layer list
+        layer_ini_list = self.get_layer_ini_list(model_config_path)
         self.layer_list = nn.ModuleList([
             BaseLayer.get_class_(layer_ini["layer"]["type"])(layer_ini)
             for layer_ini in layer_ini_list
@@ -52,7 +53,7 @@ class BaseModel(nn.Module, Component):
         self.input_config_list[0] = dataset_info["bit_scale"]
         self.dataset_shape = dataset_info["shape"]
         # logger
-        self.logger.info(f"Initialize the model with {len(self.layer_list)} layers")
+        self.logger.info(f"initialize the model with {len(self.layer_list)} layers")
 
     @abc.abstractmethod
     def get_layer_ini_list(self, config_path):
@@ -195,9 +196,5 @@ class Model(BaseModel):
     This class is used to define the model based on yaml config
     """
     NAME = "yaml"
-    def __init__(self, model_config_path, dataset_info):
-        layer_ini_list = self.get_layer_ini_list(model_config_path)
-        super().__init__(layer_ini_list, dataset_info)
-
     def get_layer_ini_list(self, config_path):
         return format_yaml(config_path)
