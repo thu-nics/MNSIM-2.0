@@ -51,6 +51,8 @@ class BaseModel(nn.Module, Component):
         self.input_config_list = [None] * (len(self.layer_list) + 1)
         self.input_config_list[0] = dataset_info["bit_scale"]
         self.dataset_shape = dataset_info["shape"]
+        # logger
+        self.logger.info(f"Initialize the model with {len(self.layer_list)} layers")
 
     @abc.abstractmethod
     def get_layer_ini_list(self, config_path):
