@@ -181,6 +181,13 @@ class BaseLayer(nn.Module, Component):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def load_change_weights(self, origin_weight):
+        """
+        load change weights from origin_weight
+        """
+        raise NotImplementedError
+
 
 class BaseWeightLayer(BaseLayer):
     """
@@ -318,6 +325,22 @@ class BaseWeightLayer(BaseLayer):
         output_thres = _get_thres(self.bit_scale_list[2,0].item())
         output = torch.clamp(torch.round(output*output_thres), min=-output_thres, max=output_thres)
         return output / (output_thres / output_scale)
+
+    def load_change_weights(self, origin_weight):
+        target_weight = {}
+        # scale list
+        target_weight["bit_scale_list"] = origin_weight["bit_scale_list"]
+        target_weight["bit_scale_list"][2, 1] = origin_weight["last_value"] / \
+            _get_thres(origin_weight["bit_scale_list"][2,0].item())
+        # split weight
+        total_weight = torch.cat([
+            v for k, v in origin_weight.items()
+            if k.startswith("layer_list")
+        ])
+        weight_list = torch.split(total_weight, self.input_split_num, dim=1)
+        for i, weight in enumerate(weight_list):
+            target_weight["layer_list.{}.weight".format(i)] = weight
+        self.load_state_dict(target_weight)
 
 
 def split_by_num(num, base):
@@ -468,6 +491,22 @@ class BaseTransferLayer(BaseLayer):
         """
         assert not self.training, "function is set_weights_forward, but training"
         self.forward(self, inputs, "SINGLE_FIX_TEST", input_config)
+
+    def load_change_weights(self, origin_weight):
+        target_weight = {}
+        # scale list
+        target_weight["bit_scale_list"] = torch.FloatTensor([
+            [self.layer_ini["quantize"]["input"], -1],
+            [self.layer_ini["quantize"]["weight"], -1],
+            [self.layer_ini["quantize"]["output"], -1],
+        ])
+        target_weight["bit_scale_list"][2, 1] = origin_weight["last_value"] / \
+            _get_thres(self.layer_ini["quantize"]["output"])
+        # other
+        for k, v in origin_weight.items():
+            if k not in ["bit_scale_list", "last_value"]:
+                target_weight[k] = v
+        self.load_state_dict(target_weight)
 
 class QuantizeBN(BaseTransferLayer):
     """

@@ -27,6 +27,7 @@ def traverse(self, inputs, func):
     self.tensor_list[0] = inputs
     for i, layer in enumerate(self.layer_list):
         t_input = [self.tensor_list[i+1+j] for j in layer.get_input_index()]
+        t_input = t_input[0] if len(t_input) == 1 else t_input
         t_input_config = [self.input_config_list[i+1+j] for j in layer.get_input_index()]
         self.tensor_list[i+1] = func(layer, t_input, t_input_config, i)
         self.input_config_list[i+1] = layer.bit_scale_list[2]
@@ -41,10 +42,10 @@ class BaseModel(nn.Module, Component):
         nn.Module.__init__(self)
         Component.__init__(self)
         # Initialize the layer list
-        self.layer_list = [
+        self.layer_list = nn.ModuleList([
             BaseLayer.get_class_(layer_ini["layer"]["type"])(layer_ini)
             for layer_ini in layer_ini_list
-        ]
+        ])
         # multi for input, and each for output
         self.tensor_list = [None] * (len(self.layer_list) + 1)
         self.input_config_list = [None] * (len(self.layer_list) + 1)
@@ -99,7 +100,13 @@ class BaseModel(nn.Module, Component):
         """
         This function is used to load the weights of the network
         """
-        pass
+        for i, layer in enumerate(self.layer_list):
+            prefix = f"layer_list.{i}."
+            origin_weight = dict([(k[len(prefix):], v)
+                for k, v in state_dict.items()
+                if k.startswith(prefix)
+            ])
+            layer.load_change_weights(origin_weight)
 
 def update_config(base, config):
     """

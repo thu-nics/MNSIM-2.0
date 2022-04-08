@@ -14,6 +14,7 @@ import copy
 import os
 import shutil
 
+import torch
 import torch.utils.data as Data
 import torchvision
 import torchvision.transforms as Transforms
@@ -112,6 +113,13 @@ class ClassificationBaseDataset(Component):
         """
         pass
 
+    @abc.abstractmethod
+    def get_dataset_info(self):
+        """
+        return dataset info
+        """
+        raise NotImplementedError
+
 class CIFAR10(ClassificationBaseDataset):
     """
     cifar10 dataset, name and config
@@ -172,6 +180,13 @@ class CIFAR10(ClassificationBaseDataset):
 
     def get_num_classes(self):
         return 10
+
+    def get_dataset_info(self):
+        dataset_info = {
+            "bit_scale": torch.FloatTensor([9, 1/255.]),
+            "shape": (1, 3, 32, 32)
+        }
+        return dataset_info
 
 class CIFAR100(CIFAR10):
     """
