@@ -113,34 +113,36 @@ class BaseLayer(nn.Module, Component):
         # copy layer_ini and set buffer_list, init layer info
         self.layer_ini = copy.deepcopy(layer_ini)
         self.layer_info = {}
-        self.set_buffer_list()
+        self.__set_buffer_list()
         # log
-        self.logger.info(f"init {self.__class__} layer by \n {layer_ini}")
+        self.logger.info(f"init {self.__class__} layer as {layer_ini['layer']['type']}")
 
-    def set_buffer_list(self):
+    def __set_buffer_list(self):
         """
         set buffer list for this layer
         input, weight, output; bit_width, bit_scale
         """
         # set buffer list
         self.register_buffer("bit_scale_list", torch.FloatTensor([
-            [self.layer_ini["quantize"]["input"], -1],
+            [float("nan"), -1],
             [self.layer_ini["quantize"]["weight"], -1],
             [self.layer_ini["quantize"]["output"], -1],
         ]))
 
-    def structure_forward(self, inputs):
+    def structure_forward(self, inputs, inputs_bit_scale_list):
         """
         forward for only one simple pass to get input shape and output shape
         """
-        # forward by tradition method and input_config is None
-        output = self.forward(inputs, method="TRADITION", input_config=None)
-        # get layer info about input, output and type
-        self.get_part_structure(inputs, output)
+        assert len(inputs) == len(inputs_bit_scale_list), \
+            "inputs and inputs_bit_scale_list should have same length"
+        # forward by tradition method and inputs_bit_scale_list is None
+        output = self.forward(inputs, method="TRADITION", inputs_bit_scale_list=None)
         # other info
         self.get_general_structure()
+        # get layer info about input, output and type
+        self.get_part_structure(inputs, output)
         # quantize info
-        self.layer_info["Inputbit"] = int(self.bit_scale_list[0,0].item())
+        self.layer_info["Inputbit"] = int(inputs_bit_scale_list[0][0].item()) # TODO: how to change for ele_sum
         self.layer_info["Weightbit"] = int(self.bit_scale_list[1,0].item())
         self.layer_info["outputbit"] = int(self.bit_scale_list[2,0].item())
         self.layer_info["type"] = self.layer_ini["layer"]["type"]
@@ -152,10 +154,10 @@ class BaseLayer(nn.Module, Component):
         return self.layer_ini["layer"].get("input_index", [-1])
 
     @abc.abstractmethod
-    def forward(self, inputs, method="SINGLE_FIX_TEST", input_config=None):
+    def forward(self, inputs, method="SINGLE_FIX_TEST", inputs_bit_scale_list=None):
         """
-        forward function under method and input_config
-        input_config is for the bit_scale list for the inputs
+        forward function under method and inputs_bit_scale_list
+        inputs_bit_scale_list is for the bit_scale list for the inputs
         """
         raise NotImplementedError
 
@@ -164,13 +166,13 @@ class BaseLayer(nn.Module, Component):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def set_weights_forward(self, inputs, quantize_weight_bit_list, input_config=None):
+    def set_weights_forward(self, inputs, quantize_weight_bit_list, inputs_bit_scale_list):
         raise NotImplementedError
 
     @abc.abstractmethod
     def get_general_structure(self):
         """
-        get general structure of this layer, row_split_num and others
+        get general structure of this layer, row_split_num and others for WeightLayer
         """
         raise NotImplementedError
 
@@ -188,6 +190,54 @@ class BaseLayer(nn.Module, Component):
         """
         raise NotImplementedError
 
+def transfer_inputs(inputs):
+    """
+    transfer inputs to other type
+    """
+    if len(inputs) == 1:
+        inputs = inputs[0]
+    elif len(inputs) == 2:
+        pass
+    else:
+        assert False, "inputs should be length 1 or 2"
+    return inputs
+
+def declare_forward(func):
+    """
+    check inputs and inputs_bit_scale_list under different method
+    transfer inputs from list to other type
+    """
+    @functools.wraps(func)
+    def wrapper(self, inputs, method="SINGLE_FIX_TEST", inputs_bit_scale_list=None):
+        # change inputs into type list
+        inputs = inputs if type(inputs) == list else [inputs]
+        # check for the same length
+        if inputs_bit_scale_list is not None:
+            assert len(inputs_bit_scale_list) == len(inputs), \
+                "inputs_bit_scale_list should be same length as inputs"
+        # check under different method
+        if method in ["FIX_TRAIN", "SINGLE_FIX_TEST"]:
+            assert inputs_bit_scale_list is not None, \
+                "inputs_bit_scale_list should not be None when method is FIX_TRAIN or SINGLE_FIX_TEST"
+            if method == "SINGLE_FIX_TEST":
+                assert not self.training, "model should not be training UNDER SINGLE_FIX_TEST"
+        elif not method == "TRADITION":
+            assert False, "method should be TRADITION, FIX_TRAIN or SINGLE_FIX_TEST"
+        return func(self, transfer_inputs(inputs), method, inputs_bit_scale_list)
+    return wrapper
+
+def declare_set_weights_forward(func):
+    """
+    check inputs and inputs_bit_scale_list for set_weights_forward
+    """
+    @functools.wraps(func)
+    def wrapper(self, inputs, quantize_weight_bit_list, inputs_bit_scale_list):
+        assert not self.training, "model should not be training, under weights_forward"
+        inputs = inputs if type(inputs) == list else [inputs]
+        assert len(inputs) == len(inputs_bit_scale_list), \
+            "inputs and inputs_bit_scale_list should have the same length"
+        return func(self, transfer_inputs(inputs), quantize_weight_bit_list, inputs_bit_scale_list)
+    return wrapper
 
 class BaseWeightLayer(BaseLayer):
     """
@@ -225,7 +275,11 @@ class BaseWeightLayer(BaseLayer):
         self.layer_info["weight_cycle"] = \
             _get_cycle(self.bit_scale_list[1,0].item(), self.layer_ini["hardware"]["cell_bit"])
 
-    def forward(self, inputs, method="SINGLE_FIX_TEST", input_config=None):
+    def get_part_structure(self, inputs, output):
+        pass
+
+    @declare_forward
+    def forward(self, inputs, method="SINGLE_FIX_TEST", inputs_bit_scale_list=None):
         """
         forward for this layer
         """
@@ -252,12 +306,9 @@ class BaseWeightLayer(BaseLayer):
             return quantize_output
         # for method is SINGLE_FIX_TEST, we get weight and set weight forward
         if method == "SINGLE_FIX_TEST":
-            assert not self.training, "method is SINGLE_FIX_TEST, but now is training"
-            assert input_config is not None, "method is SINGLE_FIX_TEST, but input_config is None"
             quantize_weight_bit_list = self.get_quantize_weight_bit_list()
-            quantize_output = self.set_weights_forward(inputs, quantize_weight_bit_list, input_config)
+            quantize_output = self.set_weights_forward(inputs, quantize_weight_bit_list, inputs_bit_scale_list)
             return quantize_output
-        assert False, "method should be TRADITION, FIX_TRAIN or SINGLE_FIX_TEST"
 
     def get_quantize_weight_bit_list(self):
         """
@@ -272,12 +323,12 @@ class BaseWeightLayer(BaseLayer):
         ]
         return quantize_weight_bit_list
 
-    def set_weights_forward(self, inputs, quantize_weight_bit_list, input_config=None):
+    @declare_set_weights_forward
+    def set_weights_forward(self, inputs, quantize_weight_bit_list, inputs_bit_scale_list):
         """
         set weights forward
         """
-        assert not self.training, "function is set_weights_forward, but training"
-        self.bit_scale_list[0].copy_(input_config[0]) # for weight_layer, only be one input
+        inputs_bit_scale_list[0] = self.bit_scale_list[0]
         input_list = torch.split(inputs, self.input_split_num, dim=1)
         # for weight info
         weight_cycle = _get_cycle(
@@ -286,7 +337,7 @@ class BaseWeightLayer(BaseLayer):
         )
         # for input activation info
         input_cycle = _get_cycle(
-            self.bit_scale_list[0,0].item(),
+            inputs_bit_scale_list[0][0].item(),
             self.layer_ini["hardware"]["dac_bit"]
         )
         # for output activation info
@@ -294,7 +345,7 @@ class BaseWeightLayer(BaseLayer):
         pf = self.layer_ini["hardware"]["point_shift"]
         output_scale = self.bit_scale_list[2,1].item() * \
             _get_thres(self.bit_scale_list[2,0].item())
-        mul_scale = self.bit_scale_list[1,1].item() * self.bit_scale_list[0,1].item() * \
+        mul_scale = self.bit_scale_list[1,1].item() * inputs_bit_scale_list[0][1].item() * \
             (2 ** ((weight_cycle - 1)*self.layer_ini["hardware"]["cell_bit"])) * \
             (2 ** ((input_cycle - 1)*self.layer_ini["hardware"]["dac_bit"]))
         transfer_scale = 2 ** (pf + Q - 1)
@@ -304,7 +355,7 @@ class BaseWeightLayer(BaseLayer):
         for layer_num, module_weight_bit_list in enumerate(quantize_weight_bit_list):
             # for every module
             input_activation_bit_list = split_by_bit(input_list[layer_num], \
-                self.bit_scale_list[0,1].item(), self.bit_scale_list[0,0].item(),
+                inputs_bit_scale_list[0][1].item(), inputs_bit_scale_list[0][0].item(),
                 self.layer_ini["hardware"]["dac_bit"],
             )
             # for every weight cycle and input cycle
@@ -337,7 +388,7 @@ class BaseWeightLayer(BaseLayer):
         total_weight = torch.cat([
             v for k, v in origin_weight.items()
             if k.startswith("layer_list")
-        ])
+        ], dim=1)
         weight_list = torch.split(total_weight, self.input_split_num, dim=1)
         for i, weight in enumerate(weight_list):
             target_weight["layer_list.{}.weight".format(i)] = weight
@@ -419,8 +470,8 @@ class QuantizeFC(BaseWeightLayer):
     def get_part_structure(self, inputs, output):
         input_shape = inputs.shape
         output_shape = output.shape
-        self.layer_info["Infeature"] = int(input_shape[1])
-        self.layer_info["Outfeature"] = int(output_shape[1])
+        self.layer_info["Infeature"] = self.layer_list[0].in_features
+        self.layer_info["Outfeature"] = self.layer_list[0].out_features
 
 class BaseTransferLayer(BaseLayer):
     """
@@ -446,7 +497,8 @@ class BaseTransferLayer(BaseLayer):
     def get_part_structure(self, inputs, output):
         pass
 
-    def forward(self, inputs, method="SINGLE_FIX_TEST", input_config=None):
+    @declare_forward
+    def forward(self, inputs, method="SINGLE_FIX_TEST", inputs_bit_scale_list=None):
         """
         forward for this layer
         """
@@ -454,30 +506,21 @@ class BaseTransferLayer(BaseLayer):
         # for method is TRADITION, we use traditional forward
         if method == "TRADITION":
             return self.layer(inputs)
-        # for method is FIX_TRAIN, we use fix train forward
-        if method == "FIX_TRAIN":
+        # for method is FIX_TRAIN or single_fix_test
+        if method in ["FIX_TRAIN", "SINGLE_FIX_TEST"]:
             output = self.layer(inputs)
-            return self.condition_quantize_output(output, None)
-        # for method is SINGLE_FIX_TEST
-        if method == "SINGLE_FIX_TEST":
-            assert not self.training, "method is SINGLE_FIX_TEST, but now is training"
-            assert input_config is not None, "method is SINGLE_FIX_TEST, but input_config is None"
-            output = self.layer(inputs)
-            return self.condition_quantize_output(output, input_config)
-        assert False, "method should be TRADITION, FIX_TRAIN or SINGLE_FIX_TEST"
+            quantize_output = self._condition_quantize_output(output, method, inputs_bit_scale_list)
+            return quantize_output
 
-    def condition_quantize_output(self, output, input_config=None):
+    def _condition_quantize_output(self, output, method, inputs_bit_scale_list):
         """
-        condition quantize output, general, bypass
+        condition quantize output
+        general, bypass
+        bn and element_sum, quantize
         """
-        if input_config is not None:
-            assert len(input_config) == 1, "input_config should be len 1 for bypass"
-            self.bit_scale_list[0].copy_(input_config[0])
-        assert torch.isclose(
-            self.bit_scale_list[0,0],
-            self.bit_scale_list[2,0]
-        ).item(), "bit width should be same for input and output"
-        self.bit_scale_list[2,1] = self.bit_scale_list[0,1]
+        assert self.bit_scale_list[2,0].item() == inputs_bit_scale_list[0][0].item(), \
+            "bit_scale_list[2, 0] should be equal to inputs_bit_scale_list[0][0]"
+        self.bit_scale_list[2,1] = inputs_bit_scale_list[0][1].item()
         return output
 
     def get_quantize_weight_bit_list(self):
@@ -486,12 +529,12 @@ class BaseTransferLayer(BaseLayer):
         """
         return None
 
-    def set_weights_forward(self, inputs, quantize_weight_bit_list, input_config=None):
+    @declare_set_weights_forward
+    def set_weights_forward(self, inputs, quantize_weight_bit_list, inputs_bit_scale_list):
         """
         set weights forward
         """
-        assert not self.training, "function is set_weights_forward, but training"
-        return self.forward(inputs, "SINGLE_FIX_TEST", input_config)
+        return self.forward(inputs, "SINGLE_FIX_TEST", inputs_bit_scale_list)
 
     def load_change_weights(self, origin_weight):
         target_weight = {}
@@ -521,10 +564,7 @@ class QuantizeBN(BaseTransferLayer):
         """
         self.layer = nn.BatchNorm2d(self.layer_ini["layer"]["num_features"])
 
-    def condition_quantize_output(self, output, input_config=None):
-        if input_config is not None:
-            assert len(input_config) == 1, "input_config should be len 1 for bn"
-            self.bit_scale_list[0].copy_(input_config[0])
+    def _condition_quantize_output(self, output, method, inputs_bit_scale_list):
         quantize_output = Quantize(output, {
             "mode": "activation",
             "phase": "train" if self.training else "test",
@@ -533,7 +573,7 @@ class QuantizeBN(BaseTransferLayer):
         return quantize_output
 
     def get_part_structure(self, inputs, output):
-        self.layer_info["features"] = self.layer_ini["layer"]["num_features"]
+        self.layer_info["features"] = self.layer.num_features
 
 class EleSumLayer(nn.Module):
     """
@@ -558,9 +598,7 @@ class QuantizeEleSum(BaseTransferLayer):
         """
         self.layer = EleSumLayer()
 
-    def condition_quantize_output(self, output, input_config=None):
-        if input_config is not None:
-            assert len(input_config) == 2, "input_config should be len 2 for bn"
+    def _condition_quantize_output(self, output, method, inputs_bit_scale_list):
         quantize_output = Quantize(output, {
             "mode": "activation",
             "phase": "train" if self.training else "test",

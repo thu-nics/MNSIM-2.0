@@ -54,6 +54,8 @@ class NetworkGraph(nn.Module):
                     adc_action,
                     )
                 )
+        for i, tensor in enumerate(tensor_list):
+            torch.save(tensor, f'net_inter_{i}.pth')
         return tensor_list[-1]
     def get_weights(self):
         net_bit_weights = []

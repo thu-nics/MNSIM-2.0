@@ -276,7 +276,8 @@ class QuantizeLayer(nn.Module):
                 activation_in_container.append(torch.mul(sign_activation_in, tmp) / base)
                 base = base * step
             # calculation and add
-            point_shift = math.floor(self.quantize_config['point_shift'] + 0.5 * math.log2(len(self.layer_list)))
+            # point_shift = math.floor(self.quantize_config['point_shift'] + 0.5 * math.log2(len(self.layer_list)))
+            point_shift = math.floor(self.quantize_config['point_shift'])
             Q = self.hardware_config['quantize_bit']
             for i in range(activation_in_cycle):
                 for j in range(weight_cycle):
@@ -321,8 +322,8 @@ class QuantizeLayer(nn.Module):
                     else:
                         output = tmp
         # quantize output
-        activation_out_bit = int(self.bit_scale_list[0, 0].item())
-        activation_out_scale = self.bit_scale_list[0, 1].item()
+        activation_out_bit = int(self.bit_scale_list[2, 0].item())
+        activation_out_scale = self.bit_scale_list[2, 1].item()
         thres = 2 ** (activation_out_bit - 1) - 1
         output = torch.clamp(torch.round(output * thres), 0 - thres, thres - 0)
         output = output * scale / thres
@@ -440,7 +441,7 @@ class StraightLayer(nn.Module):
         # fix training and single fix test
         if METHOD == 'FIX_TRAIN' or METHOD == 'SINGLE_FIX_TEST':
             output = self.layer(input)
-            if self.layer_config['type'] == 'bn':
+            if self.layer_config['type'] == 'bn' or self.layer_config['type'] == 'element_sum':
                 output = Quantize(output, self.quantize_config['activation_bit'], 'activation', self.last_value, self.training)
             return output
         assert 0, f'not support {METHOD}'

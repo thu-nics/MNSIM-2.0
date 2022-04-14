@@ -27,7 +27,6 @@ def traverse(self, inputs, func):
     self.tensor_list[0] = inputs
     for i, layer in enumerate(self.layer_list):
         t_input = [self.tensor_list[i+1+j] for j in layer.get_input_index()]
-        t_input = t_input[0] if len(t_input) == 1 else t_input
         t_input_config = [self.input_config_list[i+1+j] for j in layer.get_input_index()]
         self.tensor_list[i+1] = func(layer, t_input, t_input_config, i)
         self.input_config_list[i+1] = layer.bit_scale_list[2]
@@ -69,6 +68,8 @@ class BaseModel(nn.Module, Component):
         traverse(self, inputs,
             lambda layer, t_input, t_input_config, i: layer.forward(t_input, method, t_input_config)
         )
+        for i, tensor in enumerate(self.tensor_list):
+            torch.save(tensor, f'model_inter_{i}.pth')
         return self.tensor_list[-1]
 
     def get_weights(self):
