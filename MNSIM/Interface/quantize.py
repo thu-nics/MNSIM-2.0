@@ -277,7 +277,7 @@ class QuantizeLayer(nn.Module):
                 base = base * step
             # calculation and add
             # point_shift = math.floor(self.quantize_config['point_shift'] + 0.5 * math.log2(len(self.layer_list)))
-            point_shift = math.floor(self.quantize_config['point_shift'])
+            point_shift = self.quantize_config['point_shift']
             Q = self.hardware_config['quantize_bit']
             for i in range(activation_in_cycle):
                 for j in range(weight_cycle):

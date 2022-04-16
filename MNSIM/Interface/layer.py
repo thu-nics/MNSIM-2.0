@@ -67,7 +67,7 @@ class QuantizeFunction(Function):
         thres = _get_thres(bit)
         output = inputs / (scale / thres)
         output = torch.clamp(torch.round(output), min=-thres, max=thres)
-        output = output / (thres / scale)
+        output = output * (scale / thres)
         # save bit and scale, output
         last_bit_scale[0].fill_(bit)
         last_bit_scale[1].fill_(scale / thres)
@@ -140,9 +140,10 @@ class BaseLayer(nn.Module, Component):
         # other info
         self.get_general_structure()
         # get layer info about input, output and type
+        inputs = inputs[0] if len(inputs) == 1 else inputs
         self.get_part_structure(inputs, output)
         # quantize info
-        self.layer_info["Inputbit"] = int(inputs_bit_scale_list[0][0].item()) # TODO: how to change for ele_sum
+        self.layer_info["Inputbit"] = int(inputs_bit_scale_list[0][0].item()) # TODO: for ele_sum?
         self.layer_info["Weightbit"] = int(self.bit_scale_list[1,0].item())
         self.layer_info["outputbit"] = int(self.bit_scale_list[2,0].item())
         self.layer_info["type"] = self.layer_ini["layer"]["type"]
@@ -151,6 +152,9 @@ class BaseLayer(nn.Module, Component):
         return output
 
     def get_input_index(self):
+        """
+        get input index
+        """
         return self.layer_ini["layer"].get("input_index", [-1])
 
     @abc.abstractmethod
@@ -163,10 +167,16 @@ class BaseLayer(nn.Module, Component):
 
     @abc.abstractmethod
     def get_quantize_weight_bit_list(self):
+        """
+        get quantize weight bit list
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
     def set_weights_forward(self, inputs, quantize_weight_bit_list, inputs_bit_scale_list):
+        """
+        forward with quantize weight
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -179,7 +189,7 @@ class BaseLayer(nn.Module, Component):
     @abc.abstractmethod
     def get_part_structure(self, inputs, output):
         """
-        get layer info about input, output and type
+        get layer info about inputs, output and type
         """
         raise NotImplementedError
 
@@ -218,10 +228,10 @@ def declare_forward(func):
         # check under different method
         if method in ["FIX_TRAIN", "SINGLE_FIX_TEST"]:
             assert inputs_bit_scale_list is not None, \
-                "inputs_bit_scale_list should not be None when method is FIX_TRAIN or SINGLE_FIX_TEST"
+                "inputs_bit_scale_list can not be None when method is FIX_TRAIN or SINGLE_FIX_TEST"
             if method == "SINGLE_FIX_TEST":
                 assert not self.training, "model should not be training UNDER SINGLE_FIX_TEST"
-        elif not method == "TRADITION":
+        elif method != "TRADITION":
             assert False, "method should be TRADITION, FIX_TRAIN or SINGLE_FIX_TEST"
         return func(self, transfer_inputs(inputs), method, inputs_bit_scale_list)
     return wrapper
@@ -307,8 +317,11 @@ class BaseWeightLayer(BaseLayer):
         # for method is SINGLE_FIX_TEST, we get weight and set weight forward
         if method == "SINGLE_FIX_TEST":
             quantize_weight_bit_list = self.get_quantize_weight_bit_list()
-            quantize_output = self.set_weights_forward(inputs, quantize_weight_bit_list, inputs_bit_scale_list)
+            quantize_output = self.set_weights_forward(
+                inputs, quantize_weight_bit_list, inputs_bit_scale_list
+            )
             return quantize_output
+        return None
 
     def get_quantize_weight_bit_list(self):
         """
@@ -328,14 +341,13 @@ class BaseWeightLayer(BaseLayer):
         """
         set weights forward
         """
-        inputs_bit_scale_list[0] = self.bit_scale_list[0]
         input_list = torch.split(inputs, self.input_split_num, dim=1)
         # for weight info
         weight_cycle = _get_cycle(
             self.bit_scale_list[1,0].item(),
             self.layer_ini["hardware"]["cell_bit"]
         )
-        # for input activation info
+        # for inputs activation info
         input_cycle = _get_cycle(
             inputs_bit_scale_list[0][0].item(),
             self.layer_ini["hardware"]["dac_bit"]
@@ -358,7 +370,7 @@ class BaseWeightLayer(BaseLayer):
                 inputs_bit_scale_list[0][1].item(), inputs_bit_scale_list[0][0].item(),
                 self.layer_ini["hardware"]["dac_bit"],
             )
-            # for every weight cycle and input cycle
+            # for every weight cycle and inputs cycle
             for i in range(input_cycle):
                 for j in range(weight_cycle):
                     tmp = self.partial_func(input_activation_bit_list[i], module_weight_bit_list[j])
@@ -470,7 +482,7 @@ class QuantizeFC(BaseWeightLayer):
     def get_part_structure(self, inputs, output):
         input_shape = inputs.shape
         output_shape = output.shape
-        self.layer_info["Infeature"] = self.layer_list[0].in_features
+        self.layer_info["Infeature"] = input_shape[1]
         self.layer_info["Outfeature"] = self.layer_list[0].out_features
 
 class BaseTransferLayer(BaseLayer):
@@ -511,6 +523,7 @@ class BaseTransferLayer(BaseLayer):
             output = self.layer(inputs)
             quantize_output = self._condition_quantize_output(output, method, inputs_bit_scale_list)
             return quantize_output
+        return None
 
     def _condition_quantize_output(self, output, method, inputs_bit_scale_list):
         """

@@ -26,21 +26,38 @@ def traverse(self, inputs, func):
     """
     self.tensor_list[0] = inputs
     for i, layer in enumerate(self.layer_list):
-        t_input = [self.tensor_list[i+1+j] for j in layer.get_input_index()]
-        t_input_config = [self.input_config_list[i+1+j] for j in layer.get_input_index()]
-        self.tensor_list[i+1] = func(layer, t_input, t_input_config, i)
-        self.input_config_list[i+1] = layer.bit_scale_list[2]
+        t_inputs = [self.tensor_list[i+1+j] for j in layer.get_input_index()]
+        t_inputs_bit_scale_list = [self.bit_scale_list[i+1+j] for j in layer.get_input_index()]
+        self.tensor_list[i+1] = func(layer, t_inputs, t_inputs_bit_scale_list, i)
+        self.bit_scale_list[i+1] = layer.bit_scale_list[2]
+
+def _transfer_hardware_config(hardware_config):
+    """
+    This function is used to transfer the hardware config
+    """
+    key_transfer = [
+        ("weight_bit", "cell_bit"),
+        ("input_bit", "dac_bit"),
+        ("quantize_bit", "adc_bit"),
+        ("xbar_row", "xbar_row")
+    ]
+    o_config = {}
+    for k1, k2 in key_transfer:
+        if k1 in hardware_config:
+            o_config[k2] = hardware_config[k1]
+    return o_config
 
 class BaseModel(nn.Module, Component):
     """
     This class is used to define the base model
     """
     REGISTRY = "model"
-    def __init__(self, model_config_path, dataset_info):
+    def __init__(self, model_config_path, hardware_config, dataset):
         # Initialize the super class
         nn.Module.__init__(self)
         Component.__init__(self)
         # Initialize the layer list
+        self.hardware_config = _transfer_hardware_config(hardware_config)
         layer_ini_list = self.get_layer_ini_list(model_config_path)
         self.layer_list = nn.ModuleList([
             BaseLayer.get_class_(layer_ini["layer"]["type"])(layer_ini)
@@ -48,9 +65,12 @@ class BaseModel(nn.Module, Component):
         ])
         # multi for input, and each for output
         self.tensor_list = [None] * (len(self.layer_list) + 1)
-        self.input_config_list = [None] * (len(self.layer_list) + 1)
-        self.input_config_list[0] = dataset_info["bit_scale"]
+        self.bit_scale_list = [None] * (len(self.layer_list) + 1)
+        # get dataset info
+        dataset_info = dataset.get_dataset_info()
+        self.bit_scale_list[0] = dataset_info["bit_scale"]
         self.dataset_shape = dataset_info["shape"]
+        self.hardware_config = hardware_config
         # logger
         self.logger.info(f"initialize the model with {len(self.layer_list)} layers")
 
@@ -66,10 +86,11 @@ class BaseModel(nn.Module, Component):
         This function is used to forward the network, for different method
         """
         traverse(self, inputs,
-            lambda layer, t_input, t_input_config, i: layer.forward(t_input, method, t_input_config)
+            lambda layer, t_inputs, t_inputs_bit_scale_list, i: \
+                layer.forward(t_inputs, method, t_inputs_bit_scale_list)
         )
         for i, tensor in enumerate(self.tensor_list):
-            torch.save(tensor, f'model_inter_{i}.pth')
+            torch.save(tensor, f"model_inter_{i}.pth")
         return self.tensor_list[-1]
 
     def get_weights(self):
@@ -83,8 +104,8 @@ class BaseModel(nn.Module, Component):
         This function is used to set the weights of the network
         """
         traverse(self, inputs,
-            lambda layer, t_input, t_input_config, i: \
-                layer.set_weights_forward(t_input, net_bit_weights[i], t_input_config)
+            lambda layer, t_inputs, t_inputs_bit_scale_list, i: \
+                layer.set_weights_forward(t_inputs, net_bit_weights[i], t_inputs_bit_scale_list)
         )
         return self.tensor_list[-1]
 
@@ -95,8 +116,8 @@ class BaseModel(nn.Module, Component):
         inputs = torch.zeros(self.dataset_shape)
         with torch.no_grad():
             traverse(self, inputs,
-                lambda layer, t_input, t_input_config, i: \
-                    layer.structure_forward(t_input)
+                lambda layer, t_inputs, t_inputs_bit_scale_list, i: \
+                    layer.structure_forward(t_inputs, t_inputs_bit_scale_list)
             )
         return [layer.layer_info for layer in self.layer_list]
 
@@ -120,7 +141,7 @@ def update_config(base, config):
     base.update(config)
     return base
 
-def format_yaml(yaml_file):
+def format_yaml(yaml_file, hardware_config):
     """"
     This function is used to format the yaml file
     """
@@ -132,6 +153,7 @@ def format_yaml(yaml_file):
         config.get("quantize_config", {}),
         config.get("layer_config", {})
     ]
+    general[0].update(hardware_config)
     # traverse the model config
     layer_ini_list = []
     for i, layer_ini in enumerate(config["model_config"]):
@@ -198,4 +220,4 @@ class Model(BaseModel):
     """
     NAME = "yaml"
     def get_layer_ini_list(self, config_path):
-        return format_yaml(config_path)
+        return format_yaml(config_path, self.hardware_config)

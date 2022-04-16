@@ -75,6 +75,7 @@ def eval_net(net, test_loader, epoch, device):
         for i, (images, labels) in enumerate(test_loader):
             images = images.to(device)
             test_total += labels.size(0)
+            # outputs = net(images, "TRADITION")
             outputs = net(images, 'FIX_TRAIN')
             # outputs = net(images, 'SINGLE_FIX_TEST')
             # predicted

@@ -14,7 +14,7 @@ import configparser
 import math
 
 
-def load_sim_config(SimConfig_path, extra_define):
+def load_sim_config(SimConfig_path):
     """
     load SimConfig
     return hardware_config, xbar_column, tile_row, tile_column
@@ -36,6 +36,7 @@ def load_sim_config(SimConfig_path, extra_define):
     xbar_row = xbar_size[0]
     xbar_column = xbar_size[1]
     hardware_config["xbar_size"] = xbar_row
+    hardware_config["xbar_column"] = xbar_column
     # xbar bit
     xbar_bit = int(xbar_config.get("Device level", "Device_Level"))
     hardware_config["weight_bit"] = math.floor(math.log2(xbar_bit))
@@ -80,9 +81,16 @@ def load_sim_config(SimConfig_path, extra_define):
     tile_size = list(map(int, xbar_config.get("Tile level", "PE_Num").split(",")))
     tile_row = tile_size[0]
     tile_column = tile_size[1]
-    # extra define
-    if extra_define is not None:
-        hardware_config["input_bit"] = extra_define["dac_res"]
-        hardware_config["quantize_bit"] = extra_define["adc_res"]
-        hardware_config["xbar_size"] = extra_define["xbar_size"]
-    return hardware_config, xbar_column, tile_row, tile_column
+    hardware_config["tile_row"] = tile_row
+    hardware_config["tile_column"] = tile_column
+    return hardware_config
+
+def _init_component(cls, config, name, base_cfg=None):
+    """
+    init a subinstance of cls, based on config and name
+    """
+    t_type = config.get(f"{name}_type", None)
+    t_cfg = config.get(f"{name}_cfg", {})
+    base_cfg = {} if base_cfg is None else base_cfg
+    base_cfg.update(t_cfg)
+    return cls.get_class_(t_type)(**base_cfg)

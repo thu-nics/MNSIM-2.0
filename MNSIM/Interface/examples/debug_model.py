@@ -21,7 +21,7 @@ dataset_ini = {
 }
 model_config_path = "resnet18.yaml"
 dataset = ClassificationBaseDataset.get_class_("cifar10")(dataset_ini)
-model = BaseModel.get_class_("yaml")(model_config_path, dataset.get_dataset_info())
+model = BaseModel.get_class_("yaml")(model_config_path, {}, dataset)
 model.load_change_weights(
     torch.load("../zoo/train_resnet1_params.pth", map_location=torch.device("cpu"))
 )
