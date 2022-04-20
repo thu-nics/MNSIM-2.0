@@ -1,4 +1,4 @@
-name: lenet
+name: resnet18
 hardware_config:
   cell_bit: 1
   dac_bit: 2
@@ -172,8 +172,6 @@ model_config:
   - type: fc
     in_features: 2048
     out_features: 512
-  - type: dropout
-    p: 0.5
   - type: relu
   - type: fc
     in_features: 512

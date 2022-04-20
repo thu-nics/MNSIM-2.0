@@ -16,10 +16,10 @@ net.load_state_dict(
     torch.load("../zoo/train_resnet1_params.pth", map_location=torch.device("cpu"))
 )
 # input
-input = torch.load("model_input.pth", map_location=torch.device("cpu"))
+# input = torch.load("model_input.pth", map_location=torch.device("cpu"))
 net.eval()
-output = net.forward(input, method="SINGLE_FIX_TEST")
+# output = net.forward(input, method="SINGLE_FIX_TEST")
 # output = net.set_weights_forward(input, net.get_weights())
-# output = net.get_structure()
+output = net.get_structure()
 print(output)
 torch.save(output, "net_output.pth")

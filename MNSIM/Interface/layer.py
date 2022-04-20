@@ -114,6 +114,11 @@ class BaseLayer(nn.Module, Component):
         self.layer_ini = copy.deepcopy(layer_ini)
         self.layer_info = {}
         self.__set_buffer_list()
+        # key layer flag
+        if self.layer_ini["layer"]["type"] in ["conv", "fc", "pooling", "element_sum"]:
+            self.key_layer = True
+        else:
+            self.key_layer = False
         # log
         self.logger.info(f"init {self.__class__} layer as {layer_ini['layer']['type']}")
 
@@ -199,6 +204,13 @@ class BaseLayer(nn.Module, Component):
         load change weights from origin_weight
         """
         raise NotImplementedError
+
+    def key_layer_flag(self):
+        """
+        return if this layer is key layer
+        now, only conv, fc, pooling and element_sum is the key layer
+        """
+        return self.key_layer
 
 def transfer_inputs(inputs):
     """
@@ -363,7 +375,7 @@ class BaseWeightLayer(BaseLayer):
         transfer_scale = 2 ** (pf + Q - 1)
         output_thres = _get_thres(Q)
         # accumulate output for layer, weight_cycle and input_cycle
-        output_list = []
+        output = None
         for layer_num, module_weight_bit_list in enumerate(quantize_weight_bit_list):
             # for every module
             input_activation_bit_list = split_by_bit(input_list[layer_num], \
@@ -381,9 +393,9 @@ class BaseWeightLayer(BaseLayer):
                     scale_point = (input_cycle-1-i)*self.layer_ini["hardware"]["dac_bit"] + \
                         (weight_cycle-1-j)*self.layer_ini["hardware"]["cell_bit"]
                     tmp = tmp / (transfer_scale * (2**scale_point))
-                    output_list.append(tmp)
+                    output = tmp if output is None else output + tmp
         # sum output
-        output = torch.sum(torch.stack(output_list, dim=0), dim=0)
+        # output = torch.sum(torch.stack(output_list, dim=0), dim=0)
         # quantize output
         output_thres = _get_thres(self.bit_scale_list[2,0].item())
         output = torch.clamp(torch.round(output*output_thres), min=-output_thres, max=output_thres)
@@ -551,15 +563,18 @@ class BaseTransferLayer(BaseLayer):
 
     def load_change_weights(self, origin_weight):
         target_weight = {}
-        # scale list
-        target_weight["bit_scale_list"] = torch.FloatTensor([
-            [self.layer_ini["quantize"]["input"], -1],
-            [self.layer_ini["quantize"]["weight"], -1],
-            [self.layer_ini["quantize"]["output"], -1],
-        ])
         if "last_value" in origin_weight.keys():
+            # for old interface, scale list
+            target_weight["bit_scale_list"] = torch.FloatTensor([
+                [self.layer_ini["quantize"]["input"], -1],
+                [self.layer_ini["quantize"]["weight"], -1],
+                [self.layer_ini["quantize"]["output"], -1],
+            ])
             target_weight["bit_scale_list"][2, 1] = origin_weight["last_value"] / \
                 _get_thres(self.layer_ini["quantize"]["output"])
+        else:
+            # for new interface weight
+            target_weight["bit_scale_list"] = origin_weight["bit_scale_list"]
         # other
         for k, v in origin_weight.items():
             if k not in ["bit_scale_list", "last_value"]:
@@ -651,7 +666,7 @@ class QuantizeRelu(BaseTransferLayer):
     """
     NAME = "relu"
     def set_module(self):
-        self.layer = nn.ReLU()
+        self.layer = nn.ReLU(inplace=False)
 
 class QuantizeView(BaseTransferLayer):
     """

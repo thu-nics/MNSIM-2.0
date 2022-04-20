@@ -4,7 +4,6 @@ import configparser
 import copy
 import math
 import os
-import copy
 from importlib import import_module
 
 import numpy as np
@@ -106,8 +105,6 @@ class TrainTestInterface(object):
         test_total = 0
         with torch.no_grad():
             for i, (images, labels) in enumerate(self.test_loader):
-                if i > 10:
-                    break
                 images = images.to(self.device)
                 test_total += labels.size(0)
                 outputs = self.net(images, method, adc_action)
@@ -128,8 +125,6 @@ class TrainTestInterface(object):
         test_total = 0
         with torch.no_grad():
             for i, (images, labels) in enumerate(self.test_loader):
-                if i > 10:
-                    break
                 images = images.to(self.device)
                 test_total += labels.size(0)
                 outputs = self.net.set_weights_forward(images, net_bit_weights, adc_action)
@@ -233,7 +228,9 @@ def mysplit(array, length):
 
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "SimConfig.ini")
-    __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', test_SimConfig_path, './MNSIM/Interface/zoo/cifar10_vgg8_params.pth', '7')
+    __TestInterface = TrainTestInterface('resnet18', 'MNSIM.Interface.cifar10', test_SimConfig_path, './MNSIM/Interface/zoo/train_resnet1_params.pth', '0')
+    # print(__TestInterface.origin_evaluate(method='TRADITION'))
+    # print(__TestInterface.origin_evaluate(method='FIX_TRAIN'))
     print(__TestInterface.origin_evaluate(method='SINGLE_FIX_TEST'))
     print(__TestInterface.set_net_bits_evaluate(__TestInterface.get_net_bits()))
     structure_info = __TestInterface.get_structure()

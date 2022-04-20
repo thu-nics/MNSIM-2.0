@@ -11,6 +11,7 @@
 """
 import collections
 import configparser
+import copy
 import math
 
 
@@ -35,7 +36,7 @@ def load_sim_config(SimConfig_path):
     )
     xbar_row = xbar_size[0]
     xbar_column = xbar_size[1]
-    hardware_config["xbar_size"] = xbar_row
+    hardware_config["xbar_row"] = xbar_row
     hardware_config["xbar_column"] = xbar_column
     # xbar bit
     xbar_bit = int(xbar_config.get("Device level", "Device_Level"))
@@ -94,3 +95,55 @@ def _init_component(cls, config, name, base_cfg=None):
     base_cfg = {} if base_cfg is None else base_cfg
     base_cfg.update(t_cfg)
     return cls.get_class_(t_type)(**base_cfg)
+
+class SingleMap(object):
+    """
+    single direction map, one-multi pair
+    """
+    def __init__(self, pair=None):
+        super(SingleMap, self).__init__()
+        self._map = {}
+        if pair is not None:
+            self.add_more(pair)
+
+    def clear(self):
+        """
+        clear _map
+        """
+        self._map.clear()
+
+    def add_more(self, pair):
+        """
+        add one pair
+        """
+        assert isinstance(pair, tuple) and len(pair) == 2, \
+            "pair should be a tuple with two elements"
+        assert pair[0] not in self._map.keys(), "pair[0] should not be in _map keys"
+        self._map[pair[0]] = copy.deepcopy(pair[1])
+
+    def find(self, position, kv):
+        """
+        find the pair for kv based on the position
+        """
+        assert position in (0, 1), "position should be 0 or 1"
+        if position == 0:
+            if kv in self._map.keys():
+                return self._map[kv]
+            raise NotImplementedError(f"{kv} not in _map keys")
+        if kv in self._map.values():
+            for k, v in self._map.items():
+                if v == kv:
+                    return k
+        raise NotImplementedError(f"{kv} not in _map values")
+
+
+class DoubleMap(SingleMap):
+    """
+    double direction, one-one pair
+    """
+    def add_more(self, pair):
+        """
+        add pair
+        """
+        assert pair[1] not in self._map.values(), "pair[1] should not be in _map values"
+        super(DoubleMap, self).add_more(pair)

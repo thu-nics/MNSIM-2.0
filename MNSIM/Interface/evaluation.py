@@ -9,20 +9,21 @@
 @CreateTime:
     2022/04/15 17:33
 """
-import torch
-
-from MNSIM.Interface.utils.component import Component
 from MNSIM.Interface.dataset import ClassificationBaseDataset
 from MNSIM.Interface.model import BaseModel
 from MNSIM.Interface.trainer import BaseTrainer
-from MNSIM.Interface.utils.yaml_io import read_yaml
+from MNSIM.Interface.utils.component import Component
 from MNSIM.Interface.utils.utils import _init_component, load_sim_config
+from MNSIM.Interface.utils.yaml_io import read_yaml
+
 
 class EvaluationInterface(Component):
     """
     evaluation interface for MNSIM
     two method: evaluate and get_structure
     """
+    REGISTRY = "interface"
+    NAME = "train_test_interface"
     def __init__(self, simconfig_path, evaluation_config_path):
         super(EvaluationInterface, self).__init__()
         # load config
@@ -46,9 +47,28 @@ class EvaluationInterface(Component):
                 "dataset": self.dataset,
                 "model": self.model,
         })
-        # train
-        self.trainer.test(0)
 
+    def get_structure(self):
+        """
+        get the key structure of the model
+        """
+        return self.model.get_key_structure()
 
-if __name__ == "__main__":
-    EvaluationInterface("SimConfig.ini", "MNSIM/Interface/examples/base.yaml")
+    def origin_evaluate(self, method):
+        """
+        evaluate the model under different test mode
+        """
+        self.trainer.set_test_mode(method)
+        return self.trainer.test(0)
+
+    def get_net_bits(self):
+        """
+        return the bits of the model
+        """
+        return self.model.get_weights()
+
+    def set_net_bits_evaluate(self, net_bits):
+        """
+        set the bits of the model and evaluate
+        """
+        return self.trainer.evaluate(net_bits)

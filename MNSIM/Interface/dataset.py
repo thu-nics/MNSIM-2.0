@@ -120,6 +120,13 @@ class ClassificationBaseDataset(Component):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def get_name(self):
+        """
+        return dataset name
+        """
+        raise NotImplementedError
+
 class CIFAR10(ClassificationBaseDataset):
     """
     cifar10 dataset, name and config
@@ -187,6 +194,9 @@ class CIFAR10(ClassificationBaseDataset):
             "shape": (1, 3, 32, 32)
         }
         return dataset_info
+
+    def get_name(self):
+        return self.NAME
 
 class CIFAR100(CIFAR10):
     """

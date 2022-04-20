@@ -11,13 +11,13 @@
 """
 import abc
 import copy
-import functools
 
 import torch
 from torch import nn
 from MNSIM.Interface.layer import BaseLayer
 from MNSIM.Interface.utils import yaml_io
 from MNSIM.Interface.utils.component import Component
+from MNSIM.Interface.utils.utils import SingleMap, DoubleMap
 
 
 def traverse(self, inputs, func):
@@ -58,19 +58,22 @@ class BaseModel(nn.Module, Component):
         Component.__init__(self)
         # Initialize the layer list
         self.hardware_config = _transfer_hardware_config(hardware_config)
-        layer_ini_list = self.get_layer_ini_list(model_config_path)
+        self.layer_ini_list = self.get_layer_ini_list(model_config_path)
+        self.dataset = dataset
+        # modify conv, the last fc based on the dataset
+        self.modify_last_fc(self.dataset)
+        self.modify_conv_with_bn()
         self.layer_list = nn.ModuleList([
             BaseLayer.get_class_(layer_ini["layer"]["type"])(layer_ini)
-            for layer_ini in layer_ini_list
+            for layer_ini in self.layer_ini_list
         ])
-        # multi for input, and each for output
+        # tensor and bit scale for all tensors
         self.tensor_list = [None] * (len(self.layer_list) + 1)
         self.bit_scale_list = [None] * (len(self.layer_list) + 1)
         # get dataset info
         dataset_info = dataset.get_dataset_info()
         self.bit_scale_list[0] = dataset_info["bit_scale"]
         self.dataset_shape = dataset_info["shape"]
-        self.hardware_config = hardware_config
         # logger
         self.logger.info(f"initialize the model with {len(self.layer_list)} layers")
 
@@ -89,8 +92,6 @@ class BaseModel(nn.Module, Component):
             lambda layer, t_inputs, t_inputs_bit_scale_list, i: \
                 layer.forward(t_inputs, method, t_inputs_bit_scale_list)
         )
-        for i, tensor in enumerate(self.tensor_list):
-            torch.save(tensor, f"model_inter_{i}.pth")
         return self.tensor_list[-1]
 
     def get_weights(self):
@@ -113,13 +114,31 @@ class BaseModel(nn.Module, Component):
         """
         This function is used to get the structure of the network
         """
-        inputs = torch.zeros(self.dataset_shape)
+        inputs = torch.zeros(self.dataset_shape, device=torch.device("cpu"))
+        self.to(torch.device("cpu"))
         with torch.no_grad():
             traverse(self, inputs,
                 lambda layer, t_inputs, t_inputs_bit_scale_list, i: \
                     layer.structure_forward(t_inputs, t_inputs_bit_scale_list)
             )
-        return [layer.layer_info for layer in self.layer_list]
+        return [copy.deepcopy(layer.layer_info) for layer in self.layer_list]
+
+    def get_key_structure(self):
+        """
+        This function to get the key structure
+        """
+        # get layer info and key index
+        layer_info_list = self.get_structure()
+        self.get_key_layers()
+        # update
+        key_layer_info_list = list()
+        for layer_ini, layer_info in zip(self.layer_ini_list, layer_info_list):
+            if layer_ini["EXTRA"]["key_index"] is not None:
+                layer_info["Layerindex"] = layer_ini["EXTRA"]["key_index"]
+                layer_info["Inputindex"] = layer_ini["EXTRA"]["key_input_index_list"]
+                layer_info["Outputindex"] = layer_ini["EXTRA"]["key_output_index_list"]
+                key_layer_info_list.append([(layer_info, None)])
+        return key_layer_info_list
 
     def load_change_weights(self, state_dict):
         """
@@ -132,6 +151,112 @@ class BaseModel(nn.Module, Component):
                 if k.startswith(prefix)
             ])
             layer.load_change_weights(origin_weight)
+
+    def modify_conv_with_bn(self):
+        """
+        This function is used to modify the conv with bn
+        """
+        # add extra for name, index, and connections
+        index_name_connection = DoubleMap((-1, "input"))
+        for i, layer_ini in enumerate(self.layer_ini_list):
+            # extra, from input index to input name, set output name and output index
+            layer_ini["EXTRA"]["name"] = f"layer_{i}_" + layer_ini["layer"]["type"]
+            layer_ini["EXTRA"]["input_name_list"] = [
+                index_name_connection.find(0, i+index)
+                for index in layer_ini["layer"]["input_index"]
+            ]
+            layer_ini["EXTRA"]["output_name_list"] = [layer_ini["EXTRA"]["name"] + "_output"]
+            index_name_connection.add_more((i, layer_ini["EXTRA"]["output_name_list"][0]))
+        # add for conv
+        for i in range(len(self.layer_ini_list)-1, -1, -1):
+            layer_ini = self.layer_ini_list[i]
+            if layer_ini["layer"]["type"] == "conv" and \
+                layer_ini["layer"]["conv_add_bn"] is True:
+                sp_name = f"{layer_ini['EXTRA']['name']}_bn"
+                sp_ini = {
+                    "hardware": copy.deepcopy(layer_ini["hardware"]),
+                    "quantize": {
+                        "input": layer_ini["quantize"]["output"],
+                        "weight": layer_ini["quantize"]["weight"],
+                        "output": layer_ini["quantize"]["output"],
+                    },
+                    "layer": {"type": "bn", "input_index": [-1],
+                        "num_features": layer_ini["layer"]["out_channels"]},
+                    "EXTRA": {
+                        "name": sp_name,
+                        "input_name_list": [sp_name + "_output"],
+                        "output_name_list": layer_ini["EXTRA"]["output_name_list"]}
+                }
+                layer_ini["EXTRA"]["output_name_list"] = sp_ini["EXTRA"]["input_name_list"]
+                self.layer_ini_list.insert(i+1, sp_ini)
+        # from name to index
+        index_name_connection.clear()
+        index_name_connection.add_more((-1, "input"))
+        for i, layer_ini in enumerate(self.layer_ini_list):
+            layer_ini["layer"]["input_index"] = [
+                index_name_connection.find(1, input_name) - i
+                for input_name in layer_ini["EXTRA"]["input_name_list"]
+            ]
+            index_name_connection.add_more((i, layer_ini["EXTRA"]["output_name_list"][0]))
+
+    def modify_last_fc(self, dataset):
+        """
+        modify the last fc based on the dataset
+        """
+        last_layer = self.layer_ini_list[-1]
+        assert last_layer["layer"]["type"] == "fc", \
+            f"The last layer should be fc, but {last_layer['layer']['type']} is found"
+        last_layer["layer"]["out_features"] = dataset.get_num_classes()
+
+    def get_key_layers(self):
+        """
+        get key layers
+        """
+        index_name_connection = SingleMap((-1, "input"))
+        key_count = 0
+        for i, (layer_ini, layer) in enumerate(zip(self.layer_ini_list, self.layer_list)):
+            layer_ini["EXTRA"]["key_input_name_list"] = [
+                index_name_connection.find(0, i+index)
+                for index in layer_ini["layer"]["input_index"]
+            ]
+            layer_ini["EXTRA"]["key_output_name_list"] = layer_ini["EXTRA"]["output_name_list"]
+            if layer.key_layer_flag():
+                layer_ini["EXTRA"]["key_index"] = key_count
+                key_count += 1
+                index_name_connection.add_more((i, layer_ini["EXTRA"]["key_output_name_list"][0]))
+            else:
+                layer_ini["EXTRA"]["key_index"] = None
+                assert len(layer_ini["EXTRA"]["key_input_name_list"]) == 1, \
+                    f"The layer {layer_ini['layer']['type']} should have only one input"
+                index_name_connection.add_more((i, layer_ini["EXTRA"]["key_input_name_list"][0]))
+        # from name to list
+        index_name_connection = DoubleMap((-1, "input"))
+        for layer_ini, layer in zip(self.layer_ini_list, self.layer_list):
+            if layer.key_layer_flag():
+                # add for input
+                key_index = layer_ini["EXTRA"]["key_index"]
+                layer_ini["EXTRA"]["key_input_index_list"] = [
+                    index_name_connection.find(1, input_name) - key_index
+                    for input_name in layer_ini["EXTRA"]["key_input_name_list"]
+                ]
+                index_name_connection.add_more((
+                    key_index, layer_ini["EXTRA"]["key_output_name_list"][0]
+                ))
+                # add for output
+                output_name = layer_ini["EXTRA"]["key_output_name_list"][0]
+                layer_ini["EXTRA"]["key_output_index_list"] = list()
+                for t_layer_ini, t_layer in zip(self.layer_ini_list, self.layer_list):
+                    if t_layer.key_layer_flag() and \
+                        output_name in t_layer_ini["EXTRA"]["key_input_name_list"]:
+                        layer_ini["EXTRA"]["key_output_index_list"].append(
+                            t_layer_ini["EXTRA"]["key_index"] - key_index
+                        )
+    @abc.abstractmethod
+    def get_name(self):
+        """
+        get name
+        """
+        raise NotImplementedError
 
 def update_config(base, config):
     """
@@ -147,6 +272,7 @@ def format_yaml(yaml_file, hardware_config):
     """
     # get basic config
     config = yaml_io.read_yaml(yaml_file)
+    model_name = config["name"]
     # generate_config
     general = [
         config.get("hardware_config", {}),
@@ -156,7 +282,7 @@ def format_yaml(yaml_file, hardware_config):
     general[0].update(hardware_config)
     # traverse the model config
     layer_ini_list = []
-    for i, layer_ini in enumerate(config["model_config"]):
+    for _, layer_ini in enumerate(config["model_config"]):
         # specific config
         specific = [
             layer_ini.get("hardware_config", {}),
@@ -165,54 +291,13 @@ def format_yaml(yaml_file, hardware_config):
                 if k not in ["hardware_config", "quantize_config"]])
         ]
         # modify
-        layer_ini.clear()
+        layer_ini = dict()
         for j, cate in enumerate(["hardware", "quantize", "layer"]):
             layer_ini[cate] = update_config(general[j], specific[j])
-        layer_ini["EXTRA"] = {"name": f"L{i:02d}", "output": [f"L{i:02d}_out"]}
+        # add empty EXTRA
+        layer_ini["EXTRA"] = dict()
         layer_ini_list.append(layer_ini)
-    # set input_blob and output_blob
-    tensor_name_list = ["input"] + functools.reduce(lambda x,y: x+y,
-        [layer_ini["EXTRA"]["output"] for layer_ini in layer_ini_list]
-    )
-    for i, layer_ini in enumerate(layer_ini_list):
-        layer_ini["EXTRA"]["input"] = [
-            tensor_name_list[i+1+j] for j in layer_ini["layer"]["input_index"]
-        ]
-    # add for conv
-    for i in range(len(layer_ini_list)-1, -1, -1):
-        layer_ini = layer_ini_list[i]
-        if layer_ini["layer"]["type"] == "conv" and \
-            layer_ini["layer"]["conv_add_bn"] is True:
-            sp_name = f"{layer_ini['EXTRA']['name']}_sp"
-            bn_ini = {
-                "hardware": copy.deepcopy(layer_ini["hardware"]),
-                "quantize": {
-                    "input": layer_ini["quantize"]["output"],
-                    "weight": layer_ini["quantize"]["weight"],
-                    "output": layer_ini["quantize"]["output"],
-                },
-                "layer": {"type": "bn", "input_index": [-1],
-                    "num_features": layer_ini["layer"]["out_channels"]},
-                "EXTRA": {
-                    "name": sp_name,
-                    "input": [sp_name],
-                    "output": layer_ini["EXTRA"]["output"]}
-            }
-            layer_ini["EXTRA"]["output"] = [sp_name]
-            layer_ini_list.insert(i+1, bn_ini)
-    # change input index by name
-    tensor_name_list = ["input"] + functools.reduce(lambda x,y: x+y,
-        [layer_ini["EXTRA"]["output"] for layer_ini in layer_ini_list]
-    )
-    for i, layer_ini in enumerate(layer_ini_list):
-        input_point = [
-            tensor_name_list.index(name) for name in layer_ini["EXTRA"]["input"]
-        ]
-        layer_ini["layer"]["input_index"] = [
-            point-1-i for point in input_point
-        ]
-    # return
-    return layer_ini_list
+    return model_name, layer_ini_list
 
 class Model(BaseModel):
     """
@@ -220,4 +305,9 @@ class Model(BaseModel):
     """
     NAME = "yaml"
     def get_layer_ini_list(self, config_path):
-        return format_yaml(config_path, self.hardware_config)
+        model_name, layer_ini_list = format_yaml(config_path, self.hardware_config)
+        self.model_name = model_name
+        return layer_ini_list
+
+    def get_name(self):
+        return self.model_name
