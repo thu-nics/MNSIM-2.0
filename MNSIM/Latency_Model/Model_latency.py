@@ -8,7 +8,8 @@ work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 import numpy as np
 import pandas as pd
-from MNSIM.Interface.interface import *
+# from MNSIM.Interface.interface import TrainTestInterface
+from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
 from MNSIM.Mapping_Model.Tile_connection_graph import TCG
 from MNSIM.Latency_Model.Tile_latency import tile_latency_analysis
 from MNSIM.Latency_Model.Pooling_latency import pooling_latency_analysis
@@ -138,7 +139,7 @@ class Model_latency():
         self.layer_type = []
         self.layer_split = []
         self.pre_max_time = 0
-    
+
     def layer_latency_initial(self):
         self.begin_time.append([])
         self.finish_time.append([])
@@ -170,7 +171,7 @@ class Model_latency():
         # calculate the position of the most time consuming output of the input layer (used in replicate mode)
         layer_dict = self.NetStruct[current_layer_id][0][0]
         # print(current_layer_id)
-        if layer_dict['type'] is not 'pooling':
+        if layer_dict['type'] != 'pooling':
             assert layer_dict['type'] == 'conv', "only conv layer could be judged"
         kernelsize = int(layer_dict['Kernelsize'])
         last_split = self.layer_split[last_layer_id]
@@ -635,7 +636,7 @@ class Model_latency():
                 # if ((self.occupancy[layer_id] == 1) and (layer_dict['type'] == 'conv')) or (layer_dict['type'] == 'pooling'):
                 layer_occu.append(layer_id)
         ''' check the consecuive of the layer '''
-        if len(layer_occu) is 0:
+        if len(layer_occu) == 0:
             return
         print(layer_occu)
         layer_stall = []
@@ -913,7 +914,7 @@ class Model_latency():
                                                         temp_tile_latency=temp_tile_latency, merge_time=merge_time, transfer_time=transfer_time)
                                 max_time[m] = compute_time
             else:
-                if layer_dict['type'] is 'conv':
+                if layer_dict['type'] == 'conv':
                     self.layer_latency_initial()
                     output_size = list(map(int, layer_dict['Outputsize']))
                     input_size = list(map(int, layer_dict['Inputsize']))
@@ -1269,10 +1270,11 @@ class Model_latency():
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "alexnet_params.pth")
+                                          "lenet_params.pth")
 
-    __TestInterface = TrainTestInterface('alexnet', 'MNSIM.Interface.cifar10', test_SimConfig_path,
-                                         test_weights_file_path)
+    # __TestInterface = TrainTestInterface('alexnet', 'MNSIM.Interface.cifar10', test_SimConfig_path,
+                                        #  test_weights_file_path)
+    __TestInterface = _init_evaluation_interface('lenet', 'cifar10', test_SimConfig_path, test_weights_file_path)
     structure_file = __TestInterface.get_structure()
     test = Model_latency(structure_file, test_SimConfig_path)
 

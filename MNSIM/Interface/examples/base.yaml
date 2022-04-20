@@ -22,5 +22,5 @@ trainer_cfg:
     gamma: 0.1
     epochs: 90
     device: 0
-    train_mode: TRADITION
-    test_mode: TRADITION
+    train_mode: FIX_TRAIN
+    test_mode: SINGLE_FIX_TEST

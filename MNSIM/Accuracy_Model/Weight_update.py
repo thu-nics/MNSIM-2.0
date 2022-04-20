@@ -6,7 +6,8 @@ import configparser as cp
 import numpy as np
 from MNSIM.Hardware_Model import *
 from MNSIM.Hardware_Model.Crossbar import crossbar
-from MNSIM.Interface.interface import *
+from MNSIM.Interface.interface import TrainTestInterface
+from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
 
 def weight_update(SimConfig_path, weight, is_SAF=0, is_Variation=0, is_Rratio=0):
     # print("Hardware config file is loaded:", SimConfig_path)
@@ -47,8 +48,9 @@ def weight_update(SimConfig_path, weight, is_SAF=0, is_Variation=0, is_Rratio=0)
 if __name__ == '__main__':
     SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"cifar10_lenet_params.pth")
-    __TestInterface = TrainTestInterface('lenet', 'MNSIM.Interface.cifar10', SimConfig_path,
-                                         weights_file_path, 0)
+    # __TestInterface = TrainTestInterface('lenet', 'MNSIM.Interface.cifar10', SimConfig_path,
+                                        #  weights_file_path, 0)
+    __TestInterface = _init_evaluation_interface('lenet', 'cifar10', SimConfig_path, weights_file_path, 0)
     structure_file = __TestInterface.get_structure()
     weight = __TestInterface.get_net_bits()
     weight_2 = weight_update(SimConfig_path, weight, is_Variation=0,is_SAF=0,is_Rratio=1)
@@ -57,12 +59,3 @@ if __name__ == '__main__':
     weight = __TestInterface.get_net_bits()
     # print(weight_2-weight)
     print(__TestInterface.set_net_bits_evaluate(weight_2))
-
-
-
-
-
-
-
-
-

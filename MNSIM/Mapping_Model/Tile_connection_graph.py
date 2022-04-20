@@ -11,7 +11,9 @@ sys.path.append(work_path)
 from MNSIM.Hardware_Model import *
 from MNSIM.Hardware_Model.Crossbar import crossbar
 from MNSIM.Hardware_Model.Tile import tile
-from MNSIM.Interface.interface import *
+# from MNSIM.Interface.interface import TrainTestInterface
+from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
+import numpy as np
 import collections
 import pandas as pd
 
@@ -388,7 +390,7 @@ class TCG():
                 input_size_list = list(map(int, layer_dict['Inputsize']))
                 input_size = input_size_list[0] * input_size_list[1]
                 inputchannel = int(layer_dict['Inputchannel'])
-                data_inbuf = 0 
+                data_inbuf = 0
                 data_outbuf = 0
                     # assume the buffer size depends on the conv/fc layers
             elif layer_type == 'element_sum':
@@ -600,8 +602,9 @@ if __name__ == '__main__':
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
                                           "vgg8_params.pth")
 
-    __TestInterface = TrainTestInterface('vgg8_128_9', 'MNSIM.Interface.cifar10', test_SimConfig_path,
-                                         test_weights_file_path, 'cpu')
+    # __TestInterface = TrainTestInterface('vgg8_128_9', 'MNSIM.Interface.cifar10', test_SimConfig_path,
+                                        #  test_weights_file_path, 'cpu')
+    __TestInterface = _init_evaluation_interface('vgg8', 'cifar10', test_SimConfig_path, test_weights_file_path, -1)
     structure_file = __TestInterface.get_structure()
 
     test = TCG(structure_file, test_SimConfig_path)

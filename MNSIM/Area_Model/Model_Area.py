@@ -6,7 +6,8 @@ import configparser as cp
 work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 import numpy as np
-from MNSIM.Interface.interface import *
+# from MNSIM.Interface.interface import TrainTestInterface
+from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
 from MNSIM.Mapping_Model.Tile_connection_graph import TCG
 import pandas as pd
 from MNSIM.Hardware_Model.Tile import tile
@@ -184,8 +185,9 @@ if __name__ == '__main__':
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
                                           "vgg8_params.pth")
 
-    __TestInterface = TrainTestInterface('vgg8_128_9', 'MNSIM.Interface.cifar10', test_SimConfig_path,
-                                         test_weights_file_path)
+    # __TestInterface = TrainTestInterface('vgg8_128_9', 'MNSIM.Interface.cifar10', test_SimConfig_path,
+                                        #  test_weights_file_path)
+    __TestInterface = _init_evaluation_interface('vgg8', 'cifar10', test_SimConfig_path, test_weights_file_path)
     structure_file = __TestInterface.get_structure()
     __TCG_mapping = TCG(structure_file, test_SimConfig_path)
     __area = Model_area(NetStruct=structure_file,SimConfig_path=test_SimConfig_path,TCG_mapping=__TCG_mapping)

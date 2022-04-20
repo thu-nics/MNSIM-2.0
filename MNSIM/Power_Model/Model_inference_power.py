@@ -6,7 +6,8 @@ import configparser as cp
 work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 import numpy as np
-from MNSIM.Interface.interface import *
+# from MNSIM.Interface.interface import TrainTestInterface
+from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
 from MNSIM.Mapping_Model.Tile_connection_graph import TCG
 from MNSIM.Hardware_Model.Tile import tile
 from MNSIM.Hardware_Model.Buffer import buffer
@@ -104,7 +105,7 @@ class Model_inference_power():
         self.arch_total_buf_r_power = sum(self.arch_buf_r_power)+self.global_buf.buf_rpower*1e-3
         self.arch_total_buf_w_power = sum(self.arch_buf_w_power)+self.global_buf.buf_wpower*1e-3
         self.arch_total_pooling_power = sum(self.arch_pooling_power)
-    
+
     def model_power_output(self, module_information = 1, layer_information = 1):
         print("Hardware power:", self.arch_total_power, "W")
         if module_information:
@@ -137,8 +138,10 @@ if __name__ == '__main__':
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
                                           "vgg8_params.pth")
 
-    __TestInterface = TrainTestInterface('vgg8_128_9', 'MNSIM.Interface.cifar10', test_SimConfig_path,
-                                         test_weights_file_path, 'cpu')
+    # __TestInterface = TrainTestInterface('vgg8_128_9', 'MNSIM.Interface.cifar10', test_SimConfig_path,
+                                        #  test_weights_file_path, 'cpu')
+    __TestInterface = _init_evaluation_interface('vgg8', 'cifar10', test_SimConfig_path, test_weights_file_path, -1)
+
     structure_file = __TestInterface.get_structure()
     __TCG_mapping = TCG(structure_file, test_SimConfig_path)
     __power = Model_inference_power(NetStruct=structure_file,SimConfig_path=test_SimConfig_path,TCG_mapping=__TCG_mapping)

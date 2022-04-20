@@ -11,7 +11,6 @@
     2021/12/16 16:24
 """
 import random
-
 import pytest
 
 
@@ -58,3 +57,20 @@ def test_dataset(dataset_name):
             metric = loader_metric(loader)
             print(f"{dataset_name}, loader type is {loader_type}, loader number is {loader_num}")
             print(metric+"\n")
+
+def test_evaluation_interface():
+    """
+    evaluation interface test
+    """
+    import os
+    from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
+    # change dir to top level
+    top_level = os.path.dirname(os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ))
+    os.chdir(top_level)
+    # init
+    evaluation_interface = _init_evaluation_interface(
+        "lenet", "cifar10", "SimConfig.ini",
+        "MNSIM/Interface/zoo/cifar10_lenet_SGD_FIX_TRAIN_FIX_TRAIN.pth", 0
+    )

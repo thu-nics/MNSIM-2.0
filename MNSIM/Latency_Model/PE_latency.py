@@ -9,7 +9,8 @@ work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 from MNSIM.Hardware_Model.PE import ProcessElement
 from MNSIM.Hardware_Model.Buffer import buffer
-from MNSIM.Interface.interface import *
+# from MNSIM.Interface.interface import TrainTestInterface
+from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
 
 
 class PE_latency_analysis():

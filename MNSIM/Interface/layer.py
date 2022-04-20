@@ -574,6 +574,8 @@ class BaseTransferLayer(BaseLayer):
                 _get_thres(self.layer_ini["quantize"]["output"])
         else:
             # for new interface weight
+            assert "bit_scale_list" in origin_weight.keys(), \
+                f"bit_scale_list should be in origin_weight in {self.layer_ini}"
             target_weight["bit_scale_list"] = origin_weight["bit_scale_list"]
         # other
         for k, v in origin_weight.items():

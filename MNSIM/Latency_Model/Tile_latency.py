@@ -7,7 +7,8 @@ import math
 import configparser as cp
 work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
-from MNSIM.Interface.interface import *
+# from MNSIM.Interface.interface import TrainTestInterface
+from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
 from MNSIM.Latency_Model.PE_latency import PE_latency_analysis
 from MNSIM.Hardware_Model.Buffer import buffer
 

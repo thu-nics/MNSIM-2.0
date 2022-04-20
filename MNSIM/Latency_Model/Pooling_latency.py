@@ -9,7 +9,8 @@ work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 from MNSIM.Hardware_Model.Buffer import buffer
 from MNSIM.Hardware_Model.Pooling import Pooling
-from MNSIM.Interface.interface import *
+# from MNSIM.Interface.interface import TrainTestInterface
+from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
 
 class pooling_latency_analysis():
     def __init__(self, SimConfig_path, indata=0, rdata=0, outprecision = 8, default_inbuf_size = 16,

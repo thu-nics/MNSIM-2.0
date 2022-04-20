@@ -10,7 +10,8 @@ import torch
 import collections
 import configparser
 from importlib import import_module
-from MNSIM.Interface.interface import *
+# from MNSIM.Interface.interface import TrainTestInterface
+from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
 from MNSIM.Accuracy_Model.Weight_update import weight_update
 from MNSIM.Mapping_Model.Behavior_mapping import behavior_mapping
 from MNSIM.Mapping_Model.Tile_connection_graph import TCG
@@ -79,7 +80,7 @@ def main():
                         help="Enable fixed quantization range (max value), default: false")
     parser.add_argument("-DisPipe", "--disable_inner_pipeline", action='store_true', default=False,
                         help="Disable inner layer pipeline in latency modeling, default: false")
-    parser.add_argument("-D", "--device", default=0,
+    parser.add_argument("-D", "--device", default=-1,
                         help="Determine hardware device for simulation, default: CPU")
     parser.add_argument("-DisModOut", "--disable_module_output", action='store_true', default=False,
                         help="Disable module simulation results output, default: false")
@@ -103,8 +104,9 @@ def main():
         print("Quantization range: dynamic range (depends on the data distribution)")
     # __TestInterface = TrainTestInterface(args.NN, 'MNSIM.Interface.cifar10', args.hardware_description,
     #                                      args.weights, args.device)
-    __TestInterface = TrainTestInterface(network_module=args.NN, dataset_module='MNSIM.Interface.cifar10', SimConfig_path=args.hardware_description,
-                                         weights_file=args.weights, device=args.device)
+    # __TestInterface = TrainTestInterface(network_module=args.NN, dataset_module='MNSIM.Interface.cifar10', SimConfig_path=args.hardware_description,
+                                        #  weights_file=args.weights, device=args.device)
+    __TestInterface = _init_evaluation_interface(args.NN, "cifar10", args.hardware_description, args.weights, args.device)
     structure_file = __TestInterface.get_structure()
     # weight = __TestInterface.get_net_bits()
     # print(structure_file)
@@ -138,6 +140,8 @@ def main():
         __energy.model_energy_output(not (args.disable_module_output), not (args.disable_layer_output))
 
     if not (args.disable_accuracy_simulation):
+        # TODO: support accuracy simulation
+        raise NotImplementedError
         print("======================================")
         print("Accuracy simulation will take a few minutes on GPU")
         weight = __TestInterface.get_net_bits()

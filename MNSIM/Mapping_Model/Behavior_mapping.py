@@ -10,7 +10,8 @@ work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 from MNSIM.Hardware_Model import *
 from MNSIM.Hardware_Model.Tile import tile
-from MNSIM.Interface.interface import *
+# from MNSIM.Interface.interface import TrainTestInterface
+from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
 
 
 class behavior_mapping(tile):
@@ -425,9 +426,10 @@ class behavior_mapping(tile):
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),
-                                          "alexnet_channels_bit/alexnet_16_5_params.pth")
+                                          "lenet_channels_bit/alexnet_16_5_params.pth")
 
-    __TestInterface = TrainTestInterface('alexnet_16_5', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
+    # __TestInterface = TrainTestInterface('alexnet_16_5', 'MNSIM.Interface.cifar10', test_SimConfig_path, test_weights_file_path, 'cpu')
+    __TestInterface = _init_evaluation_interface('lenet', 'cifar10', test_SimConfig_path, test_weights_file_path, -1)
     structure_file = __TestInterface.get_structure()
 
     _bm = behavior_mapping(structure_file, test_SimConfig_path)
