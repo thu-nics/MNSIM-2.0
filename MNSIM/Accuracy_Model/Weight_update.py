@@ -6,7 +6,7 @@ import configparser as cp
 import numpy as np
 from MNSIM.Hardware_Model import *
 from MNSIM.Hardware_Model.Crossbar import crossbar
-from MNSIM.Interface.interface import TrainTestInterface
+# from MNSIM.Interface.interface import TrainTestInterface
 from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
 
 def weight_update(SimConfig_path, weight, is_SAF=0, is_Variation=0, is_Rratio=0):

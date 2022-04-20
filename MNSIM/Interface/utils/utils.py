@@ -147,3 +147,29 @@ class DoubleMap(SingleMap):
         """
         assert pair[1] not in self._map.values(), "pair[1] should not be in _map values"
         super(DoubleMap, self).add_more(pair)
+
+def recursion_compare(a, b):
+    a_type = type(a) if not isinstance(a, collections.OrderedDict) else type({})
+    b_type = type(b) if not isinstance(b, collections.OrderedDict) else type({})
+    if a_type != b_type:
+        print("not same type")
+        return False
+    if a_type == dict:
+        if not a.keys() == b.keys():
+            print("not same keys")
+            return False
+        for k in a.keys():
+            if not recursion_compare(a[k], b[k]):
+                print(a[k], b[k])
+                return False
+        return True
+    if a_type in [list, tuple]:
+        if not len(a) == len(b):
+            print("not same length")
+            return False
+        for i in range(len(a)):
+            if not recursion_compare(a[i], b[i]):
+                print(a[i], b[i])
+                return False
+        return True
+    return a == b
