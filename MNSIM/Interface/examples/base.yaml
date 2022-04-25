@@ -15,6 +15,7 @@ trainer_type: SGD
 trainer_cfg:
   trainer_config:
     log_dir: MNSIM/Interface/runs
+    save_path: MNSIM/Interface/zoo
     lr: 0.01
     weight_decay: 0.0005
     momentum: 0.9

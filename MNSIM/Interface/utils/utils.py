@@ -13,6 +13,7 @@ import collections
 import configparser
 import copy
 import math
+import os
 
 
 def load_sim_config(SimConfig_path):
@@ -173,3 +174,13 @@ def recursion_compare(a, b):
                 return False
         return True
     return a == b
+
+def get_home_path():
+    """
+    get home path
+    now is MNSIM/Interface/utils/utils.py
+    return the home path of MNSIM_Python
+    """
+    return os.path.dirname(os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ))
