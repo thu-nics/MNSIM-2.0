@@ -636,6 +636,11 @@ class QuantizeEleSum(BaseTransferLayer):
         }, self.bit_scale_list[2])
         return quantize_output
 
+    def get_part_structure(self, inputs, output):
+        output_shape = output.shape
+        self.layer_info["Outputchannel"] = int(output_shape[1])
+        self.layer_info["Outputsize"] = list(output_shape)[2:]
+
 class QuantizePooling(BaseTransferLayer):
     """
     quantize pooling layer

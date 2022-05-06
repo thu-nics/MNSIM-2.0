@@ -63,6 +63,7 @@ def test_evaluation_interface():
     evaluation interface test
     """
     import os
+    import pickle
     from MNSIM.Interface.utils.init_interface import _init_evaluation_interface
     # change dir to top level
     top_level = os.path.dirname(os.path.dirname(
@@ -71,6 +72,9 @@ def test_evaluation_interface():
     os.chdir(top_level)
     # init
     evaluation_interface = _init_evaluation_interface(
-        "lenet", "cifar10", "SimConfig.ini",
-        "MNSIM/Interface/zoo/cifar10_lenet_SGD_FIX_TRAIN_FIX_TRAIN.pth", 0
+        "resnet18", "cifar10", "SimConfig.ini", None, -1,
+        # "MNSIM/Interface/zoo/cifar10_resnet18_SGD_FIX_TRAIN_FIX_TRAIN.pth", 0
     )
+    tile_behavior_list = evaluation_interface.noc_data()
+    with open("resnet18.pkl", "wb") as f:
+        pickle.dump(tile_behavior_list, f)
