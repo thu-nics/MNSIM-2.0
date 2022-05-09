@@ -76,5 +76,5 @@ def test_evaluation_interface():
         # "MNSIM/Interface/zoo/cifar10_resnet18_SGD_FIX_TRAIN_FIX_TRAIN.pth", 0
     )
     tile_behavior_list = evaluation_interface.noc_data()
-    with open("resnet18.pkl", "wb") as f:
+    with open("tmp.pkl", "wb") as f:
         pickle.dump(tile_behavior_list, f)

@@ -115,6 +115,7 @@ class BaseModel(nn.Module, Component):
         This function is used to get the structure of the network
         """
         inputs = torch.zeros(self.dataset_shape, device=torch.device("cpu"))
+        self.eval()
         self.to(torch.device("cpu"))
         with torch.no_grad():
             traverse(self, inputs,

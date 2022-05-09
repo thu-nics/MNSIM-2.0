@@ -86,6 +86,7 @@ class EvaluationInterface(Component):
         """
         get the noc data
         """
+        tile_max_time = 0.
         # get key structure and key layers
         key_layer_info_list = list(
             map(lambda x: x[0][0], self.model.get_key_structure()))
@@ -166,6 +167,7 @@ class EvaluationInterface(Component):
                         tile_latency = PE_latency + joint_time + transfer_latency + output_buffer.buf_wlatency
                         # get inchannels and outchannels
                         tile_info_list.append([in_channel_index, tile_latency, out_channel_index])
+                        tile_max_time = max(tile_max_time, tile_latency)
                 # set tile behavior
                 merge_node_id = len(tile_behavior_list) + len(tile_info_list)
                 for tile_id, tile_info in enumerate(tile_info_list):
@@ -317,6 +319,7 @@ class EvaluationInterface(Component):
                         tile_latency = PE_latency + joint_time + transfer_latency + output_buffer.buf_wlatency
                         # get infeatures and outfeatures
                         tile_info_list.append([in_feature_index, tile_latency, out_feature_index])
+                        tile_max_time = max(tile_max_time, tile_latency)
                 # set tile behavior
                 merge_node_id = len(tile_behavior_list) + len(tile_info_list)
                 for tile_id, tile_info in enumerate(tile_info_list):
@@ -394,6 +397,7 @@ class EvaluationInterface(Component):
                 )
                 pooling_latency = pooling_instance.pooling_latency + \
                     output_buffer.buf_wlatency
+                tile_max_time = max(tile_max_time, pooling_latency)
                 # traverse all tiles
                 dependence = [dict()
                         for _ in range(key_layer_info["Outputsize"][0]*key_layer_info["Outputsize"][1])
@@ -445,6 +449,7 @@ class EvaluationInterface(Component):
                 input_buffer.calculate_buf_read_latency(rdata=2*out_channels*key_layer_info["Inputbit"]/8)
                 output_buffer.calculate_buf_write_latency(wdata=out_channels*key_layer_info["outputbit"]/8)
                 PE_latency = input_buffer.buf_rlatency + output_buffer.buf_wlatency
+                tile_max_time = max(tile_max_time, PE_latency)
                 # for element sum, there is only one tile
                 tile_behavior = dict()
                 tile_behavior["task_id"] = None
@@ -482,6 +487,9 @@ class EvaluationInterface(Component):
                 tile_behavior_list.append(tile_behavior)
             else:
                 raise NotImplementedError(f"{key_layer_info['type']} is not implemented")
+        # max tile time
+        print(f"max tile time: {tile_max_time} ns")
+        print(f"need {len(tile_behavior_list)} tiles")
         # link tile, true tile id
         def _get_true_tile_id(layer_index):
             for tile_behavior in tile_behavior_list:
