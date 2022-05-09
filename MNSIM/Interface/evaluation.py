@@ -364,7 +364,7 @@ class EvaluationInterface(Component):
                     None, layer_id, tile_id, true_id
                 ] for start, end, tile_id, true_id in tile_flag_list]
                 dependence[0]["output"] = [[
-                    0, 0, 0, key_layer_info["Infeature"],
+                    0, 0, 0, key_layer_info["Outfeature"],
                     key_layer_info["outputbit"], key_layer_info["Outfeature"],
                     None, layer_id, -1, tile_behavior["tile_id"]
                 ]]
