@@ -1,0 +1,68 @@
+# from pytorch
+name: alexnet_imagenet
+hardware_config:
+  cell_bit: 1
+  dac_bit: 2
+  adc_bit: 10
+  xbar_row: 512
+  point_shift: -2
+quantize_config:
+  input: 9
+  weight: 9
+  output: 9
+layer_config:
+  conv_add_bn: true
+  input_index:
+    - -1
+model_config:
+  - type: conv
+    in_channels: 3
+    out_channels: 64
+    kernel_size: 11
+    padding: 2
+    stride: 4
+  - type: relu
+  - type: pooling
+    kernel_size: 3
+    stride: 2
+  - type: conv
+    in_channels: 64
+    out_channels: 192
+    kernel_size: 5
+    padding: 2
+  - type: relu
+  - type: pooling
+    kernel_size: 3
+    stride: 2
+  - type: conv
+    in_channels: 192
+    out_channels: 384
+    kernel_size: 3
+    padding: 1
+  - type: relu
+  - type: conv
+    in_channels: 384
+    out_channels: 256
+    kernel_size: 3
+    padding: 1
+  - type: relu
+  - type: conv
+    in_channels: 256
+    out_channels: 256
+    kernel_size: 3
+    padding: 1
+  - type: relu
+  - type: pooling
+    kernel_size: 3
+    stride: 2
+  - type: pooling
+    kernel_size: 3
+    stride: 3
+  - type: view
+  - type: fc
+    in_features: 1024
+    out_features: 512
+  - type: relu
+  - type: fc
+    in_features: 512
+    out_features: 10

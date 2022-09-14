@@ -148,7 +148,7 @@ class Model_area():
         self.arch_total_ADC_utilization = used_total_ADC_num/(total_tile_num*self.tile_ADC_num)
 
     def model_area_output(self, module_information = 1, layer_information = 1):
-        print("Hardware area:", self.arch_total_area, "um^2")
+        print("Hardware area:", self.arch_total_area / 1e6, "mm^2")
         if module_information:
             print("		crossbar area:", self.arch_total_xbar_area, "um^2")
             print("		DAC area:", self.arch_total_DAC_area, "um^2")

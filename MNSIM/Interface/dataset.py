@@ -79,6 +79,9 @@ class ClassificationBaseDataset(Component):
             "loader_type should be train or test but {}".format(loader_type)
         # loader config, batch_size and others
         loader_cfg = self.get_loader_cfg(loader_type)
+        if loader_cfg == None:
+            self.logger.warning("no loader config for {}".format(loader_type))
+            return None
         self.logger.info(
             "init loader for {}".format(loader_type) + \
             " :\n" + str(loader_cfg)
@@ -205,3 +208,35 @@ class CIFAR100(CIFAR10):
     NAME = "cifar100"
     def get_num_classes(self):
         return 100
+
+class ImageNet(ClassificationBaseDataset):
+    """
+    ImageNet dataset
+    """
+    NAME = "imagenet"
+    def get_num_classes(self):
+        return 1000
+
+    def get_dataset_cfg(self, dataset_type):
+        """
+        return train or test dataset config
+        """
+        return None
+
+    def get_loader_cfg(self, loader_type):
+        """
+        loader config for loader_type
+        loader_type should be train or test
+        loader_num, how many batch need to be load
+        """
+        return None
+
+    def get_dataset_info(self):
+        dataset_info = {
+            "bit_scale": torch.FloatTensor([9, 1/255.]),
+            "shape": (1, 3, 224, 224)
+        }
+        return dataset_info
+
+    def get_name(self):
+        return self.NAME

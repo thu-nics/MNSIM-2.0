@@ -20,7 +20,7 @@ def _init_evaluation_interface(network, dataset, hardware_config_path, weight_pa
     """
     config_path = None
     home_path = get_home_path()
-    if network in ("lenet", "vgg8", "resnet18"):
+    if network in ("lenet", "vgg8", "resnet18", "alexnet", "vgg16", "alexnet_imagenet", "vgg8_imagenet", "resnet18_imagenet", "vgg16_imagenet"):
         # for old interface, copy based on base.yaml
         base_yaml_path = os.path.join(home_path, "MNSIM/Interface/examples/base.yaml")
         assert os.path.exists(base_yaml_path), f"base.yaml in {base_yaml_path} not found"
