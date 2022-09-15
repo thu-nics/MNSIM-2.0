@@ -72,7 +72,7 @@ def test_evaluation_interface():
     os.chdir(top_level)
     # init
     evaluation_interface = _init_evaluation_interface(
-        "vgg16_imagenet", "imagenet", "SimConfig.ini", None, -1,
+        "vgg11_imagenet", "imagenet", "SimConfig.ini", None, -1,
         # "MNSIM/Interface/zoo/cifar10_resnet18_SGD_FIX_TRAIN_FIX_TRAIN.pth", 0
     )
     tile_behavior_list = evaluation_interface.noc_data()
