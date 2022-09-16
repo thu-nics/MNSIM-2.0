@@ -18,21 +18,21 @@ model_config:
   - type: conv
     in_channels: 3
     out_channels: 64
-    kernel_size: 11
-    padding: 2
-    stride: 4
+    kernel_size: 3
+    padding: 1
+    stride: 2
   - type: relu
   - type: pooling
-    kernel_size: 3
+    kernel_size: 2
     stride: 2
   - type: conv
     in_channels: 64
     out_channels: 192
-    kernel_size: 5
-    padding: 2
+    kernel_size: 3
+    padding: 1
   - type: relu
   - type: pooling
-    kernel_size: 3
+    kernel_size: 2
     stride: 2
   - type: conv
     in_channels: 192
@@ -48,16 +48,13 @@ model_config:
   - type: relu
   - type: conv
     in_channels: 256
-    out_channels: 256
+    out_channels: 512
     kernel_size: 3
     padding: 1
   - type: relu
   - type: pooling
-    kernel_size: 3
-    stride: 2
-  - type: pooling
-    kernel_size: 3
-    stride: 3
+    kernel_size: 14
+    stride: 14
   - type: view
   - type: fc
     in_features: 1024

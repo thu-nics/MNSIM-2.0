@@ -215,7 +215,7 @@ class ImageNet(ClassificationBaseDataset):
     """
     NAME = "imagenet"
     def get_num_classes(self):
-        return 1000
+        return 200
 
     def get_dataset_cfg(self, dataset_type):
         """

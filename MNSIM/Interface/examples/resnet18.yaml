@@ -168,6 +168,9 @@ model_config:
     input_index: [-1, -4]
   - type: relu
   # output
+  - type: pooling
+    kernel_size: 1
+    stride: 1
   - type: view
   - type: fc
     in_features: 2048

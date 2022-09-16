@@ -17,13 +17,19 @@ model_config:
   # block1
   - type: conv
     in_channels: 3
-    out_channels: 64
+    out_channels: 128
     kernel_size: 3
     padding: 1
   - type: relu
   - type: conv
-    in_channels: 64
-    out_channels: 64
+    in_channels: 128
+    out_channels: 128
+    kernel_size: 3
+    padding: 1
+  - type: relu
+  - type: conv
+    in_channels: 128
+    out_channels: 128
     kernel_size: 3
     padding: 1
   - type: relu
@@ -32,14 +38,20 @@ model_config:
     stride: 2
   # block2
   - type: conv
-    in_channels: 64
-    out_channels: 128
+    in_channels: 128
+    out_channels: 256
     kernel_size: 3
     padding: 1
   - type: relu
   - type: conv
-    in_channels: 128
-    out_channels: 128
+    in_channels: 256
+    out_channels: 256
+    kernel_size: 3
+    padding: 1
+  - type: relu
+  - type: conv
+    in_channels: 256
+    out_channels: 256
     kernel_size: 3
     padding: 1
   - type: relu
@@ -48,20 +60,20 @@ model_config:
     stride: 2
   # block3
   - type: conv
-    in_channels: 128
-    out_channels: 256
+    in_channels: 256
+    out_channels: 512
     kernel_size: 3
     padding: 1
   - type: relu
   - type: conv
-    in_channels: 256
-    out_channels: 256
+    in_channels: 512
+    out_channels: 512
     kernel_size: 3
     padding: 1
   - type: relu
   - type: conv
-    in_channels: 256
-    out_channels: 256
+    in_channels: 512
+    out_channels: 512
     kernel_size: 3
     padding: 1
   - type: relu
@@ -70,12 +82,6 @@ model_config:
     stride: 2
   # block4
   - type: conv
-    in_channels: 256
-    out_channels: 512
-    kernel_size: 3
-    padding: 1
-  - type: relu
-  - type: conv
     in_channels: 512
     out_channels: 512
     kernel_size: 3
@@ -83,37 +89,14 @@ model_config:
   - type: relu
   - type: conv
     in_channels: 512
-    out_channels: 512
+    out_channels: 1024
     kernel_size: 3
-    padding: 1
+    padding: 0
   - type: relu
   - type: pooling
     kernel_size: 2
     stride: 2
-  # block5
-  - type: conv
-    in_channels: 512
-    out_channels: 512
-    kernel_size: 3
-    padding: 1
-  - type: relu
-  - type: conv
-    in_channels: 512
-    out_channels: 512
-    kernel_size: 3
-    padding: 1
-  - type: relu
-  - type: conv
-    in_channels: 512
-    out_channels: 512
-    kernel_size: 3
-    padding: 1
-  - type: relu
   - type: view
   - type: fc
-    in_features: 2048
-    out_features: 512
-  - type: relu
-  - type: fc
-    in_features: 512
+    in_features: 1024
     out_features: 10

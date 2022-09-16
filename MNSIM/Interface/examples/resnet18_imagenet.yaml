@@ -17,9 +17,8 @@ model_config:
   - type: conv
     in_channels: 3
     out_channels: 64
-    kernel_size: 7
-    padding: 3
-    stride: 2
+    kernel_size: 3
+    padding: 1
   - type: relu
   - type: pooling
     kernel_size: 2
@@ -170,11 +169,11 @@ model_config:
   - type: relu
   # output
   - type: pooling
-    kernel_size: 3
-    stride: 2
+    kernel_size: 7
+    stride: 7
   - type: view
   - type: fc
-    in_features: 4608
+    in_features: 2048
     out_features: 512
   - type: relu
   - type: fc
