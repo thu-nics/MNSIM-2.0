@@ -94,8 +94,8 @@ model_config:
     padding: 0
   - type: relu
   - type: pooling
-    kernel_size: 14
-    stride: 14
+    kernel_size: 26
+    stride: 26
   - type: view
   - type: fc
     in_features: 1024
