@@ -137,6 +137,8 @@ class CIFAR10(ClassificationBaseDataset):
     NAME = "cifar10"
 
     def __init__(self, dataset_ini):
+        self.mean = (0.507, 0.486, 0.440)
+        self.std = (0.267, 0.256, 0.276)
         super(CIFAR10, self).__init__(dataset_ini)
         self.get_dataset(
             "train",
@@ -161,11 +163,15 @@ class CIFAR10(ClassificationBaseDataset):
             "download": not os.path.exists(self.target_path),
             "train": dataset_type == "train",
             "transform": Transforms.Compose([
-                Transforms.Pad(padding = 4),
-                Transforms.RandomCrop(32),
+                Transforms.RandomCrop(32, padding=4),
                 Transforms.RandomHorizontalFlip(),
+                Transforms.RandomRotation(15),
                 Transforms.ToTensor(),
-            ]) if dataset_type == "train" else Transforms.ToTensor()
+                Transforms.Normalize(self.mean, self.std),
+            ]) if dataset_type == "train" else Transforms.Compose([
+                Transforms.ToTensor(),
+                Transforms.Normalize(self.mean, self.std),
+            ]),
         }
         return dataset_cfg
 
@@ -215,7 +221,7 @@ class ImageNet(ClassificationBaseDataset):
     """
     NAME = "imagenet"
     def get_num_classes(self):
-        return 200
+        return 1000
 
     def get_dataset_cfg(self, dataset_type):
         """

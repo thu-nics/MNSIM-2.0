@@ -21,3 +21,4 @@ __pycache__/
 /MNSIM/Interface/outputs
 /MNSIM/Interface/nohup.out
 /MNSIM/Interface/examples/.tmp.yaml
+/MNSIM/Interface/train_example/runs

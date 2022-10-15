@@ -51,7 +51,8 @@ class BaseTrainer(Component):
         self.train_mode = trainer_config.get("train_mode", "FIX_TRAIN")
         self.test_mode = trainer_config.get("test_mode", "SINGLE_FIX_TEST")
         self.show_name = f"{self.dataset.get_name()}_{self.model.get_name()}_{self.get_name()}" + \
-            f"_{self.train_mode}_{self.test_mode}"
+            f"_{self.train_mode}_{self.test_mode}" + \
+            f"_{trainer_config.get('prefix', 'null')}"
         # init train and test loader
         self.train_loader, self.test_loader = \
             self.dataset.get_loader("train", 0), self.dataset.get_loader("test", 0)
@@ -89,12 +90,13 @@ class BaseTrainer(Component):
         assert os.path.exists(self.save_path), \
             f"save path {self.save_path} is not exist"
         save_name = os.path.join(self.save_path, self.show_name + ".pth")
+        self.test(0)
         for epoch in range(epochs):
             # logger
             self.logger.info(f"train in epoch {epoch}")
             # train
-            self.model.train()
             self.model.to(device)
+            self.model.train()
             for i, (images, labels) in enumerate(self.train_loader):
                 self.model.zero_grad()
                 # forward
@@ -108,7 +110,7 @@ class BaseTrainer(Component):
                 self.writer.add_scalar("loss", loss.item(), len(self.train_loader)*epoch+i)
             self.scheduler.step()
             # test
-            self.test(epoch)
+            self.test(epoch+1)
         # save
         self.logger.info(f"save model to {save_name}")
         torch.save(self.model.state_dict(), save_name)
@@ -169,6 +171,31 @@ class SGDTrainer(BaseTrainer):
             "lr": train_config["lr"],
             "weight_decay": train_config["weight_decay"]}
         ], momentum=train_config["momentum"])
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(
+            optimizer,
+            milestones=train_config["milestones"],
+            gamma=train_config["gamma"],
+        )
+        # epoch and device
+        self.epochs = train_config["epochs"]
+        self.device = torch.device(f"cuda:{train_config['device']}") if \
+            train_config["device"] != -1 else torch.device("cpu")
+        return criterion, optimizer, scheduler
+
+    def get_name(self):
+        return self.NAME
+
+class AdamTrainer(BaseTrainer):
+    """
+    Adam trainer
+    """
+    NAME = "Adam"
+    def _init_trainer(self, train_config):
+        """
+        init the sgd trainer
+        """
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=train_config["lr"])
         scheduler = torch.optim.lr_scheduler.MultiStepLR(
             optimizer,
             milestones=train_config["milestones"],

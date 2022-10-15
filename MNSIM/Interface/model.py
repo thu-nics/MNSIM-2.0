@@ -124,6 +124,26 @@ class BaseModel(nn.Module, Component):
             )
         return [copy.deepcopy(layer.layer_info) for layer in self.layer_list]
 
+    def export_onnx(self, onnx_path):
+        """
+        This function is used to export the model to onnx
+        """
+        inputs = torch.zeros(self.dataset_shape, device=torch.device("cpu"))
+        class ThisModel(nn.Module):
+            """
+            This class is used to define the model for onnx
+            """
+            def __init__(self, model):
+                super(ThisModel, self).__init__()
+                self.model = model
+            def forward(self, inputs):
+                return self.model.forward(inputs, "TRADITION")
+        this_model = ThisModel(self)
+        this_model.eval()
+        this_model.to(torch.device("cpu"))
+        with torch.no_grad():
+            torch.onnx.export(this_model, inputs, onnx_path)
+
     def get_key_structure(self):
         """
         This function to get the key structure

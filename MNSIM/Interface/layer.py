@@ -13,6 +13,7 @@ import abc
 import copy
 import functools
 import math
+from functools import partial
 
 import torch
 import torch.nn.functional as F
@@ -46,7 +47,18 @@ class QuantizeFunction(Function):
         """
         # get scale
         if quantize_cfg["mode"] == "weight":
-            scale = torch.max(torch.abs(inputs)).item()
+            r_scale = last_bit_scale[1].item() * _get_thres(last_bit_scale[0].item())
+            if quantize_cfg["phase"] == "train":
+                t_scale = torch.max(torch.abs(inputs)).item()
+                if r_scale <= 0:
+                    scale = t_scale
+                else:
+                    scale = QuantizeFunction.RATIO * r_scale + \
+                        (1 - QuantizeFunction.RATIO) * t_scale
+            elif quantize_cfg["phase"] == "test":
+                scale = r_scale
+            else:
+                assert False, f"phase {quantize_cfg['phase']} not supported"
         elif quantize_cfg["mode"] == "activation":
             r_scale = last_bit_scale[1].item() * _get_thres(last_bit_scale[0].item())
             if quantize_cfg["phase"] == "train":
@@ -69,8 +81,11 @@ class QuantizeFunction(Function):
         output = torch.clamp(torch.round(output), min=-thres, max=thres)
         output = output * (scale / thres)
         # save bit and scale, output
-        last_bit_scale[0].fill_(bit)
-        last_bit_scale[1].fill_(scale / thres)
+        if quantize_cfg["phase"] == "train":
+            last_bit_scale[0].fill_(bit)
+            last_bit_scale[1].fill_(scale / thres)
+        elif quantize_cfg["phase"] == "test":
+            pass
         return output
 
     @staticmethod
@@ -273,6 +288,7 @@ class BaseWeightLayer(BaseLayer):
         self.partial_func = None
         # set extra module list
         self.set_module_list()
+        self.set_extra_bias()
 
     def set_module_list(self):
         """
@@ -284,6 +300,16 @@ class BaseWeightLayer(BaseLayer):
         self.layer_list = nn.ModuleList([
             layer_cls(**layer_config) for layer_config in layer_config_list
         ])
+        for layer in self.layer_list:
+            if isinstance(layer, (nn.Conv2d, nn.Linear)):
+                nn.init.kaiming_normal_(layer.weight, mode='fan_in', nonlinearity='relu')
+
+    @abc.abstractmethod
+    def set_extra_bias(self):
+        """
+        set extra bias for this layer
+        """
+        raise NotImplementedError
 
     @abc.abstractmethod
     def get_module_config(self):
@@ -310,16 +336,16 @@ class BaseWeightLayer(BaseLayer):
         if method == "TRADITION":
             input_list = torch.split(inputs, self.input_split_num, dim=1)
             output_list = [l(v) for l, v in zip(self.layer_list, input_list)]
-            return torch.sum(torch.stack(output_list, dim=0), dim=0)
+            return (torch.sum(torch.stack(output_list, dim=0), dim=0) + self.bias)
         # for method is FIX_TRAIN, we use fix train forward
         if method == "FIX_TRAIN":
             weight_total = torch.cat([l.weight for l in self.layer_list], dim=1)
             quantize_weight =  Quantize(weight_total, {
                 "mode": "weight",
-                "phase": None,
+                "phase": "train" if self.training else "test",
                 "bit": self.bit_scale_list[1,0].item()
             }, self.bit_scale_list[1])
-            output = self.partial_func(inputs, quantize_weight)
+            output = self.partial_func(inputs, quantize_weight) + self.bias
             quantize_output = Quantize(output, {
                 "mode": "activation",
                 "phase": "train" if self.training else "test",
@@ -399,7 +425,7 @@ class BaseWeightLayer(BaseLayer):
         # quantize output
         output_thres = _get_thres(self.bit_scale_list[2,0].item())
         output = torch.clamp(torch.round(output*output_thres), min=-output_thres, max=output_thres)
-        return output / (output_thres / output_scale)
+        return output / (output_thres / output_scale) + self.bias
 
     def load_change_weights(self, origin_weight):
         target_weight = {}
@@ -416,6 +442,8 @@ class BaseWeightLayer(BaseLayer):
         weight_list = torch.split(total_weight, self.input_split_num, dim=1)
         for i, weight in enumerate(weight_list):
             target_weight["layer_list.{}.weight".format(i)] = weight
+        if "bias" in origin_weight.keys():
+            target_weight["bias"] = origin_weight["bias"]
         self.load_state_dict(target_weight)
 
 
@@ -469,6 +497,15 @@ class QuantizeConv(BaseWeightLayer):
         self.layer_info["Outputchannel"] = int(output_shape[1])
         self.layer_info["Outputsize"] = list(output_shape[2:])
 
+    def set_extra_bias(self):
+        """
+        set extra bias for conv layer
+        """
+        self.bias = nn.Parameter(torch.zeros(
+            size=(1, self.layer_ini["layer"]["out_channels"], 1, 1)
+        ))
+        nn.init.constant_(self.bias, 0)
+
 class QuantizeFC(BaseWeightLayer):
     """
     quantize fc layer
@@ -496,6 +533,15 @@ class QuantizeFC(BaseWeightLayer):
         output_shape = output.shape
         self.layer_info["Infeature"] = input_shape[1]
         self.layer_info["Outfeature"] = self.layer_list[0].out_features
+
+    def set_extra_bias(self):
+        """
+        set extra bias for fc layer
+        """
+        self.bias = nn.Parameter(torch.zeros(
+            size=(1, self.layer_ini["layer"]["out_features"])
+        ))
+        nn.init.constant_(self.bias, 0)
 
 class BaseTransferLayer(BaseLayer):
     """
@@ -593,6 +639,8 @@ class QuantizeBN(BaseTransferLayer):
         set module for bn
         """
         self.layer = nn.BatchNorm2d(self.layer_ini["layer"]["num_features"])
+        nn.init.constant_(self.layer.weight, 1)
+        nn.init.constant_(self.layer.bias, 0)
 
     def _condition_quantize_output(self, output, method, inputs_bit_scale_list):
         quantize_output = Quantize(output, {
@@ -647,7 +695,7 @@ class QuantizePooling(BaseTransferLayer):
     """
     NAME = "pooling"
     def set_module(self):
-        self.layer = nn.MaxPool2d(
+        self.layer = nn.AvgPool2d(
             kernel_size=self.layer_ini["layer"]["kernel_size"],
             stride=self.layer_ini["layer"].get(
                 "stride",
