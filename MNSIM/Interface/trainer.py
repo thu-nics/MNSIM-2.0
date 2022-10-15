@@ -133,7 +133,7 @@ class BaseTrainer(Component):
         """
         test the model based on the net_bit_weights
         """
-        # transfer weights to deivce
+        # transfer weights to device
         for layer_weights in net_bit_weights:
             if layer_weights is None:
                 continue
