@@ -199,7 +199,7 @@ class CIFAR10(ClassificationBaseDataset):
 
     def get_dataset_info(self):
         dataset_info = {
-            "bit_scale": torch.FloatTensor([9, 1/255.]),
+            "bit_scale": torch.FloatTensor([9, 2.02/255.]),
             "shape": (1, 3, 32, 32)
         }
         return dataset_info
@@ -220,14 +220,40 @@ class ImageNet(ClassificationBaseDataset):
     ImageNet dataset
     """
     NAME = "imagenet"
-    def get_num_classes(self):
-        return 1000
+
+    def __init__(self, dataset_ini):
+        self.mean = (0.485, 0.456, 0.406)
+        self.std = (0.229, 0.224, 0.225)
+        super(ImageNet, self).__init__(dataset_ini)
+        self.get_dataset(
+            "train",
+            "train_dataset",
+            torchvision.datasets.ImageFolder,
+        )
+        self.get_dataset(
+            "test",
+            "test_dataset",
+            torchvision.datasets.ImageFolder,
+        )
 
     def get_dataset_cfg(self, dataset_type):
         """
         return train or test dataset config
         """
-        return None
+        assert dataset_type in ["train", "test"], \
+            "dataset type must be train or test"
+        # dataset config
+        dataset_cfg = {
+            "root": "/home/eva_share/datasets/ILSVRC2012/" + \
+                ("train" if dataset_type == "train" else "val"),
+            "transform": Transforms.Compose([
+                Transforms.Resize(256),
+                Transforms.CenterCrop(224),
+                Transforms.ToTensor(),
+                Transforms.Normalize(self.mean, self.std),
+            ]),
+        }
+        return dataset_cfg
 
     def get_loader_cfg(self, loader_type):
         """
@@ -235,11 +261,26 @@ class ImageNet(ClassificationBaseDataset):
         loader_type should be train or test
         loader_num, how many batch need to be load
         """
-        return None
+        assert loader_type in ["train", "test"], \
+            "loader_type should be train or test but {}".format(loader_type)
+        # loader config, batch_size and others
+        loader_cfg = {
+            "batch_size": self.dataset_ini.get(loader_type.upper() + "_BATCH_SIZE", None),
+            "shuffle": loader_type == "train",
+            "num_workers": self.dataset_ini.get(loader_type.upper() + "_NUM_WORKERS", None),
+            "drop_last": loader_type == "train",
+            "dataset": getattr(self, loader_type + "_dataset"),
+            "pin_memory": True
+        }
+        assert loader_cfg["batch_size"] is not None and loader_cfg["num_workers"] is not None
+        return loader_cfg
+
+    def get_num_classes(self):
+        return 1000
 
     def get_dataset_info(self):
         dataset_info = {
-            "bit_scale": torch.FloatTensor([9, 1/255.]),
+            "bit_scale": torch.FloatTensor([9, 2.64/255.]),
             "shape": (1, 3, 224, 224)
         }
         return dataset_info

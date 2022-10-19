@@ -1,0 +1,199 @@
+name: resnet18_imagenet
+hardware_config:
+  cell_bit: 1
+  dac_bit: 2
+  adc_bit: 10
+  xbar_row: 512
+  point_shift: -2
+quantize_config:
+  input: 9
+  weight: 9
+  output: 9
+layer_config:
+  conv_add_bn: true
+  input_index:
+    - -1
+model_config:
+  - type: conv
+    in_channels: 3
+    out_channels: 64
+    kernel_size: 7
+    stride: 2
+    padding: 3
+    bias: false
+  - type: relu
+  - type: pooling
+    kernel_size: 3
+    stride: 2
+    padding: 1
+    mode: max
+  # block1
+  - type: conv
+    in_channels: 64
+    out_channels: 64
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: relu
+  - type: conv
+    in_channels: 64
+    out_channels: 64
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: element_sum
+    input_index: [-1, -4]
+  - type: relu
+  # block2
+  - type: conv
+    in_channels: 64
+    out_channels: 64
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: relu
+  - type: conv
+    in_channels: 64
+    out_channels: 64
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: element_sum
+    input_index: [-1, -4]
+  - type: relu
+  # block3
+  - type: conv
+    in_channels: 64
+    out_channels: 128
+    kernel_size: 3
+    stride: 2
+    padding: 1
+    bias: false
+  - type: relu
+  - type: conv
+    in_channels: 128
+    out_channels: 128
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: conv
+    in_channels: 64
+    out_channels: 128
+    kernel_size: 1
+    stride: 2
+    bias: false
+    input_index: [-4]
+  - type: element_sum
+    input_index: [-1, -2]
+  - type: relu
+  # block4
+  - type: conv
+    in_channels: 128
+    out_channels: 128
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: relu
+  - type: conv
+    in_channels: 128
+    out_channels: 128
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: element_sum
+    input_index: [-1, -4]
+  - type: relu
+  # block5
+  - type: conv
+    in_channels: 128
+    out_channels: 256
+    kernel_size: 3
+    stride: 2
+    padding: 1
+    bias: false
+  - type: relu
+  - type: conv
+    in_channels: 256
+    out_channels: 256
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: conv
+    in_channels: 128
+    out_channels: 256
+    kernel_size: 1
+    stride: 2
+    bias: false
+    input_index: [-4]
+  - type: element_sum
+    input_index: [-1, -2]
+  - type: relu
+  # block6
+  - type: conv
+    in_channels: 256
+    out_channels: 256
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: relu
+  - type: conv
+    in_channels: 256
+    out_channels: 256
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: element_sum
+    input_index: [-1, -4]
+  - type: relu
+  # block7
+  - type: conv
+    in_channels: 256
+    out_channels: 512
+    kernel_size: 3
+    stride: 2
+    padding: 1
+    bias: false
+  - type: relu
+  - type: conv
+    in_channels: 512
+    out_channels: 512
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: conv
+    in_channels: 256
+    out_channels: 512
+    kernel_size: 1
+    stride: 2
+    bias: false
+    input_index: [-4]
+  - type: element_sum
+    input_index: [-1, -2]
+  - type: relu
+  # block8
+  - type: conv
+    in_channels: 512
+    out_channels: 512
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: relu
+  - type: conv
+    in_channels: 512
+    out_channels: 512
+    kernel_size: 3
+    padding: 1
+    bias: false
+  - type: element_sum
+    input_index: [-1, -4]
+  - type: relu
+  # output
+  - type: pooling
+    kernel_size: 7
+    stride: 7
+    mode: avg
+  - type: view
+  - type: fc
+    in_features: 512
+    out_features: 1000
+    bias: true

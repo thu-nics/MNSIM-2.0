@@ -24,5 +24,6 @@ os.chdir(top_level)
 solver_path = sys.argv[1]
 assert os.path.exists(solver_path), f"{solver_path} not found"
 evaluation_interface = EvaluationInterface("SimConfig.ini", solver_path)
-evaluation_interface.trainer.train()
+# evaluation_interface.trainer.post_training_quantization()
+# evaluation_interface.trainer.test(0)
 # evaluation_interface.model.export_onnx("resnet18.onnx")

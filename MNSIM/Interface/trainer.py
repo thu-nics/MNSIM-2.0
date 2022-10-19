@@ -11,12 +11,19 @@
 """
 import abc
 import os
+from tqdm import tqdm
+import numpy as np
 
 import torch
 from MNSIM.Interface.utils.component import Component
+from MNSIM.Interface.layer import BaseWeightLayer
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
+def _get_topk_accuracy(output, target, topk=1):
+    _, pred = output.topk(topk, 1, True, True)
+    correct = pred.eq(target.unsqueeze(1).expand_as(pred))
+    return torch.sum(correct.float()).item()
 
 def traverse(self, func):
     """
@@ -27,12 +34,11 @@ def traverse(self, func):
     self.model.to(device)
     test_correct, test_total = 0, 0
     with torch.no_grad():
-        for images, labels in self.test_loader:
+        for images, labels in tqdm(self.test_loader):
             images, labels = images.to(device), labels.to(device)
             outputs = func(images)
             # predicted
-            _, predicted = torch.max(outputs, 1)
-            test_correct += (predicted == labels).sum().item()
+            test_correct += _get_topk_accuracy(outputs, labels, topk=1)
             test_total += labels.size(0)
     return test_correct / test_total
 
@@ -147,6 +153,50 @@ class BaseTrainer(Component):
         )
         self.logger.info(f"evaluation accuracy is {accuracy}")
         return accuracy
+
+    def post_training_quantization(self):
+        """
+        post training quantization
+        """
+        assert self.train_mode == "TRADITION", \
+            f"train mode {self.train_mode} is not supported"
+        # self.test(0)
+        # quantization
+        self.logger.info("start post training quantization")
+        save_name = os.path.join(self.save_path, self.show_name + ".pth")
+        device = self.device
+        self.model.to(device)
+        self.model.eval() # eval mode
+        # record the bit scale for all tensors
+        all_range_values = []
+        for epoch in range(1):
+            self.logger.info(f"post training quantization in epoch {epoch}")
+            with torch.no_grad():
+                for images, _ in tqdm(self.test_loader):
+                    all_range_values.append([])
+                    images = images.to(device)
+                    self.model.forward(images, "TRADITION")
+                    # save for all range for all tensors
+                    for tensor in self.model.tensor_list:
+                        # max value for quantization
+                        range_value = torch.max(torch.abs(tensor)).item()
+                        all_range_values[-1].append(range_value)
+        # calculate the bit scale for all tensors
+        all_range_values = np.array(all_range_values)
+        all_ranges = np.mean(all_range_values, axis=0)
+        for i, layer in enumerate(self.model.layer_list):
+            layer.bit_scale_list[2][1] = all_ranges[i+1] / \
+                (2**(layer.bit_scale_list[2][0].item()-1)-1)
+            if isinstance(layer, BaseWeightLayer):
+                weight = torch.cat([l.weight for l in layer.layer_list], dim=1)
+                layer.bit_scale_list[1][1] = torch.max(torch.abs(weight)).item() / \
+                    (2**(layer.bit_scale_list[1][0].item()-1)-1)
+        # test
+        self.set_test_mode("FIX_TRAIN")
+        self.test(0)
+        # save
+        self.logger.info(f"save quantization model to {save_name}")
+        torch.save(self.model.state_dict(), save_name)
 
     @abc.abstractmethod
     def get_name(self):
