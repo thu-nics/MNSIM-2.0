@@ -62,4 +62,4 @@ model_config:
   - type: relu
   - type: fc
     in_features: 512
-    out_features: 10
+    out_features: 1000

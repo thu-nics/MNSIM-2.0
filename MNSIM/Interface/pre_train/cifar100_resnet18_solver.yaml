@@ -9,19 +9,21 @@ dataset_cfg:
 # model config
 model_type: yaml
 model_cfg:
-  model_config_path: MNSIM/Interface/examples/resnet18.yaml
+  model_config_path: MNSIM/Interface/pre_train/cifar100_resnet18.yaml
 # trainer config
-trainer_type: Adam
+trainer_type: SGD
 trainer_cfg:
   trainer_config:
-    log_dir: MNSIM/Interface/train_example/runs
-    save_path: MNSIM/Interface/train_example/zoo
-    lr: 0.001
-    milestones: [150]
-    gamma: 0.1
-    epochs: 150
-    device: 7
+    log_dir: MNSIM/Interface/pre_train/runs
+    save_path: MNSIM/Interface/pre_train/zoo
+    lr: 0.1
+    momentum: 0.9
+    weight_decay: 0.0005
+    milestones: [60, 120, 160]
+    gamma: 0.2
+    epochs: 200
+    device: 0
     train_mode: TRADITION
     test_mode: TRADITION
-    prefix: train_bias
+    prefix: fix_train
     # mode_choices, TRADITION, FIX_TRAIN, SINGLE_FIX_TEST
