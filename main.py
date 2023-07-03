@@ -6,7 +6,6 @@ import os
 import math
 import argparse
 import numpy as np
-import torch
 import collections
 import configparser
 from argument import add_arguments 
