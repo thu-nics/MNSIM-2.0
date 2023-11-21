@@ -17,7 +17,6 @@ import pandas as pd
 
 
 class PE_node():
-    # Obsolete in the current version
     def __init__(self, PE_id=0, ltype='conv', lnum=0):
         # PE_id: the id of PE node, ltype: layer type of this PE, lnum: layer number of this PE
         self.id = PE_id
@@ -36,7 +35,6 @@ class PE_node():
 
 
 class Merge_node():
-    # Obsolete in the current version
     def __init__(self, Merge_id=0, mtype=0, lnum=0):
         # Merge_id: the id of Merge node, mtype: merge type (0: add, 1: concat, 2: pooling)
         self.id = Merge_id
@@ -210,7 +208,7 @@ def generate_zigzag_matrix(row, column):
 
 
 class TCG():
-    def __init__(self, NetStruct, SimConfig_path, disable_pipeline = False, multiple=None):
+    def __init__(self, NetStruct, SimConfig_path, multiple=None):
         # NetStruct: layer structure, SimConfig_path: Hardware config path, multiple: allocate more resources for some layers
         TCG_config = cp.ConfigParser()
         TCG_config.read(SimConfig_path, encoding='UTF-8')
@@ -232,7 +230,7 @@ class TCG():
         self.mapping_order = -1 * np.ones(self.tile_num)
         self.mapping_result = -1 * np.ones(self.tile_num)
         start_tileid = 0
-        # the start tile id
+        # the start PEid
         # self.trans_time = np.ones([1, self.layer_num])
         self.max_inbuf_size = 0
         # the maximum input buffer size of each PE, unit: KB
@@ -245,6 +243,8 @@ class TCG():
         # the global adder number in accumulator
         self.global_adder_bitwidth = 8
         num = []
+        data = []
+        total_xbar_num = 0
         for layer_id in range(self.layer_num):
             layer_dict = self.net[layer_id][0][0]
             tmp_tileinfo = collections.OrderedDict()
@@ -254,7 +254,6 @@ class TCG():
             else:
                 assert self.xbar_polarity == 2, "Crossbar polarity must be 1 or 2"
                 weight_precision = int(layer_dict['Weightbit']) - 1
-            tmp_tileinfo['weight_precision'] = weight_precision
             tmp_tileinfo['startid'] = start_tileid
             input_size = 0
             inputchannel = 0
@@ -267,13 +266,9 @@ class TCG():
                 tmp_tileinfo['mx'] = math.ceil(weight_precision / self.tile.group_num) * \
                                      math.ceil(int(layer_dict['Outputchannel']) / self.tile.xbar_column)
                 # mx: PE number in x-axis
-                tmp_tileinfo['x_width'] = int(layer_dict['Outputchannel']) * weight_precision
-                # width of kernels
                 tmp_tileinfo['my'] = math.ceil(int(layer_dict['Inputchannel']) /
                                                (self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)))
                 # my: PE number in y-axis
-                tmp_tileinfo['y_height'] = int(layer_dict['Inputchannel']) * (int(layer_dict['Kernelsize']) ** 2)
-                # height of kernels
                 tmp_tileinfo['max_group'] = min(weight_precision, self.tile.group_num)
                 # max_group: maximum used groups in one PE of this layer
                 tmp_tileinfo['max_row'] = min((self.tile.xbar_row // (int(layer_dict['Kernelsize']) ** 2)),
@@ -305,11 +300,7 @@ class TCG():
                 input_size_list = list(map(int, layer_dict['Inputsize']))
                 input_size = input_size_list[0] * input_size_list[1]
                 inputchannel = int(layer_dict['Inputchannel'])
-                if not disable_pipeline:
-                    data_inbuf = input_size_list[1]*int(layer_dict['Kernelsize'])*inputchannel*int(layer_dict['Inputbit'])/8
-                else:
-                    data_inbuf = input_size*inputchannel*int(layer_dict['Inputbit'])/8
-                # TODO: non-square convolution
+                data_inbuf = input_size_list[1]*int(layer_dict['Kernelsize'])*inputchannel*int(layer_dict['Inputbit'])/8
                 outputchannel = int(layer_dict['Outputchannel'])
                 data_outbuf = outputchannel*int(layer_dict['outputbit'])/8
                 # buffer_size: unit Byte
@@ -318,12 +309,8 @@ class TCG():
                 tmp_tileinfo['mx'] = math.ceil(weight_precision / self.tile.group_num) * \
                                      math.ceil(int(layer_dict['Outfeature']) / self.tile.xbar_column)
                 # mx: PE number in x-axis
-                tmp_tileinfo['x_width'] = int(layer_dict['Outfeature']) * weight_precision
-                # width of kernels
                 tmp_tileinfo['my'] = math.ceil(int(layer_dict['Infeature']) / self.tile.xbar_row)
                 # my: PE number in y-axis
-                tmp_tileinfo['y_height'] = int(layer_dict['Infeature'])
-                # height of kernels
                 tmp_tileinfo['max_group'] = min(weight_precision, self.tile.group_num)
                 # max_group: maximum used groups in one PE of this layer
                 tmp_tileinfo['max_row'] = min(int(layer_dict['Infeature']), self.tile.xbar_row)
@@ -361,8 +348,6 @@ class TCG():
                 tmp_tileinfo['type'] = 'pooling'
                 tmp_tileinfo['mx'] = 1
                 tmp_tileinfo['my'] = 1
-                tmp_tileinfo['x_width'] = 0
-                tmp_tileinfo['y_height'] = 0
                 tmp_tileinfo['max_row'] = 0
                 tmp_tileinfo['max_column'] = 0
                 tmp_tileinfo['max_group'] = 0
@@ -390,15 +375,13 @@ class TCG():
                 input_size_list = list(map(int, layer_dict['Inputsize']))
                 input_size = input_size_list[0] * input_size_list[1]
                 inputchannel = int(layer_dict['Inputchannel'])
-                data_inbuf = 0 
+                data_inbuf = 0 #input_size_list[1]*int(layer_dict['Kernelsize'])*inputchannel*int(layer_dict['Inputbit'])
                 data_outbuf = 0
                     # assume the buffer size depends on the conv/fc layers
             elif layer_type == 'element_sum':
                 tmp_tileinfo['type'] = 'element_sum'
                 tmp_tileinfo['mx'] = 0
                 tmp_tileinfo['my'] = 0
-                tmp_tileinfo['x_width'] = 0
-                tmp_tileinfo['y_height'] = 0
                 tmp_tileinfo['max_row'] = 0
                 tmp_tileinfo['max_column'] = 0
                 tmp_tileinfo['max_group'] = 0
@@ -421,8 +404,10 @@ class TCG():
                 while previous_layer_dict['type'] == 'element_sum':
                     idx = idx+1
                     previous_layer_dict = self.net[layer_id + Inputindex_list[idx]][0][0]
+                previous_output_size = list(map(int, previous_layer_dict['Outputsize']))
                 tmp_tileinfo['datanum_branchout'] = previous_layer_dict['Outputchannel'] #*\
-                # the data number of each branch output, assume the output of each branch contains one output point
+                    # previous_output_size[0]*previous_output_size[1]
+                # the data number of each branch output
                 tmp_tileinfo['bit_branchout'] = previous_layer_dict['outputbit']
                 # the data precision of each branch output (bit)
                 data_size = tmp_tileinfo['datanum_branchout']*tmp_tileinfo['bit_branchout']*len(Inputindex_list)/8
@@ -448,7 +433,8 @@ class TCG():
             #         elif next_layer_dict['type'] == 'fc':
             #             self.trans_time[0][layer_id] = 1
 
-
+            if layer_type == 'conv' or layer_type == 'fc':
+                total_xbar_num += tmp_tileinfo['mx'] * tmp_tileinfo['my'] * multiple[layer_id]
             tmp_tileinfo['PEnum'] = tmp_tileinfo['mx'] * tmp_tileinfo['my'] * multiple[layer_id]
             num.append(tmp_tileinfo['PEnum'])
             tmp_tileinfo['tilenum'] = math.ceil(tmp_tileinfo['PEnum'] / self.tile.tile_PE_total_num)
@@ -477,6 +463,7 @@ class TCG():
         # self.tile.update_tile_buf_size(SimConfig_path, self.max_inbuf_size)
         self.used_tile_num = start_tileid
         assert self.used_tile_num <= self.tile_total_num, "Tile number is not enough"
+        print("Total crossbar number:", total_xbar_num)
         self.inLayer_distance = np.zeros([1, self.layer_num])
         self.transLayer_distance = np.zeros([1, self.layer_num])
         self.aggregate_arg = np.zeros([self.layer_num, 2])
@@ -517,7 +504,6 @@ class TCG():
                         self.inLayer_distance[0][layer_id] = 0
                         self.aggregate_arg[layer_id] = src_pos[0]
                         self.transLayer_distance[0][layer_id] = abs(src_pos[0][0]-1/2*self.tile_num[0]) + src_pos[0][1]
-                        # TODO: transfer distance update between computing array and element sum array
                     else:
                         mindis_total = 1000
                         for A in range(len(src_pos)):

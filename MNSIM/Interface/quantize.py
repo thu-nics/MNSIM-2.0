@@ -85,6 +85,10 @@ class QuantizeLayer(nn.Module):
                 in_channels_list = [channel_N] * complete_bar_num + [residual_col_num]
             else:
                 in_channels_list = [channel_N] * complete_bar_num
+            
+            #add addtion quantization bit
+            self.layer_config['extend_ADC_bitwidth'] = max(math.ceil(math.log2(channel_N*self.layer_config['kernel_size']**2/self.hardware_config['DAC_num'])),0)
+
             # generate Module List
             assert 'out_channels' in self.layer_config.keys()
             assert 'kernel_size' in self.layer_config.keys()
@@ -106,6 +110,10 @@ class QuantizeLayer(nn.Module):
                 in_features_list = [self.hardware_config['xbar_size']] * complete_bar_num + [residual_col_num]
             else:
                 in_features_list = [self.hardware_config['xbar_size']] * complete_bar_num
+
+            #add addtion quantization bit
+            self.layer_config['extend_ADC_bitwidth'] = max(0,math.ceil(math.log2(min(self.layer_config['in_features'], self.hardware_config['xbar_size'])/self.hardware_config['DAC_num'])))
+
             # generate Module List
             assert 'out_features' in self.layer_config.keys()
             self.layer_list = nn.ModuleList([nn.Linear(i, self.layer_config['out_features'], False) for i in in_features_list])
@@ -277,7 +285,7 @@ class QuantizeLayer(nn.Module):
                 base = base * step
             # calculation and add
             point_shift = math.floor(self.quantize_config['point_shift'] + 0.5 * math.log2(len(self.layer_list)))
-            Q = self.hardware_config['quantize_bit']
+            Q = self.hardware_config['quantize_bit'] + self.layer_config['extend_ADC_bitwidth']
             for i in range(activation_in_cycle):
                 for j in range(weight_cycle):
                     tmp = None
@@ -295,15 +303,18 @@ class QuantizeLayer(nn.Module):
                         tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
                                                    (weight_cycle - 1) * self.hardware_config['weight_bit']))
                         transfer_point = point_shift + (Q - 1)
+                        # if self.hardware_config['type'] == 0:
                         tmp = tmp * (2 ** transfer_point)
                         tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
                         tmp = tmp / (2 ** transfer_point)
+                        
                     elif adc_action == 'FIX':
                         # fix scale range
                         fix_scale_range = (2 ** self.hardware_config['input_bit'] - 1) * \
                                           (2 ** self.hardware_config['weight_bit'] - 1) * \
                                             self.hardware_config['xbar_size']
                         tmp = tmp / fix_scale_range * (2 ** (Q - 1))
+                        # if self.hardware_config['type'] == 0:
                         tmp = torch.clamp(torch.round(tmp), 1 - 2 ** (Q - 1), 2 ** (Q - 1) - 1)
                         tmp = tmp * fix_scale_range / (2 ** (Q - 1))
                         tmp = tmp * weight_scale * activation_in_scale
@@ -440,7 +451,7 @@ class StraightLayer(nn.Module):
         # fix training and single fix test
         if METHOD == 'FIX_TRAIN' or METHOD == 'SINGLE_FIX_TEST':
             output = self.layer(input)
-            if self.layer_config['type'] in ["bn", "element_sum"]:
+            if self.layer_config['type'] == 'bn':
                 output = Quantize(output, self.quantize_config['activation_bit'], 'activation', self.last_value, self.training)
             return output
         assert 0, f'not support {METHOD}'

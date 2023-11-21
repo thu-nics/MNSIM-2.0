@@ -11,7 +11,10 @@ class DAC(object):
 	def __init__(self, SimConfig_path):
 		DAC_config = cp.ConfigParser()
 		DAC_config.read(SimConfig_path, encoding='UTF-8')
+		self.PIM_type_dac = int(DAC_config.get('Process element level', 'PIM_Type'))
 		self.DAC_choice = int(DAC_config.get('Interface level', 'DAC_Choice'))
+		if self.PIM_type_dac == 1 and self.DAC_choice != -1:
+			self.DAC_choice = 1
 		self.DAC_area = float(DAC_config.get('Interface level', 'DAC_Area'))
 		self.DAC_precision = int(DAC_config.get('Interface level', 'DAC_Precision'))
 		self.DAC_power = float(DAC_config.get('Interface level', 'DAC_Power'))
@@ -33,10 +36,11 @@ class DAC(object):
 						 3: 0.664, #3-bit
 						 4: 1.328, #4-bit
 						 5: 5.312, #6-bit
-						 6: 21.248 #8-bit
+						 6: 21.248, #8-bit
+						 7: 0.166 #1-bit
 		}
 		if self.DAC_choice != -1:
-			assert self.DAC_choice in [1,2,3,4,5,6]
+			assert self.DAC_choice in [1,2,3,4,5,6,7]
 			self.DAC_area = DAC_area_dict[self.DAC_choice]
 
 	def calculate_DAC_precision(self):
@@ -46,10 +50,11 @@ class DAC(object):
 						 3: 3, #3-bit
 						 4: 4, #4-bit
 						 5: 6, #6-bit
-						 6: 8 #8-bit
+						 6: 8, #8-bit
+						 7: 1
 		}
 		if self.DAC_choice != -1:
-			assert self.DAC_choice in [1,2,3,4,5,6]
+			assert self.DAC_choice in [1,2,3,4,5,6,7]
 			self.DAC_precision = DAC_precision_dict[self.DAC_choice]
 
 	def calculate_DAC_power(self):
@@ -60,10 +65,11 @@ class DAC(object):
 						 3: 0.0156*1e-3, #3-bit
 						 4: 0.0312*1e-3, #4-bit
 						 5: 0.1248*1e-3, #6-bit
-						 6: 0.4992 #8-bit
+						 6: 0.4992, #8-bit
+						 7: 0.0039*1e-3
 		}
 		if self.DAC_choice != -1:
-			assert self.DAC_choice in [1,2,3,4,5,6]
+			assert self.DAC_choice in [1,2,3,4,5,6,7]
 			self.DAC_power = DAC_power_dict[self.DAC_choice]
 
 	def calculate_DAC_sample_rate(self):

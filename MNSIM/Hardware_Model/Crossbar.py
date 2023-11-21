@@ -17,6 +17,10 @@ class crossbar(device):
 		self.xbar_size = list(map(int, xbar_config.get('Crossbar level', 'Xbar_Size').split(',')))
 		self.xbar_row = int(self.xbar_size[0])
 		self.xbar_column = int(self.xbar_size[1])
+		self.subarray_size = int(xbar_config.get('Crossbar level', 'Subarray_Size'))
+		assert self.xbar_row % self.subarray_size == 0, "The crossbar size must be divisible by the subarray size"
+		self.subarray_num = self.xbar_row/self.subarray_size
+		self.PIM_type = int(xbar_config.get('Process element level', 'PIM_Type'))
 		self.cell_type = xbar_config.get('Crossbar level', 'Cell_Type')
 		self.transistor_tech = int(xbar_config.get('Crossbar level', 'Transistor_Tech'))
 		self.wire_resistance = float(xbar_config.get('Crossbar level', 'Wire_Resistance'))
@@ -25,10 +29,11 @@ class crossbar(device):
 		self.xbar_area = 0
 		self.xbar_simulation_level = int(xbar_config.get('Algorithm Configuration', 'Simulation_Level'))
 
-		self.xbar_load_resistance = float(xbar_config.get('Crossbar level', 'Load_Resistance'))
-		if self.xbar_load_resistance == -1:
-			self.xbar_load_resistance = math.sqrt(self.device_resistance[0] * self.device_resistance[-1])
-		assert self.xbar_load_resistance >0, "Load resistance must be > 0"
+		if self.device_type == 'NVM':
+			self.xbar_load_resistance = float(xbar_config.get('Crossbar level', 'Load_Resistance'))
+			if self.xbar_load_resistance == -1:
+				self.xbar_load_resistance = math.sqrt(self.device_resistance[0] * self.device_resistance[-1])
+			assert self.xbar_load_resistance >0, "Load resistance must be > 0"
 
 		self.xbar_write_matrix = np.zeros((self.xbar_row,self.xbar_column))# * 1/self.device_resistance[-1]
 		self.xbar_write_vector = np.zeros((self.xbar_row,1))
@@ -72,8 +77,7 @@ class crossbar(device):
 		else:
 		# estimation level simulation
 			if write_matrix is None or len(write_matrix) == 0 or ((len(write_matrix)>0) & (len(write_matrix[0])==0)):
-				self.xbar_write_matrix = 1/math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1])) \
-										 * np.ones((self.xbar_row,self.xbar_column))
+				self.xbar_write_matrix = 1/math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1])) * np.ones((self.xbar_row,self.xbar_column))
 				self.xbar_num_write_column = self.xbar_column
 				self.xbar_num_write_row = self.xbar_row
 			else:
@@ -110,8 +114,7 @@ class crossbar(device):
 		else:
 		# estimation level simulation
 			if read_matrix is None or len(read_matrix) == 0 or ((len(read_matrix)>0) & (len(read_matrix[0])==0)):
-				self.xbar_read_matrix = 1/math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1])) \
-										 * np.ones((self.xbar_row,self.xbar_column))
+				self.xbar_read_matrix = 1/math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1]))  * np.ones((self.xbar_row,self.xbar_column))
 				self.xbar_num_read_column = self.xbar_column
 				self.xbar_num_read_row = self.xbar_row
 			else:
@@ -136,14 +139,22 @@ class crossbar(device):
 		# Area unit: um^2
 		if self.area_calculation_method == 0:
 			area_factor = 1
-			self.xbar_area = area_factor * self.xbar_row * self.xbar_column * self.device_area
-		else:
-			WL_ratio = 3
-			# WL_ratio is the technology parameter W/L of the transistor
-			if self.cell_type[0] == '0':
-				self.xbar_area = 4 * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
+			if self.PIM_type:
+				self.xbar_area = area_factor * self.xbar_row * self.xbar_column * self.device_area + self.xbar_row * (7.3*2.7+9.5*3.8)*(self.transistor_tech/65)**2
+				# when consider driver for digital PIM, the area is: self.xbar_row * (7.3*2.7+9.5*3.8)*(self.transistor_tech/65)**2
 			else:
-				self.xbar_area = 3 * (WL_ratio + 1) * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
+				self.xbar_area = area_factor * self.xbar_row * self.xbar_column * self.device_area + 1150*self.xbar_row
+				# in A Fully Integrated Analog ReRAM Based 78.4TOPS/W Compute-In-Memory Chip with Fully Parallel MAC Computing, the driver area is 1150, for others, the driver area is (7.3*2.7+9.5*3.8)*(self.transistor_tech/65)**2, ref: Multi-level wordline driver for robust SRAM design in nano-scale CMOS technology
+		else:
+			if self.device_type == 'SRAM':
+				self.xbar_area = self.xbar_row * self.xbar_column * 5
+			else:
+				WL_ratio = 3
+				# WL_ratio is the technology parameter W/L of the transistor
+				if self.cell_type[0] == '0':
+					self.xbar_area = 4 * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
+				else:
+					self.xbar_area = 3 * (WL_ratio + 1) * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
 
 
 	def calculate_wire_resistance(self):
@@ -176,8 +187,7 @@ class crossbar(device):
 	def calculate_xbar_write_latency(self):
 		# Notice: before calculating write latency, xbar_write_config must be executed
 		self.xbar_write_latency	= self.device_write_latency * self.xbar_num_write_row
-		# self.xbar_write_latency = self.device_write_latency * min(math.ceil(num_write_row/num_multi_row), num_write_column)\
-		#                           * min(num_multi_row, num_write_row)
+		# self.xbar_write_latency = self.device_write_latency * min(math.ceil(num_write_row/num_multi_row), num_write_column) * min(num_multi_row, num_write_row)
 			#unit: ns
 			#Assuming that the write operation of cells in one row can be performed concurrently
 
@@ -199,7 +209,7 @@ class crossbar(device):
 		else:
 			temp_v2 = self.xbar_read_vector * self.xbar_read_vector
 			self.xbar_read_power += (self.xbar_read_matrix.T.dot(temp_v2)).sum()
-			if self.cell_type[0] == '0':
+			if self.device_type == 'NVM' and self.cell_type[0] == '0':
 				temp_matrix = np.ones((self.xbar_num_read_row, self.xbar_column-self.xbar_num_read_column)) / self.device_resistance[0]
 				# print("temp_matrix",temp_matrix.T)
 				# print("temp_vector",temp_v2[0:self.xbar_num_read_column])
@@ -225,12 +235,18 @@ class crossbar(device):
 
 	def calculate_xbar_read_energy(self):
 		#unit: nJ
-		self.xbar_read_energy = self.xbar_read_power * self.xbar_read_latency
+		if self.device_type == 'NVM':
+			self.xbar_read_energy = self.xbar_read_power * self.xbar_read_latency
+		elif self.device_type == 'SRAM':
+			self.xbar_read_energy = self.xbar_num_read_row * self.xbar_num_read_column * self.device_read_energy * 1e6
 
 	def calculate_xbar_write_energy(self):
 		#unit: nJ
-		self.xbar_write_energy = self.xbar_write_power * self.device_write_latency
-			#Do not consider the wire power in write operation		
+		if self.device_type == 'NVM':
+			self.xbar_write_energy = self.xbar_write_power * self.device_write_latency
+			#Do not consider the wire power in write operation	
+		elif self.device_type == 'SRAM':
+			self.xbar_write_energy = self.xbar_num_write_row * self.xbar_num_write_column * self.device_write_energy * 1e6
 
 	def xbar_output(self):
 		device.device_output(self)

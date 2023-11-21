@@ -32,16 +32,16 @@ class PE_latency_analysis():
         self.inbuf.calculate_buf_read_latency(rdata)
         self.PE_buf_rlatency = self.inbuf.buf_rlatency
         multiple_time = math.ceil(inprecision/self.PE.DAC_precision) * math.ceil(read_row/self.PE.PE_group_DAC_num) *\
-                        math.ceil(read_column/self.PE.PE_group_ADC_num)
+                        math.ceil(read_column/(self.PE.PE_group_ADC_num/self.PE.subarray_num))
         self.PE.calculate_xbar_read_latency()
 
         Transistor_Tech = int(PEl_config.get('Crossbar level', 'Transistor_Tech'))
-        XBar_size = list(map(float, PEl_config.get('Crossbar level', 'Xbar_Size').split(',')))
-        DAC_num = int(PEl_config.get('Process element level', 'DAC_Num'))
-        ADC_num = int(PEl_config.get('Process element level', 'ADC_Num'))
 
-        Row = XBar_size[0]
-        Column = XBar_size[1]
+        Row = self.PE.subarray_size
+        Column = self.PE.xbar_size[1]
+        DAC_num = self.PE.PE_group_DAC_num / self.PE.subarray_num
+        ADC_num = self.PE.PE_group_ADC_num / self.PE.subarray_num
+
         # ns  (using NVSim)
         decoderLatency_dict = {
             1:0.27933 # 1:8, technology 65nm
@@ -71,17 +71,15 @@ class PE_latency_analysis():
         self.DAC_latency = multiple_time * self.PE.DAC_latency
         self.PE.calculate_ADC_latency()
         self.ADC_latency = multiple_time * self.PE.ADC_latency
-        self.iReg_latency = math.ceil(read_row/self.PE.PE_group_DAC_num)*math.ceil(read_column/self.PE.PE_group_ADC_num)*self.digital_period+\
-                            multiple_time*self.digital_period
+        self.iReg_latency = math.ceil(read_row/self.PE.PE_group_DAC_num)*math.ceil(read_column/(self.PE.PE_group_ADC_num/self.PE.subarray_num))*self.digital_period+multiple_time*self.digital_period
             # write and read
         self.shiftreg_latency = multiple_time * self.digital_period
         self.input_demux_latency = multiple_time*self.decoderLatency
-        self.adder_latency = math.ceil(read_column/self.PE.PE_group_ADC_num)*math.ceil(math.log2(self.PE.group_num))*self.digital_period
+        self.adder_latency = math.ceil(read_column/(self.PE.PE_group_ADC_num/self.PE.subarray_num))*math.ceil(math.log2(self.PE.group_num))*self.digital_period
         self.output_mux_latency = multiple_time*self.muxLatency
         self.computing_latency = self.DAC_latency+self.xbar_latency+self.ADC_latency
-        self.oReg_latency = math.ceil(read_column/self.PE.PE_group_ADC_num)*self.digital_period
-        self.PE_digital_latency = self.iReg_latency + self.shiftreg_latency + self.input_demux_latency + \
-                                  self.adder_latency + self.output_mux_latency + self.oReg_latency
+        self.oReg_latency = math.ceil(read_column/(self.PE.PE_group_ADC_num/self.PE.subarray_num))*self.digital_period
+        self.PE_digital_latency = self.iReg_latency + self.shiftreg_latency + self.input_demux_latency + self.adder_latency + self.output_mux_latency + self.oReg_latency
         self.PE_latency = self.PE_buf_wlatency + self.PE_buf_rlatency + self.computing_latency + self.PE_digital_latency
     def update_PE_latency(self, indata=0, rdata=0):
         # update the latency computing when indata and rdata change

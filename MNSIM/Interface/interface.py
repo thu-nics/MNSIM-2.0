@@ -31,6 +31,8 @@ class TrainTestInterface(object):
         self.xbar_row = xbar_size[0]
         self.xbar_column = xbar_size[1]
         self.hardware_config['xbar_size'] = xbar_size[0]
+        self.hardware_config['type'] = int(xbar_config.get('Process element level', 'PIM_Type'))
+        self.hardware_config['DAC_num'] = int(xbar_config.get('Process element level', 'DAC_Num'))
         # xbar bit
         self.xbar_bit = int(xbar_config.get('Device level', 'Device_Level'))
         self.hardware_config['weight_bit'] = math.floor(math.log2(self.xbar_bit))
@@ -49,7 +51,9 @@ class TrainTestInterface(object):
             4: 6,  # reference: Area-Efficient 1GS/s 6b SAR ADC with Charge-Injection-Cell-Based DAC
             5: 8,  # ASPDAC1
             6: 6,  # ASPDAC2
-            7: 4  # ASPDAC3
+            7: 4,  # ASPDAC3
+            8: 1,
+            9: 6
         }
         DAC_precision_dict = {
             -1: temp_DAC_bit,
@@ -58,7 +62,8 @@ class TrainTestInterface(object):
             3: 3,  # 3-bit
             4: 4,  # 4-bit
             5: 6,  # 6-bit
-            6: 8  # 8-bit
+            6: 8,  # 8-bit
+            7: 1
         }
         self.input_bit = DAC_precision_dict[DAC_choice]
         self.quantize_bit = ADC_precision_dict[ADC_choice]

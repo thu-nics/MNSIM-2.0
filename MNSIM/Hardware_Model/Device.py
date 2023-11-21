@@ -12,6 +12,7 @@ class device(object):
 		device_config = cp.ConfigParser()
 		device_config.read(SimConfig_path, encoding='UTF-8')
 		self.device_tech = float(device_config.get('Device level', 'Device_Tech'))
+		self.device_type = device_config.get('Device level', 'Device_Type')
 		self.device_area = float(device_config.get('Device level', 'Device_Area'))
 		self.device_read_voltage_level = int(device_config.get('Device level', 'Read_Level'))
 		assert self.device_read_voltage_level >= 0, "Read voltage level < 0"
@@ -26,16 +27,30 @@ class device(object):
 		self.device_read_latency = float(device_config.get('Device level', 'Read_Latency'))
 		self.device_write_latency = float(device_config.get('Device level', 'Write_Latency'))
 
-		self.device_level = int(device_config.get('Device level', 'Device_Level'))
-		assert self.device_level >= 0, "NVM resistance level < 0"
-		self.device_resistance = list(map(float, device_config.get('Device level', 'Device_Resistance').split(',')))
-		assert self.device_level == len(self.device_resistance), "NVM resistance setting error"
+		if self.device_type == "NVM":
+			self.device_level = int(device_config.get('Device level', 'Device_Level'))
+			assert self.device_level >= 0, "NVM resistance level < 0"
+			self.device_resistance = list(map(float, device_config.get('Device level', 'Device_Resistance').split(',')))
+			assert self.device_level == len(self.device_resistance), "NVM resistance setting error"
 
-		self.decice_variation = float(device_config.get('Device level', 'Device_Variation'))
-		# Device variation is defined as \Delta R / R
-		self.device_read_power = 0
-		self.device_write_power = 0
-		# print("Device configuration is loaded")
+			self.decice_variation = float(device_config.get('Device level', 'Device_Variation'))
+			# Device variation is defined as \Delta R / R
+
+			self.device_read_power = 0
+			self.device_write_power = 0
+			# print("Device configuration is loaded")
+			self.device_read_energy = 0
+			self.device_write_energy = 0
+		else:
+			# SRAM, estimate with equivalent resistance
+			self.device_level = 2
+			self.device_resistance = 1.6e6,1.6e6
+			self.device_variation = 0
+			self.device_read_energy = float(device_config.get('Device level', 'Read_Energy'))
+			self.device_write_energy = float(device_config.get('Device level', 'Write_Energy'))
+			self.device_read_power = self.device_read_energy/self.device_read_latency
+			self.device_write_power = self.device_write_energy/self.device_write_latency
+
 
 	def calculate_device_read_power(self, R = None, V = None):
 		# R is the resistance of memristor, None means use default resistance (Sqrt(R_on*R_off))
@@ -54,7 +69,9 @@ class device(object):
 		self.device_read_power = V ** 2 / R
 
 	def calculate_device_write_power(self, R = None, V = None):
+		# only used for NVM
 		# R is the resistance of memristor, None means use default resistance (Sqrt(R_on*R_off))
+		assert self.type == "NVM", "only the NVM device write power needs to be calculated"
 		if R is None:
 			R = math.sqrt(float(self.device_resistance[0])*float(self.device_resistance[-1]))
 		assert R > 0, "Resistance <= 0"
