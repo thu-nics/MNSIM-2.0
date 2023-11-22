@@ -68,24 +68,18 @@ def main():
         print("Quantization range: fixed range (depends on the maximum value)")
     else:
         print("Quantization range: dynamic range (depends on the data distribution)")
-    # __TestInterface = TrainTestInterface(args.NN, 'MNSIM.Interface.cifar10', args.hardware_description,
-    #                                      args.weights, args.device)
+
     mapping_start_time = time.time()
-    __TestInterface = TrainTestInterface(network_module=args.NN, dataset_module='MNSIM.Interface.cifar10', SimConfig_path=args.hardware_description,
-                                         weights_file=args.weights, device=args.device)
+    __TestInterface = TrainTestInterface(network_module=args.NN, dataset_module='MNSIM.Interface.cifar10',  
+        SimConfig_path=args.hardware_description, weights_file=args.weights, device=args.device)
     structure_file = __TestInterface.get_structure()
-    # weight = __TestInterface.get_net_bits()
-    # print(structure_file)
-    # print(__TestInterface.origin_evaluate(method = 'FIX_TRAIN', adc_action = 'SCALE'))
-    # print(__TestInterface.set_net_bits_evaluate(weight, adc_action = 'SCALE'))
     TCG_mapping = TCG(structure_file, args.hardware_description)
     # print(TCG_mapping.max_inbuf_size)
     # print(TCG_mapping.max_outbuf_size)
     mapping_end_time = time.time()
     if not (args.disable_hardware_modeling):
         hardware_modeling_start_time = time.time()
-        __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description,
-                                  TCG_mapping=TCG_mapping)
+        __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
         if not (args.disable_inner_pipeline):
             __latency.calculate_model_latency(mode=1)
             # __latency.calculate_model_latency_nopipe()

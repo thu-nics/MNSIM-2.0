@@ -13,16 +13,17 @@ import torch
 
 class TrainTestInterface(object):
     def __init__(self, network_module, dataset_module, SimConfig_path, weights_file = None, device = None, extra_define = None):
-        # network_module = 'lenet'
-        # dataset_module = 'cifar10'
-        # weights_file = './zoo/cifar10_lenet_train_params.pth'
+        # network_module: e.g., 'lenet'
+        # dataset_module: e.g., 'cifar10'
+        # weights_file: e.g., './zoo/cifar10_lenet_train_params.pth'
         # load net, dataset, and weights
+        # device: GPU device or CPU
         self.network_module = network_module
         self.dataset_module = dataset_module
         self.weights_file = weights_file
         self.test_loader = None
         # load simconfig
-        ## xbar_size, input_bit, weight_bit, quantize_bit
+        ## xbar_size, input_bit, weight_bit, ADC_quantize_bit
         xbar_config = configparser.ConfigParser()
         xbar_config.read(SimConfig_path, encoding = 'UTF-8')
         self.hardware_config = collections.OrderedDict()
@@ -32,10 +33,12 @@ class TrainTestInterface(object):
         self.xbar_column = xbar_size[1]
         self.hardware_config['xbar_size'] = xbar_size[0]
         self.hardware_config['type'] = int(xbar_config.get('Process element level', 'PIM_Type'))
+        self.hardware_config['xbar_polarity'] = int(xbar_config.get('Process element level', 'Xbar_Polarity'))
         self.hardware_config['DAC_num'] = int(xbar_config.get('Process element level', 'DAC_Num'))
-        # xbar bit
-        self.xbar_bit = int(xbar_config.get('Device level', 'Device_Level'))
-        self.hardware_config['weight_bit'] = math.floor(math.log2(self.xbar_bit))
+        # device bit
+        self.device_bit = int(xbar_config.get('Device level', 'Device_Level'))
+        self.hardware_config['weight_bit'] = math.floor(math.log2(self.device_bit))
+            # weight_bit means the weight bitwidth stored in one memory device
         # input bit and ADC bit
         ADC_choice = int(xbar_config.get('Interface level', 'ADC_Choice'))
         DAC_choice = int(xbar_config.get('Interface level', 'DAC_Choice'))
@@ -66,9 +69,9 @@ class TrainTestInterface(object):
             7: 1
         }
         self.input_bit = DAC_precision_dict[DAC_choice]
-        self.quantize_bit = ADC_precision_dict[ADC_choice]
+        self.ADC_quantize_bit = ADC_precision_dict[ADC_choice]
         self.hardware_config['input_bit'] = self.input_bit
-        self.hardware_config['quantize_bit'] = self.quantize_bit
+        self.hardware_config['ADC_quantize_bit'] = self.ADC_quantize_bit
         # group num
         self.pe_group_num = int(xbar_config.get('Process element level', 'Group_Num'))
         self.tile_size = list(map(int, xbar_config.get('Tile level', 'PE_Num').split(',')))
@@ -86,13 +89,15 @@ class TrainTestInterface(object):
             num_classes = 100
         else:
             assert 0, f'unknown dataset'
+            # add num_classes manually when introducing new datasets
         if extra_define != None:
             self.hardware_config['input_bit'] = extra_define['dac_res']
-            self.hardware_config['quantize_bit'] = extra_define['adc_res']
+            self.hardware_config['ADC_quantize_bit'] = extra_define['adc_res']
             self.hardware_config['xbar_size'] = extra_define['xbar_size']
         self.net = import_module('MNSIM.Interface.network').get_net(self.hardware_config, cate = self.network_module, num_classes = num_classes)
         if weights_file is not None:
             print(f'load weights from {weights_file}')
+            # load weights and split weights according to HW parameters
             self.net.load_change_weights(torch.load(weights_file, map_location=self.device))
     def origin_evaluate(self, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
         if self.test_loader == None:
@@ -141,27 +146,29 @@ class TrainTestInterface(object):
         # print(net_structure_info)
         assert len(net_bit_weights) == len(net_structure_info)
         # set relative index to absolute index
+        #   e.g., conv-relu-bn, these conv, relu, and bn layers have the same relative index
         absolute_index = [None] * len(net_structure_info)
         absolute_count = 0
         for i in range(len(net_structure_info)):
             if not (len(net_structure_info[i]['Outputindex']) == 1 and net_structure_info[i]['Outputindex'][0] == 1):
+                # TODO: current version: each layer contains only one output index
                 raise Exception('duplicate output')
             if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'fc']:
                 absolute_index[i] = absolute_count
                 absolute_count = absolute_count + 1
             else:
                 if not len(net_structure_info[i]['Inputindex']) == 1:
-                    raise Exception('duplicate input index')
+                    raise Exception('duplicate input index for bn, view, and relu layers')
                 absolute_index[i] = absolute_index[i + net_structure_info[i]['Inputindex'][0]]
         graph = list()
         for i in range(len(net_structure_info)):
             if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'fc']:
-                # layer num, layer type
+                # layer num, layer type: need to be computed on PIM, e.g., conv, fc, pooling, element_sum
                 layer_num = absolute_index[i]
                 layer_type = net_structure_info[i]['type']
-                # layer input
+                # get the layer's input index
                 layer_input = list(map(lambda x: (absolute_index[i + x] if i + x != -1 else -1), net_structure_info[i]['Inputindex']))
-                # layer output
+                # get the layer's output index
                 layer_output = list()
                 for tmp_i in range(len(net_structure_info)):
                     if net_structure_info[tmp_i]['type'] in ['conv', 'pooling', 'element_sum', 'fc']:
@@ -184,21 +191,36 @@ class TrainTestInterface(object):
                 if layer_structure_info['type'] in ['element_sum', 'pooling']:
                     net_array.append([(layer_structure_info, None)])
                 continue
-            assert len(layer_bit_weights.keys()) == layer_structure_info['row_split_num'] * layer_structure_info['weight_cycle'] * 2
+            assert len(layer_bit_weights.keys()) == layer_structure_info['row_split_num'] * layer_structure_info['weight_bit_split_part'] * self.hardware_config['xbar_polarity']
             # split
-            for i in range(layer_structure_info['row_split_num']):
-                for j in range(layer_structure_info['weight_cycle']):
-                    layer_bit_weights[f'split{i}_weight{j}_positive'] = mysplit(layer_bit_weights[f'split{i}_weight{j}_positive'], self.xbar_column)
-                    layer_bit_weights[f'split{i}_weight{j}_negative'] = mysplit(layer_bit_weights[f'split{i}_weight{j}_negative'], self.xbar_column)
-            # generate pe array
+            if self.hardware_config['xbar_polarity'] == 2:
+                for i in range(layer_structure_info['row_split_num']):
+                    for j in range(layer_structure_info['weight_bit_split_part']):
+                        layer_bit_weights[f'split{i}_weight{j}_positive'] = mysplit(layer_bit_weights[f'split{i}_weight{j}_positive'], self.xbar_column)
+                        layer_bit_weights[f'split{i}_weight{j}_negative'] = mysplit(layer_bit_weights[f'split{i}_weight{j}_negative'], self.xbar_column)
+            else:
+                for i in range(layer_structure_info['row_split_num']):
+                    for j in range(layer_structure_info['weight_bit_split_part']):
+                        layer_bit_weights[f'split{i}_weight{j}'] = mysplit(layer_bit_weights[f'split{i}_weight{j}'], self.xbar_column)
+
+            # store weights for the PE array
             xbar_array = []
             for i in range(layer_structure_info['row_split_num']):
-                L = len(layer_bit_weights[f'split{i}_weight{0}_positive'])
-                for j in range(L):
-                    pe_array = []
-                    for s in range(layer_structure_info['weight_cycle']):
-                        pe_array.append([layer_bit_weights[f'split{i}_weight{s}_positive'][j].astype(np.uint8), layer_bit_weights[f'split{i}_weight{s}_negative'][j].astype(np.uint8)])
-                    xbar_array.append(pe_array)
+                if self.hardware_config['xbar_polarity'] == 2:
+                    L = len(layer_bit_weights[f'split{i}_weight{0}_positive'])
+                    for j in range(L):
+                        pe_array = []
+                        for s in range(layer_structure_info['weight_bit_split_part']):
+                            pe_array.append([layer_bit_weights[f'split{i}_weight{s}_positive'][j].astype(np.uint8), layer_bit_weights[f'split{i}_weight{s}_negative'][j].astype(np.uint8)])
+                        xbar_array.append(pe_array)
+                else:
+                    L = len(layer_bit_weights[f'split{i}_weight{0}'])
+                    for j in range(L):
+                        pe_array = []
+                        for s in range(layer_structure_info['weight_bit_split_part']):
+                            pe_array.append(layer_bit_weights[f'split{i}_weight{s}'][j].astype(np.int8))
+                        xbar_array.append(pe_array)
+                
             # store in xbar_array
             total_array = []
             L = math.ceil(len(xbar_array) / (self.tile_row * self.tile_column))

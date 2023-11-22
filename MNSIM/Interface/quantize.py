@@ -78,9 +78,11 @@ class QuantizeLayer(nn.Module):
         if self.layer_config['type'] == 'conv':
             assert 'in_channels' in self.layer_config.keys()
             channel_N = (self.hardware_config['xbar_size'] // (self.layer_config['kernel_size'] ** 2))
+                # number of channels stored in one xbar
             complete_bar_num = self.layer_config['in_channels'] // channel_N
             residual_col_num = self.layer_config['in_channels'] % channel_N
             in_channels_list = []
+                # each element stores the channel number in one xbar
             if residual_col_num > 0:
                 in_channels_list = [channel_N] * complete_bar_num + [residual_col_num]
             else:
@@ -88,6 +90,9 @@ class QuantizeLayer(nn.Module):
             
             #add addtion quantization bit
             self.layer_config['extend_ADC_bitwidth'] = max(math.ceil(math.log2(channel_N*self.layer_config['kernel_size']**2/self.hardware_config['DAC_num'])),0)
+                # extend_ADC_bitwidth: each xbar can only activate part of the rows and complete ADC quantization at a time, requiring adding these partial results of different rows, equivalent to increasing the bitwidth of the ADC.
+                # temp = channel_N*self.layer_config['kernel_size']**2: number of used row in one xbar
+                # temp/self.hardware_config['DAC_num']: cycles to compute all rows of one xbar
 
             # generate Module List
             assert 'out_channels' in self.layer_config.keys()
@@ -96,7 +101,7 @@ class QuantizeLayer(nn.Module):
                 self.layer_config['stride'] = 1
             if 'padding' not in self.layer_config.keys():
                 self.layer_config['padding'] = 0
-            self.layer_list = nn.ModuleList([nn.Conv2d(
+            self.sublayer_list = nn.ModuleList([nn.Conv2d(
                 i, self.layer_config['out_channels'], self.layer_config['kernel_size'],
                 stride = self.layer_config['stride'], padding = self.layer_config['padding'], dilation = 1, groups = 1, bias = False
                 )
@@ -116,39 +121,34 @@ class QuantizeLayer(nn.Module):
 
             # generate Module List
             assert 'out_features' in self.layer_config.keys()
-            self.layer_list = nn.ModuleList([nn.Linear(i, self.layer_config['out_features'], False) for i in in_features_list])
+            self.sublayer_list = nn.ModuleList([nn.Linear(i, self.layer_config['out_features'], False) for i in in_features_list])
             self.split_input = self.hardware_config['xbar_size']
         else:
             assert 0, f'not support {self.layer_config["type"]}'
         # self.last_value = nn.Parameter(torch.ones(1))
         self.register_buffer('last_value', (-1) * torch.ones(1))
         # self.last_value[0] = 1
-        # self.bit_scale_list = nn.Parameter(torch.FloatTensor([[9,1],[9,1],[9,1]]))
         self.register_buffer('bit_scale_list', torch.FloatTensor([
             [quantize_config['activation_bit'], -1],
             [quantize_config['weight_bit'], -1],
             [quantize_config['activation_bit'], -1]
         ]))
-        # self.bit_scale_list[0, 0] = 9
-        # self.bit_scale_list[0, 1] = 1
-        # self.bit_scale_list[1, 0] = 9
-        # self.bit_scale_list[1, 1] = 1
-        # self.bit_scale_list[2, 0] = 9
-        # self.bit_scale_list[2, 1] = 1
         # layer information
         self.layer_info = None
     def structure_forward(self, input):
         # TRADITION
+        # get the layer structure
         input_shape = input.shape
         input_list = torch.split(input, self.split_input, dim = 1)
         output = None
-        for i in range(len(self.layer_list)):
+        for i in range(len(self.sublayer_list)):
             if i == 0:
-                output = self.layer_list[i](input_list[i])
+                output = self.sublayer_list[i](input_list[i])
             else:
-                output.add_(self.layer_list[i](input_list[i]))
+                output.add_(self.sublayer_list[i](input_list[i]))
         output_shape = output.shape
         # layer_info
+        # only conv and fc are QuantizeLayer
         self.layer_info = collections.OrderedDict()
         if self.layer_config['type'] == 'conv':
             self.layer_info['type'] = 'conv'
@@ -168,8 +168,11 @@ class QuantizeLayer(nn.Module):
         self.layer_info['Inputbit'] = int(self.bit_scale_list[0,0].item())
         self.layer_info['Weightbit'] = int(self.quantize_config['weight_bit'])
         self.layer_info['outputbit'] = int(self.quantize_config['activation_bit'])
-        self.layer_info['row_split_num'] = len(self.layer_list)
-        self.layer_info['weight_cycle'] = math.ceil((self.quantize_config['weight_bit'] - 1) / (self.hardware_config['weight_bit']))
+        self.layer_info['row_split_num'] = len(self.sublayer_list)
+        if self.hardware_config['xbar_polarity'] == 2:
+            self.layer_info['weight_bit_split_part'] = math.ceil((self.quantize_config['weight_bit'] - 1) / (self.hardware_config['weight_bit']))
+        else:
+            self.layer_info['weight_bit_split_part'] = math.ceil((self.quantize_config['weight_bit']) / (self.hardware_config['weight_bit']))
         if 'input_index' in self.layer_config:
             self.layer_info['Inputindex'] = self.layer_config['input_index']
         else:
@@ -182,15 +185,15 @@ class QuantizeLayer(nn.Module):
         if METHOD == 'TRADITION':
             input_list = torch.split(input, self.split_input, dim = 1)
             output = None
-            for i in range(len(self.layer_list)):
+            for i in range(len(self.sublayer_list)):
                 if i == 0:
-                    output = self.layer_list[i](input_list[i])
+                    output = self.sublayer_list[i](input_list[i])
                 else:
-                    output.add_(self.layer_list[i](input_list[i]))
+                    output.add_(self.sublayer_list[i](input_list[i]))
             return output
         # fix training
         if METHOD == 'FIX_TRAIN':
-            weight = torch.cat([l.weight for l in self.layer_list], dim = 1)
+            weight = torch.cat([l.weight for l in self.sublayer_list], dim = 1)
             # quantize weight
             global last_weight_scale
             global last_activation_scale
@@ -224,14 +227,17 @@ class QuantizeLayer(nn.Module):
             return output
         assert 0, f'not support {METHOD}'
     def get_bit_weights(self):
-        # weight_bit = int(self.bit_scale_list[1, 0].item())
         weight_bit = self.quantize_config['weight_bit']
         weight_scale = self.bit_scale_list[1, 1].item()
         assert weight_bit != 0 and weight_scale != 0, f'weight bit and scale should be given by the params'
         bit_weights = collections.OrderedDict()
-        for layer_num, l in enumerate(self.layer_list):
-            # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0, generate weight cycle
-            weight_cycle = math.ceil((weight_bit - 1) / self.hardware_config['weight_bit'])
+        for layer_num, l in enumerate(self.sublayer_list):
+            # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0, generate weight part
+            if self.hardware_config['xbar_polarity'] == 2:
+                weight_bit_split_part = math.ceil((weight_bit - 1) / self.hardware_config['weight_bit'])
+                    # weight_bit-1: pos and neg xbar, split weights into multiple part
+            else:
+                weight_bit_split_part = math.ceil(weight_bit / self.hardware_config['weight_bit'])
             # transfer part weight
             thres = 2 ** (weight_bit - 1) - 1
             weight_digit = torch.clamp(torch.round(l.weight / weight_scale), 0 - thres, thres - 0)
@@ -240,30 +246,44 @@ class QuantizeLayer(nn.Module):
             weight_digit = torch.abs(weight_digit)
             base = 1
             step = 2 ** self.hardware_config['weight_bit']
-            for j in range(weight_cycle):
+            for j in range(weight_bit_split_part):
                 tmp = torch.fmod(weight_digit, base * step) - torch.fmod(weight_digit, base)
                 tmp = torch.mul(sign_weight, tmp)
                 tmp = copy.deepcopy((tmp / base).detach().cpu().numpy())
-                bit_weights[f'split{layer_num}_weight{j}_positive'] = np.where(tmp > 0, tmp, 0)
-                bit_weights[f'split{layer_num}_weight{j}_negative'] = np.where(tmp < 0, -tmp, 0)
+                if self.hardware_config['xbar_polarity'] == 2:
+                    # use one pos xbar and one neg xbar to store one weight value
+                    bit_weights[f'split{layer_num}_weight{j}_positive'] = np.where(tmp > 0, tmp, 0)
+                    bit_weights[f'split{layer_num}_weight{j}_negative'] = np.where(tmp < 0, -tmp, 0)
+                else:
+                    # use one xbar to store one weight value
+                    bit_weights[f'split{layer_num}_weight{j}'] = tmp
                 base = base * step
         return bit_weights
     def set_weights_forward(self, input, bit_weights, adc_action):
         assert self.training == False
         output = None
         input_list = torch.split(input, self.split_input, dim = 1)
+            # self.split_input = xbar_size
         scale = self.last_value.item()
         # weight_bit = int(self.bit_scale_list[1, 0].item())
         weight_bit = self.quantize_config['weight_bit']
         weight_scale = self.bit_scale_list[1, 1].item()
-        for layer_num, l in enumerate(self.layer_list):
+        for layer_num, l in enumerate(self.sublayer_list):
             # assert (weight_bit - 1) % self.hardware_config['weight_bit'] == 0, generate weight cycle
-            weight_cycle = math.ceil((weight_bit - 1) / self.hardware_config['weight_bit'])
+            if self.hardware_config['xbar_polarity'] == 2:
+                weight_bit_split_part = math.ceil((weight_bit - 1) / self.hardware_config['weight_bit'])
+                    # weight_bit-1: pos and neg xbar, split weights into multiple part
+            else:
+                weight_bit_split_part = math.ceil(weight_bit / self.hardware_config['weight_bit'])
+
             weight_container = []
             base = 1
             step = 2 ** self.hardware_config['weight_bit']
-            for j in range(weight_cycle):
-                tmp = bit_weights[f'split{layer_num}_weight{j}_positive'] - bit_weights[f'split{layer_num}_weight{j}_negative']
+            for j in range(weight_bit_split_part):
+                if self.hardware_config['xbar_polarity'] == 2:
+                    tmp = bit_weights[f'split{layer_num}_weight{j}_positive'] - bit_weights[f'split{layer_num}_weight{j}_negative']
+                else:
+                    tmp = bit_weights[f'split{layer_num}_weight{j}']
                 tmp = torch.from_numpy(tmp)
                 weight_container.append(tmp.to(device = input.device, dtype = input.dtype))
                 base = base * step
@@ -284,10 +304,10 @@ class QuantizeLayer(nn.Module):
                 activation_in_container.append(torch.mul(sign_activation_in, tmp) / base)
                 base = base * step
             # calculation and add
-            point_shift = math.floor(self.quantize_config['point_shift'] + 0.5 * math.log2(len(self.layer_list)))
-            Q = self.hardware_config['quantize_bit'] + self.layer_config['extend_ADC_bitwidth']
+            point_shift = math.floor(self.quantize_config['point_shift'] + 0.5 * math.log2(len(self.sublayer_list)))
+            Q = self.hardware_config['ADC_quantize_bit'] + self.layer_config['extend_ADC_bitwidth']
             for i in range(activation_in_cycle):
-                for j in range(weight_cycle):
+                for j in range(weight_bit_split_part):
                     tmp = None
                     if self.layer_config['type'] == 'conv':
                         tmp = F.conv2d(
@@ -301,7 +321,7 @@ class QuantizeLayer(nn.Module):
                     if adc_action == 'SCALE':
                         tmp = tmp * weight_scale * activation_in_scale
                         tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
-                                                   (weight_cycle - 1) * self.hardware_config['weight_bit']))
+                            (weight_bit_split_part - 1) * self.hardware_config['weight_bit']))
                         transfer_point = point_shift + (Q - 1)
                         # if self.hardware_config['type'] == 0:
                         tmp = tmp * (2 ** transfer_point)
@@ -319,12 +339,12 @@ class QuantizeLayer(nn.Module):
                         tmp = tmp * fix_scale_range / (2 ** (Q - 1))
                         tmp = tmp * weight_scale * activation_in_scale
                         tmp = tmp / scale * (2 ** ((activation_in_cycle - 1) * self.hardware_config['input_bit'] + \
-                                                   (weight_cycle - 1) * self.hardware_config['weight_bit']))
+                            (weight_bit_split_part - 1) * self.hardware_config['weight_bit']))
                     else:
                         assert 0, f'can not support {adc_action}'
                     # scale
                     scale_point = (activation_in_cycle - 1 - i) * self.hardware_config['input_bit'] + \
-                                  (weight_cycle - 1 - j) * self.hardware_config['weight_bit']
+                                  (weight_bit_split_part - 1 - j) * self.hardware_config['weight_bit']
                     tmp = tmp / (2 ** scale_point)
                     # add
                     if torch.is_tensor(output):
@@ -398,6 +418,7 @@ class StraightLayer(nn.Module):
         # self.last_value[0] = 1
         self.layer_info = None
     def structure_forward(self, input):
+        # get the layer structure of non conv or fc layer
         if self.layer_config['type'] != 'element_sum':
             # generate input shape and output shape
             self.input_shape = input.shape

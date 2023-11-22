@@ -13,6 +13,7 @@ from MNSIM.Interface import quantize
 
 class NetworkGraph(nn.Module):
     def __init__(self, hardware_config, layer_config_list, quantize_config_list, input_index_list, input_params):
+        # input_params contain: 'activation_scale', 'activation_bit', and 'input_shape'
         super(NetworkGraph, self).__init__()
         # same length for layer_config_list , quantize_config_list and input_index_list
         assert len(layer_config_list) == len(quantize_config_list)
@@ -23,6 +24,7 @@ class NetworkGraph(nn.Module):
         for layer_config, quantize_config in zip(layer_config_list, quantize_config_list):
             assert 'type' in layer_config.keys()
             if layer_config['type'] in quantize.QuantizeLayerStr:
+                # configure quantization setting of 'conv' and 'fc'
                 layer = quantize.QuantizeLayer(hardware_config, layer_config, quantize_config)
             elif layer_config['type'] in quantize.StraightLayerStr:
                 layer = quantize.StraightLayer(hardware_config, layer_config, quantize_config)
@@ -92,7 +94,7 @@ class NetworkGraph(nn.Module):
                 )
         return tensor_list[-1]
     def get_structure(self):
-        # forward structure
+        # get network structure information
         x = torch.zeros(self.input_params['input_shape'])
         self.to(x.device)
         self.eval()
@@ -101,6 +103,7 @@ class NetworkGraph(nn.Module):
             # find the input tensor
             input_index = self.input_index_list[i]
             assert len(input_index) in [1, 2]
+                # default: support resnet, thus the input_index has two values at most, for other networks with more branches, modify this value
             # print(tensor_list[input_index[0]+i+1].shape)
             if len(input_index) == 1:
                 tensor_list.append(layer.structure_forward(tensor_list[input_index[0] + i + 1]))
@@ -119,10 +122,14 @@ class NetworkGraph(nn.Module):
         return net_info
     def load_change_weights(self, state_dict):
         # input is a state dict, weights
-        # concat all layer_list weights
+        # concat all layer_list weights, keys_map's format:
+        # layer_list.x.layer.weight (original weight)
+        # layer_list.x (split weight)
+        #   |- layer_list.x.layer_list.0.weight
+        #   |- layer_list.x.layer_list.1.weight
         keys_map = collections.OrderedDict()
         for key in state_dict.keys():
-            tmp_key = re.sub('\.layer_list\.\d+\.weight$', '', key)
+            tmp_key = re.sub('\.[a-z]{0,3}layer_list\.\d+\.weight$', '', key)
             if tmp_key not in keys_map.keys():
                 keys_map[tmp_key] = [key]
             else:
@@ -132,12 +139,14 @@ class NetworkGraph(nn.Module):
         for tmp_key, key_list in keys_map.items():
             if len(key_list) == 1 and tmp_key == key_list[0]:
                 # print('origin weights')
+                # weights on PIM is the original weights
                 tmp_state_dict[tmp_key] = state_dict[key_list[0]]
             else:
                 # print(f'transfer weights {tmp_key}')
                 # get layer info
                 layer_config = None
                 hardware_config = None
+                # retrieve the hardware config and 
                 for i in range(len(self.layer_list)):
                     name = f'layer_list.{i}'
                     if name == tmp_key:
@@ -147,30 +156,31 @@ class NetworkGraph(nn.Module):
                 assert hardware_config, 'layer must have hardware config'
                 # concat weights
                 total_weights = torch.cat([state_dict[key] for key in key_list], dim = 1)
-                # split weights
+                # split weights according to HW parameters (along with output channel dimension)
                 if layer_config['type'] == 'conv':
                     split_len = (hardware_config['xbar_size'] // (layer_config['kernel_size'] ** 2))
                 elif layer_config['type'] == 'fc':
                     split_len = hardware_config['xbar_size']
                 else:
-                    assert 0, f'not support {layer_config["type"]}'
+                    assert 0, f'not support {layer_config["type"]}, only conv and fc layers have weights'
                 weights_list = torch.split(total_weights, split_len, dim = 1)
                 # load weights
                 for i, weights in enumerate(weights_list):
-                    tmp_state_dict[tmp_key + f'.layer_list.{i}.weight'] = weights
+                    tmp_state_dict[tmp_key + f'.sublayer_list.{i}.weight'] = weights
         # load weights
         self.load_state_dict(tmp_state_dict)
 
 def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
+    # define the NN structure
     # initial config
     if hardware_config == None:
-        hardware_config = {'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'quantize_bit': 10}
-        # hardware_config = {'xbar_size': 256, 'input_bit': 1, 'weight_bit': 1, 'quantize_bit': 8}
+        hardware_config = {'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'ADC_quantize_bit': 10}
     # layer_config_list, quantize_config_list, and input_index_list
     layer_config_list = []
     quantize_config_list = []
     input_index_list = []
     # layer by layer
+    # add new NN models here (conv/fc is followed by one bn layer automatically):
     assert cate in ['lenet', 'vgg16', 'vgg8', 'alexnet', 'resnet18']
     if cate.startswith('lenet'):
         layer_config_list.append({'type': 'conv', 'in_channels': 3, 'out_channels': 6, 'kernel_size': 5})
@@ -280,6 +290,7 @@ def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
         layer_config_list.append({'type': 'relu'})
         layer_config_list.append({'type': 'conv', 'in_channels': 64, 'out_channels': 64, 'kernel_size': 3, 'padding': 1, 'stride': 1})
         layer_config_list.append({'type': 'element_sum', 'input_index': [-1, -4]})
+            # input_index indicates the inputs of the current layer come from which layer, "-1" means the previous layer
         layer_config_list.append({'type': 'relu'})
         # block 3
         layer_config_list.append({'type': 'conv', 'in_channels': 64, 'out_channels': 128, 'kernel_size': 3, 'padding': 1, 'stride': 2})
@@ -334,7 +345,9 @@ def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
             input_index_list.append(layer_config_list[i]['input_index'])
         else:
             input_index_list.append([-1])
+                # by default: the inputs of the current layer come from the outputs of the previous layer
     input_params = {'activation_scale': 1. / 255., 'activation_bit': 9, 'input_shape': (1, 3, 32, 32)}
+        # change the input_shape according to datasets
     # add bn for every conv
     L = len(layer_config_list)
     for i in range(L-1, -1, -1):
@@ -342,14 +355,12 @@ def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
             # continue
             layer_config_list.insert(i+1, {'type': 'bn', 'features': layer_config_list[i]['out_channels']})
             quantize_config_list.insert(i+1, {'weight_bit': 9, 'activation_bit': 9, 'point_shift': -2})
+            # update the input_index_list after adding bn layer
             input_index_list.insert(i+1, [-1])
             for j in range(i + 2, len(layer_config_list), 1):
                 for relative_input_index in range(len(input_index_list[j])):
                     if j + input_index_list[j][relative_input_index] < i + 1:
                         input_index_list[j][relative_input_index] -= 1
-    # print(layer_config_list)
-    # print(quantize_config_list)
-    # print(input_index_list)
     # generate net
     net = NetworkGraph(hardware_config, layer_config_list, quantize_config_list, input_index_list, input_params)
     return net
