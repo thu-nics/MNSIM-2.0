@@ -1,14 +1,17 @@
 #-*-coding:utf-8-*-
 import argparse
 from importlib import import_module
-
+import sys
+import os
+work_path = os.path.dirname(os.path.dirname(os.getcwd()))
+sys.path.append(work_path)
 import torch
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-g', '--gpu', help = 'select gpu')
+parser.add_argument('-g', '--gpu', default='0', help = 'select gpu')
 parser.add_argument('-d', '--dataset', help = 'select dataset')
 parser.add_argument('-n', '--net', help = 'select net')
-parser.add_argument('-t', '--train', help = 'select train')
+parser.add_argument('-t', '--train', default='train', help = 'select train')
 parser.add_argument('-p', '--prefix', help = 'select prefix')
 parser.add_argument('-m', '--mode', help = 'select mode', choices = ['train', 'test'])
 parser.add_argument('-w', '--weight', help = 'weight file')

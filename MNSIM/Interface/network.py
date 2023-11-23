@@ -174,7 +174,7 @@ def get_net(hardware_config = None, cate = 'lenet', num_classes = 10):
     # define the NN structure
     # initial config
     if hardware_config == None:
-        hardware_config = {'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'ADC_quantize_bit': 10}
+        hardware_config = {'xbar_size': 512, 'input_bit': 2, 'weight_bit': 1, 'ADC_quantize_bit': 10, 'DAC_num': 256}
     # layer_config_list, quantize_config_list, and input_index_list
     layer_config_list = []
     quantize_config_list = []
