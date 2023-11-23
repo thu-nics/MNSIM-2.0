@@ -4,6 +4,8 @@ import math
 import random
 import configparser as cp
 import numpy as np
+work_path = os.path.dirname(os.path.dirname(os.getcwd()))
+sys.path.append(work_path)
 from MNSIM.Hardware_Model import *
 from MNSIM.Hardware_Model.Crossbar import crossbar
 from MNSIM.Interface.interface import *
@@ -25,6 +27,8 @@ def weight_update(SimConfig_path, weight, is_SAF=0, is_Variation=0, is_Rratio=0)
         interval += 1 / device_resistance[i + 1] - 1 / device_resistance[i]
     interval /= len(device_resistance) - 1
     unit_conduntance = max_value/(1/device_resistance[-1])
+    total_difference = 0
+    total_size = 0
     for i in range(len(weight)):
         if weight[i] is not None:
             for label, value in weight[i].items():
@@ -33,30 +37,36 @@ def weight_update(SimConfig_path, weight, is_SAF=0, is_Variation=0, is_Rratio=0)
                     for j in range(len(device_resistance)):
                         temp_resistance = 0
                         if(is_Variation):
-                            temp_resistance = np.random.normal(loc=0,
-                                                    scale=device_resistance[j] * variation / 100)
+                            temp_resistance = np.random.normal(loc=0,scale=device_resistance[j] * variation / 100)
                         value = np.where(value == j, 1/(device_resistance[j]+temp_resistance)*unit_conduntance, value)
                 if (is_SAF):
                     SAF = np.random.random_sample(value.shape)
+                    value_bkp = value
+                    # noise_saf0 = np.where(SAF < float(SAF_dist[0] / 100), 1, 0)
+                    # print("noise_saf0", noise_saf0.sum()/noise_saf0.size)
+                    # noise_saf1 = np.where(SAF > 1 - float(SAF_dist[-1] / 100), 1, 0)
+                    # print("noise_saf1", noise_saf1.sum()/noise_saf1.size)
                     value = np.where(SAF < float(SAF_dist[0] / 100), 0, value)
                     value = np.where(SAF > 1 - float(SAF_dist[-1] / 100), max_value, value)
-                    # print(value)
+                    # value = np.where(SAF > 1 - float(SAF_dist[-1] / 100), 1, value)
+                    difference = np.where(value_bkp==value, 0, 1)
+                    total_difference += difference.sum()
+                    total_size += value.size
                 weight[i].update({label: value.astype(float)})
+    # print(total_size, total_difference/total_size)
+    #    print true error rate
     return weight
 
 if __name__ == '__main__':
     SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
-    weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"cifar10_lenet_params.pth")
-    __TestInterface = TrainTestInterface('lenet', 'MNSIM.Interface.cifar10', SimConfig_path,
+    weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"cifar10_vgg8_params.pth")
+    __TestInterface = TrainTestInterface('vgg8', 'MNSIM.Interface.cifar10', SimConfig_path,
                                          weights_file_path, 0)
     structure_file = __TestInterface.get_structure()
     weight = __TestInterface.get_net_bits()
-    weight_2 = weight_update(SimConfig_path, weight, is_Variation=0,is_SAF=0,is_Rratio=1)
-    # weight_2 = _test.non_ideal_analyzer()
-    # print(weight_2[0]['split0_weight0_positive'].dtype)
+    weight_2 = weight_update(SimConfig_path, weight, is_Variation=0,is_SAF=1,is_Rratio=0)
     weight = __TestInterface.get_net_bits()
-    # print(weight_2-weight)
-    print(__TestInterface.set_net_bits_evaluate(weight_2))
+    # print(__TestInterface.set_net_bits_evaluate(weight_2))
 
 
 
