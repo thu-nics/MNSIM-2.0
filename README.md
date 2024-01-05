@@ -17,3 +17,5 @@ Xiaoming Chen<sup>4</sup>, Yuan Xie<sup>2, 5</sup>, Yu Cao<sup>7</sup>, X. Sharo
 MNSIM-2.0 aims to model the HW performance and NN computing accuracy of Processing-In-Memory (PIM) architectures. If you have any questions and suggestions about MNSIM-2.0 please contact us via e-mail. We hope that MNSIM-2.0 can be helpful to your research work, and sincerely invite every PIM researcher to add your ideas to MNSIM-2.0 to enlarge its function.
 
 For more information about MNSIM-2.0, please refer to the MNSIM_manual.pdf and the IEEE TCAD paper of MNSIM 2.0.
+
+*Weights File: https://1drv.ms/f/s!AtForEDTP2-PgkzYkCJNONO9xnX6?e=y4s0XG*
