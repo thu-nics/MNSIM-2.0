@@ -153,7 +153,7 @@ class TrainTestInterface(object):
             if not (len(net_structure_info[i]['Outputindex']) == 1 and net_structure_info[i]['Outputindex'][0] == 1):
                 # TODO: current version: each layer contains only one output index
                 raise Exception('duplicate output')
-            if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'fc']:
+            if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'concat','fc']:
                 absolute_index[i] = absolute_count
                 absolute_count = absolute_count + 1
             else:
@@ -162,7 +162,7 @@ class TrainTestInterface(object):
                 absolute_index[i] = absolute_index[i + net_structure_info[i]['Inputindex'][0]]
         graph = list()
         for i in range(len(net_structure_info)):
-            if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'fc']:
+            if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'concat', 'fc']:
                 # layer num, layer type: need to be computed on PIM, e.g., conv, fc, pooling, element_sum
                 layer_num = absolute_index[i]
                 layer_type = net_structure_info[i]['type']
@@ -171,7 +171,7 @@ class TrainTestInterface(object):
                 # get the layer's output index
                 layer_output = list()
                 for tmp_i in range(len(net_structure_info)):
-                    if net_structure_info[tmp_i]['type'] in ['conv', 'pooling', 'element_sum', 'fc']:
+                    if net_structure_info[tmp_i]['type'] in ['conv', 'pooling', 'element_sum','concat', 'fc']:
                         tmp_layer_num = absolute_index[tmp_i]
                         tmp_layer_input = list(map(lambda x: (absolute_index[tmp_i + x] if tmp_i + x != -1 else -1), net_structure_info[tmp_i]['Inputindex']))
                         if layer_num in tmp_layer_input:
