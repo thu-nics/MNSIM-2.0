@@ -43,14 +43,26 @@ class NetworkGraph(nn.Module):
         for i, layer in enumerate(self.layer_list):
             # find the input tensor
             input_index = self.input_index_list[i]
-            assert len(input_index) in [1, 2]
+            assert len(input_index) in [1, 2, 4] #"4" for GoogLeNet
             if len(input_index) == 1:
                 tensor_list.append(layer.forward(tensor_list[input_index[0] + i + 1], method, adc_action))
+            elif len(input_index) == 2:
+                tensor_list.append(
+                    layer.forward([
+                        tensor_list[input_index[0] + i + 1],
+                        tensor_list[input_index[1] + i + 1],
+                    ],
+                    method,
+                    adc_action,
+                    )
+                )
             else:
                 tensor_list.append(
                     layer.forward([
                         tensor_list[input_index[0] + i + 1],
                         tensor_list[input_index[1] + i + 1],
+                        tensor_list[input_index[2] + i + 1],
+                        tensor_list[input_index[3] + i + 1],
                     ],
                     method,
                     adc_action,

@@ -150,6 +150,7 @@ class QuantizeLayer(nn.Module):
         # layer_info
         # only conv and fc are QuantizeLayer
         self.layer_info = collections.OrderedDict()
+        self.layer_info['name'] = self.layer_config['name']
         if self.layer_config['type'] == 'conv':
             self.layer_info['type'] = 'conv'
             self.layer_info['Inputchannel'] = int(input_shape[1])
@@ -368,6 +369,13 @@ class ViewLayer(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
+class ConcatLayer(nn.Module):
+    def __init__(self):
+        super(ConcatLayer, self).__init__()
+    def forward(self, x):
+        return torch.cat([xi for xi in x], 1)
+
+
 class EleSumLayer(nn.Module):
     def __init__(self):
         super(EleSumLayer, self).__init__()
@@ -399,6 +407,8 @@ class StraightLayer(nn.Module):
                     stride = self.layer_config['stride'], \
                     padding = self.layer_config['padding']
                 )
+            elif self.layer_config['mode'] == 'ADA':
+                self.layer = nn.AdaptiveAvgPool2d((1, 1))
             else:
                 assert 0, f'not support {self.layer_config["mode"]}'
         elif self.layer_config['type'] == 'relu':
@@ -411,6 +421,8 @@ class StraightLayer(nn.Module):
             self.layer = nn.Dropout()
         elif self.layer_config['type'] == 'element_sum':
             self.layer = EleSumLayer()
+        elif self.layer_config['type'] == 'concat':
+            self.layer = ConcatLayer()
         else:
             assert 0, f'not support {self.layer_config["type"]}'
         # self.last_value = nn.Parameter(torch.ones(1))
@@ -419,13 +431,14 @@ class StraightLayer(nn.Module):
         self.layer_info = None
     def structure_forward(self, input):
         # get the layer structure of non conv or fc layer
-        if self.layer_config['type'] != 'element_sum':
+        if self.layer_config['type'] != 'element_sum' and self.layer_config['type'] != 'concat':
             # generate input shape and output shape
             self.input_shape = input.shape
             output = self.layer.forward(input)
             self.output_shape = output.shape
             # generate layer_info
             self.layer_info = collections.OrderedDict()
+            self.layer_info['name'] = self.layer_config['name']
             if self.layer_config['type'] == 'pooling':
                 self.layer_info['type'] = 'pooling'
                 self.layer_info['Inputchannel'] = int(self.input_shape[1])
@@ -447,11 +460,12 @@ class StraightLayer(nn.Module):
             else:
                 assert 0, f'not support {self.layer_config["type"]}'
         else:
-            self.input_shape = (input[0].shape, input[1].shape)
+            self.input_shape = (i.shape for i in input)
             output = self.layer.forward(input)
             self.output_shape = output.shape
             self.layer_info = collections.OrderedDict()
-            self.layer_info['type'] = 'element_sum'
+            self.layer_info['name'] = self.layer_config['name']
+            self.layer_info['type'] = self.layer_config['type']
         self.layer_info['Inputbit'] = self.quantize_config['activation_bit']
         self.layer_info['Weightbit'] = self.quantize_config['weight_bit']
         self.layer_info['outputbit'] = self.quantize_config['activation_bit']
@@ -480,4 +494,4 @@ class StraightLayer(nn.Module):
         return None
     def extra_repr(self):
         return str(self.hardware_config) + ' ' + str(self.layer_config) + ' ' + str(self.quantize_config)
-StraightLayerStr = ['pooling', 'relu', 'view', 'bn', 'dropout', 'element_sum']
+StraightLayerStr = ['pooling', 'relu', 'view', 'concat', 'bn', 'dropout', 'element_sum']
