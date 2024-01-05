@@ -150,7 +150,7 @@ class QuantizeLayer(nn.Module):
         # layer_info
         # only conv and fc are QuantizeLayer
         self.layer_info = collections.OrderedDict()
-        self.layer_info['name'] = self.layer_config['name']
+        # self.layer_info['name'] = self.layer_config['name']
         if self.layer_config['type'] == 'conv':
             self.layer_info['type'] = 'conv'
             self.layer_info['Inputchannel'] = int(input_shape[1])
@@ -438,7 +438,7 @@ class StraightLayer(nn.Module):
             self.output_shape = output.shape
             # generate layer_info
             self.layer_info = collections.OrderedDict()
-            self.layer_info['name'] = self.layer_config['name']
+            # self.layer_info['name'] = self.layer_config['name']
             if self.layer_config['type'] == 'pooling':
                 self.layer_info['type'] = 'pooling'
                 self.layer_info['Inputchannel'] = int(self.input_shape[1])
@@ -464,7 +464,7 @@ class StraightLayer(nn.Module):
             output = self.layer.forward(input)
             self.output_shape = output.shape
             self.layer_info = collections.OrderedDict()
-            self.layer_info['name'] = self.layer_config['name']
+            # self.layer_info['name'] = self.layer_config['name']
             self.layer_info['type'] = self.layer_config['type']
         self.layer_info['Inputbit'] = self.quantize_config['activation_bit']
         self.layer_info['Weightbit'] = self.quantize_config['weight_bit']
