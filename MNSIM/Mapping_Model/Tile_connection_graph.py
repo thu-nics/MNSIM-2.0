@@ -238,7 +238,9 @@ class TCG():
         self.global_data_size = 0
         self.global_adder_num = 0
             # the global adder number in accumulator
+        self.global_multiplier_num=0
         self.global_adder_bitwidth = 8
+        self.global_multiplier_bitwidth=8
         num = []
             # track PE number of each layer 
         total_xbar_num = 0
@@ -290,8 +292,9 @@ class TCG():
                     # is_branchout: if this layer is the output layer of a branch (the next layer is element_sum)
                 for i in tmp_tileinfo['Outputindex']:
                     tmp_layer = self.net[i+layer_id][0][0]
-                    if tmp_layer['type'] != 'element_sum':
+                    if tmp_layer['type'] != 'element_sum' and tmp_layer['type'] != 'element_multiply':
                         tmp_tileinfo['is_branchout'] = -1
+
                 input_size_list = list(map(int, layer_dict['Inputsize']))
                 input_size = input_size_list[0] * input_size_list[1]
                 inputchannel = int(layer_dict['Inputchannel'])
@@ -331,7 +334,7 @@ class TCG():
                 for i in tmp_tileinfo['Outputindex']:
                     if (i+layer_id) < self.layer_num:
                         tmp_layer = self.net[i + layer_id][0][0]
-                        if tmp_layer['type'] != 'element_sum':
+                        if (tmp_layer['type'] != 'element_sum' and tmp_layer['type']!= 'element_multiply'):
                             tmp_tileinfo['is_branchout'] = -1
                 # is_branchin: if this layer is the input layer of a branch
                 input_size = int(layer_dict['Infeature'])
@@ -365,7 +368,7 @@ class TCG():
                 # is_branchout: if this layer is the output layer of a branch (the next layer is element_sum)
                 for i in tmp_tileinfo['Outputindex']:
                     tmp_layer = self.net[i + layer_id][0][0]
-                    if tmp_layer['type'] != 'element_sum':
+                    if tmp_layer['type'] != 'element_sum' and tmp_layer['type'] != 'element_multiply':
                         tmp_tileinfo['is_branchout'] = -1
                 input_size_list = list(map(int, layer_dict['Inputsize']))
                 input_size = input_size_list[0] * input_size_list[1]
@@ -374,6 +377,7 @@ class TCG():
                 data_outbuf = 0
                     # assume the buffer size depends on the conv/fc layers
             elif layer_type == 'element_sum':
+
                 tmp_tileinfo['type'] = 'element_sum'
                 tmp_tileinfo['mx'] = 0
                 tmp_tileinfo['my'] = 0
@@ -399,6 +403,7 @@ class TCG():
                 while previous_layer_dict['type'] == 'element_sum':
                     idx = idx+1
                     previous_layer_dict = self.net[layer_id + Inputindex_list[idx]][0][0]
+               
                 previous_output_size = list(map(int, previous_layer_dict['Outputsize']))
                 tmp_tileinfo['datanum_branchout'] = previous_layer_dict['Outputchannel']
                     # the data number of each branch output, assume the previous layer generates 1*1*outputchannel each cycle
@@ -412,7 +417,45 @@ class TCG():
                 self.global_adder_num = self.global_adder_num + previous_layer_dict['Outputchannel']*len(Inputindex_list)//2
                 if tmp_tileinfo['bit_branchout']>self.global_adder_bitwidth:
                     self.global_adder_bitwidth = tmp_tileinfo['bit_branchout']
-
+            elif layer_type == 'element_multiply':
+                tmp_tileinfo['type'] = 'element_multiply'
+                tmp_tileinfo['mx'] = 0
+                tmp_tileinfo['my'] = 0
+                tmp_tileinfo['max_row'] = 0
+                tmp_tileinfo['max_column'] = 0
+                tmp_tileinfo['max_group'] = 0
+                if 'Outputindex' not in layer_dict.keys():
+                    tmp_tileinfo['Outputindex'] = [1]
+                else:
+                    tmp_tileinfo['Outputindex'] = list(map(int, layer_dict['Outputindex']))
+                # Outputindex: the relative index of the output layers of this layer
+                if len(tmp_tileinfo['Outputindex']) == 1:
+                    tmp_tileinfo['is_branchin'] = -1
+                else:
+                    tmp_tileinfo['is_branchin'] = 1
+                tmp_tileinfo['is_branchout'] = -1
+                # is_branchin: if this layer is the input layer of a branch
+                Inputindex_list = list(map(int, layer_dict['Inputindex']))
+                tmp_tileinfo['Inputindex'] = Inputindex_list
+                assert len(Inputindex_list)>1, "the number of element_multiply's previous layers must > 1"
+                idx = 0
+                previous_layer_dict = self.net[layer_id + Inputindex_list[0]][0][0]
+                while previous_layer_dict['type'] == 'element_multiply':
+                    idx = idx+1
+                    previous_layer_dict = self.net[layer_id + Inputindex_list[idx]][0][0]
+                #previous_output_size = list(map(int, previous_layer_dict['Outputsize']))
+                tmp_tileinfo['datanum_branchout'] = previous_layer_dict['Outputchannel']
+                    # the data number of each branch output, assume the previous layer generates 1*1*outputchannel each cycle
+                tmp_tileinfo['bit_branchout'] = previous_layer_dict['outputbit']
+                    # the data precision of each branch output (bit)
+                data_size = tmp_tileinfo['datanum_branchout']*tmp_tileinfo['bit_branchout']*len(Inputindex_list)/8
+                    # unit: Byte
+                self.global_data_size = self.global_data_size + data_size
+                self.global_buf_size = self.global_buf_size + math.pow(2,math.ceil(math.log(data_size,2)))/1024
+                    # unit: KB
+                self.global_multiplier_num = self.global_multiplier_num + previous_layer_dict['Outputchannel']*len(Inputindex_list)//2
+                if tmp_tileinfo['bit_branchout']>self.global_adder_bitwidth:
+                    self.global_adder_bitwidth = tmp_tileinfo['bit_branchout']
             if layer_type == 'conv' or layer_type == 'fc':
                 total_xbar_num += tmp_tileinfo['mx'] * tmp_tileinfo['my'] * multiple[layer_id]
             tmp_tileinfo['PEnum'] = tmp_tileinfo['mx'] * tmp_tileinfo['my'] * multiple[layer_id]
@@ -530,7 +573,7 @@ class TCG():
                                 self.transLayer_distance[0][layer_id] = maxdis_out
                                 self.aggregate_arg[layer_id] = src_pos[A]
                                 mindis_total = tempdis
-                elif self.layer_tileinfo[layer_id]['type'] == 'element_sum':
+                elif self.layer_tileinfo[layer_id]['type'] == 'element_sum' or self.layer_tileinfo[layer_id]['type'] == 'element_multiply':
                     maxdis_out = 0
                     for idx in self.layer_tileinfo[layer_id]['Outputindex']:
                         dst_pos = np.argwhere(self.mapping_result == (layer_id + idx))

@@ -7,9 +7,9 @@ import torch.utils.data as Data
 import torchvision
 import torchvision.transforms as Transforms
 
-TRAIN_BATCH_SIZE = 128
+TRAIN_BATCH_SIZE = 256
 TRAIN_NUM_WORKERS = 0
-TEST_BATCH_SIZE = 100
+TEST_BATCH_SIZE = 256
 TEST_NUM_WORKERS = 0
 
 def get_dataloader():
@@ -20,6 +20,7 @@ def get_dataloader():
         transform = Transforms.Compose([
             Transforms.Pad(padding = 4),
             Transforms.RandomCrop(32),
+            #Transforms.Resize((224,224)),
             Transforms.RandomHorizontalFlip(),
             Transforms.ToTensor(),
         ])

@@ -41,7 +41,7 @@ def main():
         help="Disable hardware modeling, default: false")
     parser.add_argument("-DisAccu", "--disable_accuracy_simulation", action='store_true', default=False,
         help="Disable accuracy simulation, default: false")
-    parser.add_argument("-SAF", "--enable_SAF", action='store_true', default=False,
+    parser.add_argument("-SAF", "--enable_SAF", action='store_true', default=True,
         help="Enable simulate SAF, default: false")
     parser.add_argument("-Var", "--enable_variation", action='store_true', default=False,
         help="Enable simulate variation, default: false")
@@ -68,10 +68,13 @@ def main():
         print("Quantization range: fixed range (depends on the maximum value)")
     else:
         print("Quantization range: dynamic range (depends on the data distribution)")
-
+   
     mapping_start_time = time.time()
+    
+    #cifar10/cifar100/Imagenet
     __TestInterface = TrainTestInterface(network_module=args.NN, dataset_module='MNSIM.Interface.cifar10',  
         SimConfig_path=args.hardware_description, weights_file=args.weights, device=args.device)
+   
     structure_file = __TestInterface.get_structure()
     TCG_mapping = TCG(structure_file, args.hardware_description)
     # print(TCG_mapping.max_inbuf_size)
@@ -83,6 +86,7 @@ def main():
         if not (args.disable_inner_pipeline):
             __latency.calculate_model_latency(mode=1)
             # __latency.calculate_model_latency_nopipe()
+            
         else:
             __latency.calculate_model_latency_nopipe()
         hardware_modeling_end_time = time.time()
@@ -90,6 +94,7 @@ def main():
         __latency.model_latency_output(not (args.disable_module_output), not (args.disable_layer_output))
 
         __area = Model_area(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
+        
         print("========================Area Results=================================")
         __area.model_area_output(not (args.disable_module_output), not (args.disable_layer_output))
         __power = Model_inference_power(NetStruct=structure_file, SimConfig_path=args.hardware_description,
@@ -107,6 +112,7 @@ def main():
         print("Accuracy simulation will take a few minutes on GPU")
         accuracy_modeling_start_time = time.time()
         weight = __TestInterface.get_net_bits()
+        
         weight_2 = weight_update(args.hardware_description, weight,
                                  is_Variation=args.enable_variation, is_SAF=args.enable_SAF, is_Rratio=args.enable_R_ratio)
         if not (args.enable_fixed_Qrange):

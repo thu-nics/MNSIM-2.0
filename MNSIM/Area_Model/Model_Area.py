@@ -12,6 +12,9 @@ import pandas as pd
 from MNSIM.Hardware_Model.Tile import tile
 from MNSIM.Hardware_Model.Buffer import buffer
 from MNSIM.Hardware_Model.Adder import adder
+#linqiushi modified
+from MNSIM.Hardware_Model.Multiplier import multiplier
+#linqiushi above
 class Model_area():
     def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None):
         self.NetStruct = NetStruct
@@ -70,6 +73,9 @@ class Model_area():
         self.global_buf = buffer(SimConfig_path=self.SimConfig_path,buf_level=1,default_buf_size=self.graph.global_buf_size)
         self.global_buf.calculate_buf_area()
         self.global_add = adder(SimConfig_path=self.SimConfig_path,bitwidth=self.graph.global_adder_bitwidth)
+        #linqiushi modified 
+        self.global_mul=multiplier(SimConfig_path=self.SimConfig_path,bitwidth=self.graph.global_multiplier_bitwidth)
+        #linqiushi above
         self.global_add.calculate_adder_area()
         for i in range(self.total_layer_num):
             tile_num = self.graph.layer_tileinfo[i]['tilenum']
@@ -123,11 +129,29 @@ class Model_area():
             for i in range(self.total_layer_num):
                 print("Layer", i, ":")
                 layer_dict = self.NetStruct[i][0][0]
+                #linqiushi modified
                 if layer_dict['type'] == 'element_sum':
                     print("     Hardware area (global accumulator):", self.global_add.adder_area*self.graph.global_adder_num+self.global_buf.buf_area, "um^2")
+                elif layer_dict['type']=='element_multiply':
+                    print("     Hardware area (global accumulator):", self.global_mul.multiplier_area*self.graph.global_multiplier_num+self.global_buf.buf_area, "um^2")
                 else:
                     print("     Hardware area:", self.arch_area[i], "um^2")
-
+                #linqiushi above
+    #linqiushi modified
+    def area_output_CNNParted(self):
+        area_list=[]
+        
+        for i in range(self.total_layer_num):
+            layer_dict = self.NetStruct[i][0][0]
+            
+            if layer_dict['type'] == 'element_sum':
+                area_list.append(self.global_add.adder_area*self.graph.global_adder_num+self.global_buf.buf_area)
+            elif layer_dict['type']=='element_multiply':
+                area_list.append(self.global_mul.multiplier_area*self.graph.global_multiplier_num+self.global_buf.buf_area)
+            else:
+                area_list.append(self.arch_area[i])
+        return area_list
+    #linqiushi above
 if __name__ == '__main__':
     test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
     test_weights_file_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),

@@ -70,6 +70,7 @@ class TrainTestInterface(object):
         }
         self.input_bit = DAC_precision_dict[DAC_choice]
         self.ADC_quantize_bit = ADC_precision_dict[ADC_choice]
+        
         self.hardware_config['input_bit'] = self.input_bit
         self.hardware_config['ADC_quantize_bit'] = self.ADC_quantize_bit
         # group num
@@ -87,6 +88,8 @@ class TrainTestInterface(object):
             num_classes = 10
         elif dataset_module.endswith('cifar100'):
             num_classes = 100
+        elif dataset_module.endswith('Imagenet'):
+            num_classes = 1000
         else:
             assert 0, f'unknown dataset'
             # add num_classes manually when introducing new datasets
@@ -98,7 +101,9 @@ class TrainTestInterface(object):
         if weights_file is not None:
             print(f'load weights from {weights_file}')
             # load weights and split weights according to HW parameters
+            #linqiushi modified
             self.net.load_change_weights(torch.load(weights_file, map_location=self.device))
+            #linqiushi above
     def origin_evaluate(self, method = 'SINGLE_FIX_TEST', adc_action = 'SCALE'):
         if self.test_loader == None:
             self.test_loader = import_module(self.dataset_module).get_dataloader()[1]
@@ -112,11 +117,15 @@ class TrainTestInterface(object):
                     break
                 images = images.to(self.device)
                 test_total += labels.size(0)
+                
                 outputs = self.net(images, method, adc_action)
+               
                 # predicted
                 labels = labels.to(self.device)
                 _, predicted = torch.max(outputs, 1)
+                
                 test_correct += (predicted == labels).sum().item()
+                
         return test_correct / test_total
     def get_net_bits(self):
         net_bit_weights = self.net.get_weights()
@@ -138,7 +147,9 @@ class TrainTestInterface(object):
                 # predicted
                 labels = labels.to(self.device)
                 _, predicted = torch.max(outputs, 1)
+                
                 test_correct += (predicted == labels).sum().item()
+                
         return test_correct / test_total
     def get_structure(self):
         net_bit_weights = self.net.get_weights()
@@ -153,7 +164,10 @@ class TrainTestInterface(object):
             if not (len(net_structure_info[i]['Outputindex']) == 1 and net_structure_info[i]['Outputindex'][0] == 1):
                 # TODO: current version: each layer contains only one output index
                 raise Exception('duplicate output')
-            if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'concat','fc']:
+            #if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'concat','fc']:
+            #linqiushi modified
+            if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'concat','fc','element_multiply']:
+            #linqiushi above
                 absolute_index[i] = absolute_count
                 absolute_count = absolute_count + 1
             else:
@@ -162,7 +176,10 @@ class TrainTestInterface(object):
                 absolute_index[i] = absolute_index[i + net_structure_info[i]['Inputindex'][0]]
         graph = list()
         for i in range(len(net_structure_info)):
-            if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'concat', 'fc']:
+            #if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'concat', 'fc']:
+            #linqiushi modified
+            if net_structure_info[i]['type'] in ['conv', 'pooling', 'element_sum', 'concat', 'fc','element_multiply']:
+            #linqiushi above
                 # layer num, layer type: need to be computed on PIM, e.g., conv, fc, pooling, element_sum
                 layer_num = absolute_index[i]
                 layer_type = net_structure_info[i]['type']
@@ -171,7 +188,10 @@ class TrainTestInterface(object):
                 # get the layer's output index
                 layer_output = list()
                 for tmp_i in range(len(net_structure_info)):
-                    if net_structure_info[tmp_i]['type'] in ['conv', 'pooling', 'element_sum','concat', 'fc']:
+                    #if net_structure_info[tmp_i]['type'] in ['conv', 'pooling', 'element_sum','concat', 'fc']:
+                    #linqiushi modified
+                    if net_structure_info[tmp_i]['type'] in ['conv', 'pooling', 'element_sum','concat', 'fc','element_multiply']:
+                    #linqiushi above
                         tmp_layer_num = absolute_index[tmp_i]
                         tmp_layer_input = list(map(lambda x: (absolute_index[tmp_i + x] if tmp_i + x != -1 else -1), net_structure_info[tmp_i]['Inputindex']))
                         if layer_num in tmp_layer_input:
@@ -188,7 +208,10 @@ class TrainTestInterface(object):
             layer_structure_info['Outputindex'] = list(map(lambda x: x - graph[layer_count][0], graph[layer_count][3]))
             # add for element_sum and pooling
             if layer_bit_weights == None:
-                if layer_structure_info['type'] in ['element_sum', 'pooling']:
+                #if layer_structure_info['type'] in ['element_sum', 'pooling']:
+                #linqiushi modified
+                if layer_structure_info['type'] in ['element_sum', 'pooling','element_multiply']:
+                #linqiushi above
                     net_array.append([(layer_structure_info, None)])
                 continue
             assert len(layer_bit_weights.keys()) == layer_structure_info['row_split_num'] * layer_structure_info['weight_bit_split_part'] * self.hardware_config['xbar_polarity']

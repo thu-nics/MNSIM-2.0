@@ -12,6 +12,8 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 
 class crossbar_accuracy():
     def __init__(self, SimConfig_path):
+        #linqiiushi:add SimConfig_path(line below)
+        #SimConfig_path = os.path.abspath(os.path.join(os.getcwd(),'..','SimConfig',SimConfig_path))
         self.SimConfig_path = SimConfig_path
         xbar = crossbar(SimConfig_path)
         print("Hardware config file is loaded:", SimConfig_path)
