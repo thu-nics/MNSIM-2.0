@@ -14,7 +14,8 @@ def weight_update(SimConfig_path, weight, is_SAF=0, is_Variation=0, is_Rratio=0)
     # print("Hardware config file is loaded:", SimConfig_path)
     wu_config = cp.ConfigParser()
     wu_config.read(SimConfig_path, encoding='UTF-8')
-    SAF_dist = list(map(int, wu_config.get('Device level', 'Device_SAF').split(',')))
+    
+    SAF_dist = list(map(float, wu_config.get('Device level', 'Device_SAF').split(',')))
     variation = float(wu_config.get('Device level', 'Device_Variation'))
     device_level = int(wu_config.get('Device level', 'Device_Level'))
     assert device_level >= 0, "NVM resistance level < 0"

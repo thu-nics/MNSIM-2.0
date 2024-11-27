@@ -130,6 +130,9 @@ class Model_inference_power():
                 if layer_dict['type'] == 'element_sum':
                     print("     Hardware power (global accumulator):", self.global_add.adder_power*self.graph.global_adder_num
                           +self.global_buf.buf_wpower*1e-3+self.global_buf.buf_rpower*1e-3, "W")
+                elif layer_dict['type'] == 'element_multiply':
+                    print("     Hardware power (global accumulator):", self.global_add.adder_power*self.graph.global_multiplier_num
+                          +self.global_buf.buf_wpower*1e-3+self.global_buf.buf_rpower*1e-3, "W")
                 else:
                     print("     Hardware power:", self.arch_power[i], "W")
 if __name__ == '__main__':

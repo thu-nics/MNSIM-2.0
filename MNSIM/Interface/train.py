@@ -11,11 +11,11 @@ from tensorboardX import SummaryWriter
 tensorboard_writer = None
 
 MOMENTUM = 0.9
-WEIGHT_DECAY = 0.0005
-GAMMA = 0.01
-lr = 0.1
+WEIGHT_DECAY = 0.0001
+GAMMA = 0.06
+lr = 0.01
 MILESTONES = [30, 60]
-EPOCHS = 90
+EPOCHS = 60
 
 TRAIN_PARAMETER = '''\
 # TRAIN_PARAMETER
@@ -33,12 +33,14 @@ WEIGHT_DECAY,
 GAMMA,
 EPOCHS,
 )
-
 def train_net(net, train_loader, test_loader, device, prefix):
     global tensorboard_writer
     tensorboard_writer = SummaryWriter(log_dir = os.path.join(os.path.dirname(__file__), f'runs/{prefix}'))
     # set net on gpu
+    device_ids=[0,1,2,3,4,5,6]
+    net=torch.nn.DataParallel(net,device_ids=device_ids)
     net.to(device)
+    
     # loss and optimizer
     criterion = nn.CrossEntropyLoss()
     # scale's lr and weight_decay set to 0
@@ -48,23 +50,35 @@ def train_net(net, train_loader, test_loader, device, prefix):
     # test init
     # eval_net(net, test_loader, 0, device)
     # epochs
+    
+    #print(prefix)
     for epoch in range(EPOCHS):
         # train
         net.train()
         scheduler.step()
+       
         for i, (images, labels) in enumerate(train_loader):
             net.zero_grad()
+            
             images = images.to(device)
             labels = labels.to(device)
+            #print("labelshape:",labels.shape)
+            
             outputs = net(images, 'FIX_TRAIN')
+            
+            #print("finalloss:",outputs.shape,labels.shape)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
             print(f'epoch {epoch+1:3d}, {i:3d}|{len(train_loader):3d}, loss: {loss.item():2.4f}', end = '\r')
             tensorboard_writer.add_scalars('train_loss', {'train_loss': loss.item()}, epoch * len(train_loader) + i)
-        eval_net(net, test_loader, epoch + 1, device)
-        torch.save(net.state_dict(), os.path.join(os.path.dirname(__file__), f'zoo/{prefix}_params.pth'))
 
+        eval_net(net, test_loader, epoch + 1, device)
+        torch.save(net.state_dict(), os.path.join(os.path.dirname(__file__), f'zoo/{prefix}_99qbitpim_params.pth'))
+       
+        torch.cuda.empty_cache()
+   
+        
 def eval_net(net, test_loader, epoch, device):
     # set net on gpu
     net.to(device)
@@ -73,6 +87,7 @@ def eval_net(net, test_loader, epoch, device):
     test_total = 0
     with torch.no_grad():
         for i, (images, labels) in enumerate(test_loader):
+            
             images = images.to(device)
             test_total += labels.size(0)
             outputs = net(images, 'FIX_TRAIN')
